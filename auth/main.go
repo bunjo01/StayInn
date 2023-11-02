@@ -2,6 +2,7 @@ package main
 
 import (
 	"auth/data"
+	"auth/handlers"
 	"context"
 	"log"
 	"net/http"
@@ -13,7 +14,39 @@ import (
 	"github.com/gorilla/mux"
 )
 
+func seedData() {
+    ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+    defer cancel()
+
+    store, err := data.New(ctx, log.New(os.Stdout, "[data] ", log.LstdFlags))
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer store.Disconnect(ctx)
+
+    // Ubacite testne podatke
+    testCredentials := data.Credentials{
+        Username: "testUser",
+        Password: "testPassword",
+    }
+
+	testCredentials2 := data.Credentials{
+		Username: "admin",
+		Password: "admin",
+	}
+
+    if err := store.AddCredentials(testCredentials.Username, testCredentials.Password); err != nil {
+        log.Fatal(err)
+    }
+
+	if err := store.AddCredentials(testCredentials2.Username, testCredentials2.Password); err != nil {
+		log.Fatal(err)
+	}
+}
+
+
 func main() {
+	seedData()
 	//Reading from environment, if not set we will default it to 8080.
 	//This allows flexibility in different environments (for eg. when running multiple docker api's and want to override the default port)
 	port := os.Getenv("PORT")
@@ -40,12 +73,14 @@ func main() {
 	store.Ping()
 
 	//Initialize the handler and inject said logger
-	//credentialHandler := handlers.NewCredentialsHandler(logger, store)
+	credentialsHandler := handlers.NewCredentialsHandler(logger, store)
 
 	//Initialize the router and add a middleware for all the requests
 	router := mux.NewRouter()
 
 	// TODO Router
+
+	router.HandleFunc("/login", credentialsHandler.Login).Methods("POST")
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 
