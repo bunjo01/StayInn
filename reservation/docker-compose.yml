@@ -37,7 +37,7 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: pass
-      MONGO_INITDB_DATABASE: reservationDemo
+      MONGO_INITDB_DATABASE: reservationDB
     # Docker healtcheck - checks if database is "alive"
     healthcheck:
       test: echo 'db.runCommand("ping").ok'
