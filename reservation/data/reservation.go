@@ -2,15 +2,17 @@ package data
 
 import (
 	"encoding/json"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"io"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Reservation struct {
-	ID primitive.ObjectID `bson:"_id" json:"id"`
+	ID primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	//IDAccommodations    primitive.ObjectID   `bson:"idAccommodations" json:"idAccommodations"`
 	//AvailabilityPeriods []AvailabilityPeriod `bson:"availabilityPeriods" json:"availabilityPeriods"`
+	//ReservationDate          time.Time          `bson:"reservationDate" json:"reservationDate"`
 }
 
 type Reservations []*Reservation

@@ -9,6 +9,8 @@ import (
 
 	// NoSQL: module containing Mongo api client
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+
 	// TODO "go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -88,17 +90,51 @@ func (rr *ReservationRepo) GetAll() (Reservations, error) {
 	return reservations, nil
 }
 
+func (pr *ReservationRepo) GetById(id string) (*Reservation, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	reservationCollection := pr.getCollection()
+
+	var reservation Reservation
+	objID, _ := primitive.ObjectIDFromHex(id)
+	err := reservationCollection.FindOne(ctx, bson.M{"_id": objID}).Decode(&reservation)
+	if err != nil {
+		pr.logger.Println(err)
+		return nil, err
+	}
+	return &reservation, nil
+}
+
 func (rr *ReservationRepo) Insert(reservation *Reservation) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	reservationCollection := rr.getCollection()
+
+	//	reservation.ID = primitive.NewObjectID()
 
 	result, err := reservationCollection.InsertOne(ctx, &reservation)
 	if err != nil {
 		rr.logger.Println(err)
 		return err
 	}
-	rr.logger.Printf("Documents Id: %v\n", result.InsertedID)
+	rr.logger.Printf("Reservation Id: %v\n", result.InsertedID)
+	return nil
+}
+
+func (rr *ReservationRepo) Delete(id string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	reservationCollection := rr.getCollection()
+
+	objID, _ := primitive.ObjectIDFromHex(id)
+	filter := bson.D{{Key: "_id", Value: objID}}
+	result, err := reservationCollection.DeleteOne(ctx, filter)
+	if err != nil {
+		rr.logger.Println(err)
+		return err
+	}
+	rr.logger.Printf("Reservation deleted: %v\n", result.DeletedCount)
 	return nil
 }
 

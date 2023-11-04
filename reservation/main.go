@@ -2,14 +2,15 @@ package main
 
 import (
 	"context"
-	"github.com/gorilla/mux"
 	"log"
-	"main.go/data"
-	"main.go/handlers"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/gorilla/mux"
+	"main.go/data"
+	"main.go/handlers"
 
 	gorillaHandlers "github.com/gorilla/handlers"
 )
@@ -52,9 +53,15 @@ func main() {
 	getRouter := router.Methods(http.MethodGet).Subrouter()
 	getRouter.HandleFunc("/", reservationHandler.GetAllReservations)
 
+	getReservationByIdRouter := router.Methods(http.MethodGet).Subrouter()
+	getReservationByIdRouter.HandleFunc("/{id}", reservationHandler.GetReservationById)
+
 	postRouter := router.Methods(http.MethodPost).Subrouter()
 	postRouter.HandleFunc("/", reservationHandler.PostReservation)
 	postRouter.Use(reservationHandler.MiddlewareReservationDeserialization)
+
+	deleteRouter := router.Methods(http.MethodDelete).Subrouter()
+	deleteRouter.HandleFunc("/{id}", reservationHandler.DeleteReservation)
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 
