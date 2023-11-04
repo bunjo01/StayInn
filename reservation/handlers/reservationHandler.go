@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -67,11 +68,36 @@ func (r *ReservationHandler) PostReservation(rw http.ResponseWriter, h *http.Req
 	rw.WriteHeader(http.StatusCreated)
 }
 
+func (r *ReservationHandler) AddAvaiablePeriod(rw http.ResponseWriter, h *http.Request) {
+	vars := mux.Vars(h)
+	id := vars["id"]
+
+	// Debugging: Print id to check its value
+	fmt.Printf("ID: %s\n", id)
+
+	period, ok := h.Context().Value(KeyProduct{}).(*data.AvailabilityPeriod)
+
+	println("2 !!!! ", period)
+
+	// Debugging: Print period and ok to inspect them
+	fmt.Printf("Value from context: %#v, Conversion success: %v\n", period, ok)
+
+	if !ok {
+		log.Printf("Error: Conversion failed, value is not of type *data.AvailabilityPeriod")
+		// Handle the error appropriately
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	r.repo.AddAvaiablePeriod(id, period)
+	rw.WriteHeader(http.StatusOK)
+}
+
 func (r *ReservationHandler) DeleteReservation(rw http.ResponseWriter, h *http.Request) {
 	vars := mux.Vars(h)
 	id := vars["id"]
 
-	r.repo.Delete(id)
+	r.repo.DeleteById(id)
 	rw.WriteHeader(http.StatusOK)
 }
 
@@ -87,6 +113,25 @@ func (r *ReservationHandler) MiddlewareReservationDeserialization(next http.Hand
 
 		ctx := context.WithValue(h.Context(), KeyProduct{}, reservation)
 		h = h.WithContext(ctx)
+
+		next.ServeHTTP(rw, h)
+	})
+}
+
+func (r *ReservationHandler) MiddlewareAvaiablePeriodsDeserialization(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, h *http.Request) {
+		avaiablePeriod := &data.AvailabilityPeriod{}
+		err := avaiablePeriod.FromJSON(h.Body)
+		if err != nil {
+			http.Error(rw, "Unable to decode json", http.StatusBadRequest)
+			r.logger.Fatal(err)
+			return
+		}
+
+		ctx := context.WithValue(h.Context(), KeyProduct{}, avaiablePeriod)
+		h = h.WithContext(ctx)
+
+		println(avaiablePeriod)
 
 		next.ServeHTTP(rw, h)
 	})

@@ -63,6 +63,13 @@ func main() {
 	deleteRouter := router.Methods(http.MethodDelete).Subrouter()
 	deleteRouter.HandleFunc("/{id}", reservationHandler.DeleteReservation)
 
+	getByIdRouter := router.Methods(http.MethodGet).Subrouter()
+	getByIdRouter.HandleFunc("/{id}", reservationHandler.GetReservationById)
+
+	addAvaiablePeriodsRouter := router.Methods(http.MethodPatch).Subrouter()
+	addAvaiablePeriodsRouter.HandleFunc("/{id}", reservationHandler.AddAvaiablePeriod)
+	addAvaiablePeriodsRouter.Use(reservationHandler.MiddlewareAvaiablePeriodsDeserialization)
+
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 
 	//Initialize the server

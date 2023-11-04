@@ -122,7 +122,28 @@ func (rr *ReservationRepo) Insert(reservation *Reservation) error {
 	return nil
 }
 
-func (rr *ReservationRepo) Delete(id string) error {
+func (rr *ReservationRepo) AddAvaiablePeriod(id string, period *AvailabilityPeriod) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	resevations := rr.getCollection()
+
+	objID, _ := primitive.ObjectIDFromHex(id)
+	filter := bson.D{{Key: "_id", Value: objID}}
+	update := bson.M{"$push": bson.M{
+		"availabilityPeriods": period,
+	}}
+	result, err := resevations.UpdateOne(ctx, filter, update)
+	rr.logger.Printf("Documents matched: %v\n", result.MatchedCount)
+	rr.logger.Printf("Documents updated: %v\n", result.ModifiedCount)
+
+	if err != nil {
+		rr.logger.Println(err)
+		return err
+	}
+	return nil
+}
+
+func (rr *ReservationRepo) DeleteById(id string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	reservationCollection := rr.getCollection()
