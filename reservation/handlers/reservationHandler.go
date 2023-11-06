@@ -3,11 +3,10 @@ package handlers
 import (
 	"context"
 	"fmt"
-	"log"
-	"net/http"
-
 	"github.com/gorilla/mux"
+	"log"
 	"main.go/data"
+	"net/http"
 )
 
 type KeyProduct struct{}
@@ -62,9 +61,28 @@ func (r *ReservationHandler) GetReservationById(rw http.ResponseWriter, h *http.
 	}
 }
 
+func (r *ReservationHandler) ReservePeriod(rw http.ResponseWriter, h *http.Request) {
+	vars := mux.Vars(h)
+	reservationId := vars["reservationId"]
+	periodId := vars["periodId"]
+
+	r.repo.ReservePeriod(reservationId, periodId)
+
+	rw.WriteHeader(http.StatusOK)
+}
+
 func (r *ReservationHandler) PostReservation(rw http.ResponseWriter, h *http.Request) {
 	reservation := h.Context().Value(KeyProduct{}).(*data.Reservation)
 	r.repo.PostReservation(reservation)
+	rw.WriteHeader(http.StatusCreated)
+}
+
+func (r *ReservationHandler) UpdatePeriod(rw http.ResponseWriter, h *http.Request) {
+	vars := mux.Vars(h)
+	reservaationId := vars["reservationId"]
+
+	period := h.Context().Value(KeyProduct{}).(*data.AvailabilityPeriod)
+	r.repo.UpdateAvailablePeriod(reservaationId, period)
 	rw.WriteHeader(http.StatusCreated)
 }
 
@@ -76,8 +94,6 @@ func (r *ReservationHandler) AddAvaiablePeriod(rw http.ResponseWriter, h *http.R
 	fmt.Printf("ID: %s\n", id)
 
 	period, ok := h.Context().Value(KeyProduct{}).(*data.AvailabilityPeriod)
-
-	println("2 !!!! ", period)
 
 	// Debugging: Print period and ok to inspect them
 	fmt.Printf("Value from context: %#v, Conversion success: %v\n", period, ok)

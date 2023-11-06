@@ -70,6 +70,13 @@ func main() {
 	addAvaiablePeriodsRouter.HandleFunc("/{id}", reservationHandler.AddAvaiablePeriod)
 	addAvaiablePeriodsRouter.Use(reservationHandler.MiddlewareAvaiablePeriodsDeserialization)
 
+	updateAvaiablePeriodsRouter := router.Methods(http.MethodPatch).Subrouter()
+	updateAvaiablePeriodsRouter.HandleFunc("/{reservationId}/update", reservationHandler.UpdatePeriod)
+	updateAvaiablePeriodsRouter.Use(reservationHandler.MiddlewareAvaiablePeriodsDeserialization)
+
+	reservePeriodRouter := router.Methods(http.MethodPatch).Subrouter()
+	reservePeriodRouter.HandleFunc("/{reservationId}/period/{periodId}", reservationHandler.ReservePeriod)
+
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 
 	//Initialize the server
