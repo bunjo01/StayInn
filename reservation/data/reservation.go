@@ -9,15 +9,15 @@ import (
 )
 
 type Reservation struct {
-	ID                  primitive.ObjectID   `bson:"_id,omitempty" json:"id"`
-	IDAccommodations    primitive.ObjectID   `bson:"idAccommodations" json:"idAccommodations"`
-	AvailabilityPeriods []AvailabilityPeriod `bson:"availabilityPeriods" json:"availabilityPeriods"`
+	ID                  primitive.ObjectID    `bson:"_id,omitempty" json:"id"`
+	IDAccommodations    primitive.ObjectID    `bson:"idAccommodations" json:"idAccommodations"`
+	AvailabilityPeriods *[]AvailabilityPeriod `bson:"availabilityPeriods" json:"availabilityPeriods"`
 }
 
 type Reservations []*Reservation
 
 type AvailabilityPeriod struct {
-	ID                 primitive.ObjectID `bson:"_id" json:"id"`
+	ID                 primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	IDUser             primitive.ObjectID `bson:"idUser" json:"idUser"`
 	StartDate          time.Time          `bson:"startDate" json:"startDate"`
 	EndDate            time.Time          `bson:"endDate" json:"endDate"`

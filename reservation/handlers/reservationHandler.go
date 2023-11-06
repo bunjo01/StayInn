@@ -64,7 +64,7 @@ func (r *ReservationHandler) GetReservationById(rw http.ResponseWriter, h *http.
 
 func (r *ReservationHandler) PostReservation(rw http.ResponseWriter, h *http.Request) {
 	reservation := h.Context().Value(KeyProduct{}).(*data.Reservation)
-	r.repo.Insert(reservation)
+	r.repo.PostReservation(reservation)
 	rw.WriteHeader(http.StatusCreated)
 }
 

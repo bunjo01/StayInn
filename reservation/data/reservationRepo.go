@@ -106,14 +106,19 @@ func (pr *ReservationRepo) GetById(id string) (*Reservation, error) {
 	return &reservation, nil
 }
 
-func (rr *ReservationRepo) Insert(reservation *Reservation) error {
+func (rr *ReservationRepo) PostReservation(reservation *Reservation) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	reservationCollection := rr.getCollection()
 
 	//	reservation.ID = primitive.NewObjectID()
 
+	if reservation.AvailabilityPeriods == nil {
+		reservation.AvailabilityPeriods = &[]AvailabilityPeriod{}
+	}
+
 	result, err := reservationCollection.InsertOne(ctx, &reservation)
+
 	if err != nil {
 		rr.logger.Println(err)
 		return err
@@ -122,13 +127,32 @@ func (rr *ReservationRepo) Insert(reservation *Reservation) error {
 	return nil
 }
 
+func (rr *ReservationRepo) CreateReservation(ctx context.Context, reservationID primitive.ObjectID, periodID primitive.ObjectID) error {
+	reservationCollection := rr.getCollection()
+	filter := bson.M{"_id": reservationID, "availabilityPeriods._id": periodID}
+	update := bson.M{
+		"$set": bson.M{"availabilityPeriods.$.isAvailable": true},
+	}
+	updateOptions := options.Update().SetUpsert(false)
+
+	_, err := reservationCollection.UpdateOne(ctx, filter, update, updateOptions)
+	if err != nil {
+		log.Printf("Failed to reserve availability period: %v\n", err)
+		return err
+	}
+
+	return nil
+}
+
 func (rr *ReservationRepo) AddAvaiablePeriod(id string, period *AvailabilityPeriod) error {
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	resevations := rr.getCollection()
 
 	objID, _ := primitive.ObjectIDFromHex(id)
 	filter := bson.D{{Key: "_id", Value: objID}}
+
 	update := bson.M{"$push": bson.M{
 		"availabilityPeriods": period,
 	}}
