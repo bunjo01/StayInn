@@ -276,10 +276,22 @@ func (rr *ReservationRepo) ReservePeriod(reservationId string, periodId string) 
 	reservationObjID, _ := primitive.ObjectIDFromHex(reservationId)
 	availabilityPeriodObjID, _ := primitive.ObjectIDFromHex(periodId)
 
+	availablePeriod, err := rr.FindAvailablePeriodById(reservationId, periodId)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	if !availablePeriod.IsAvailable {
+		// Period je već rezerviran
+		return errors.New("Odabrani period već je rezerviran.")
+	}
+
 	filter := bson.M{
 		"_id":                     reservationObjID,
 		"availabilityPeriods._id": availabilityPeriodObjID,
 	}
+
 	update := bson.M{
 		"$set": bson.M{
 			"availabilityPeriods.$.isAvailable": false,

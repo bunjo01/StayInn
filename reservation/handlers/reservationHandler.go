@@ -3,10 +3,11 @@ package handlers
 import (
 	"context"
 	"fmt"
-	"github.com/gorilla/mux"
 	"log"
-	"main.go/data"
 	"net/http"
+
+	"github.com/gorilla/mux"
+	"main.go/data"
 )
 
 type KeyProduct struct{}
@@ -66,8 +67,21 @@ func (r *ReservationHandler) ReservePeriod(rw http.ResponseWriter, h *http.Reque
 	reservationId := vars["reservationId"]
 	periodId := vars["periodId"]
 
-	r.repo.ReservePeriod(reservationId, periodId)
+	reservation, err := r.repo.GetById(reservationId)
+	if reservation == nil {
+		http.Error(rw, "Reservation with given id not found", http.StatusNotFound)
+		r.logger.Printf("Reservation with id: '%s' not found", reservationId)
+		return
+	}
 
+	err = reservation.ToJSON(rw)
+	if err != nil {
+		http.Error(rw, "Unable to convert to json", http.StatusInternalServerError)
+		r.logger.Fatal("Unable to convert to json :", err)
+		return
+	}
+
+	r.repo.ReservePeriod(reservationId, periodId)
 	rw.WriteHeader(http.StatusOK)
 }
 
