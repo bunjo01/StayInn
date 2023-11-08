@@ -3,11 +3,10 @@ package handlers
 import (
 	"context"
 	"fmt"
-	"log"
-	"net/http"
-
 	"github.com/gorilla/mux"
+	"log"
 	"main.go/data"
+	"net/http"
 )
 
 type KeyProduct struct{}
@@ -43,7 +42,7 @@ func (r *ReservationHandler) GetReservationById(rw http.ResponseWriter, h *http.
 	vars := mux.Vars(h)
 	id := vars["id"]
 
-	reservation, err := r.repo.GetById(id)
+	reservation, err := r.repo.GetReservationById(id)
 	if err != nil {
 		r.logger.Print("Database exception: ", err)
 	}
@@ -62,28 +61,16 @@ func (r *ReservationHandler) GetReservationById(rw http.ResponseWriter, h *http.
 	}
 }
 
-func (r *ReservationHandler) ReservePeriod(rw http.ResponseWriter, h *http.Request) {
-	vars := mux.Vars(h)
-	reservationId := vars["reservationId"]
-	periodId := vars["periodId"]
-
-	reservation, err := r.repo.GetById(reservationId)
-	if reservation == nil {
-		http.Error(rw, "Reservation with given id not found", http.StatusNotFound)
-		r.logger.Printf("Reservation with id: '%s' not found", reservationId)
-		return
-	}
-
-	err = reservation.ToJSON(rw)
-	if err != nil {
-		http.Error(rw, "Unable to convert to json", http.StatusInternalServerError)
-		r.logger.Fatal("Unable to convert to json :", err)
-		return
-	}
-
-	r.repo.ReservePeriod(reservationId, periodId)
-	rw.WriteHeader(http.StatusOK)
-}
+// Delete this method
+//func (r *ReservationHandler) ReservePeriod(rw http.ResponseWriter, h *http.Request) {
+//	vars := mux.Vars(h)
+//	reservationId := vars["reservationId"]
+//	periodId := vars["periodId"]
+//
+//	r.repo.ReservePeriod(reservationId, periodId)
+//
+//	rw.WriteHeader(http.StatusOK)
+//}
 
 func (r *ReservationHandler) PostReservation(rw http.ResponseWriter, h *http.Request) {
 	reservation := h.Context().Value(KeyProduct{}).(*data.Reservation)
@@ -91,23 +78,24 @@ func (r *ReservationHandler) PostReservation(rw http.ResponseWriter, h *http.Req
 	rw.WriteHeader(http.StatusCreated)
 }
 
-func (r *ReservationHandler) UpdatePeriod(rw http.ResponseWriter, h *http.Request) {
-	vars := mux.Vars(h)
-	reservaationId := vars["reservationId"]
+// TODO
+//func (r *ReservationHandler) UpdatePeriod(rw http.ResponseWriter, h *http.Request) {
+//	vars := mux.Vars(h)
+//	reservaationId := vars["reservationId"]
+//
+//	period := h.Context().Value(KeyProduct{}).(*data.ReservedPeriods)
+//	r.repo.UpdateAvailablePeriod(reservaationId, period)
+//	rw.WriteHeader(http.StatusCreated)
+//}
 
-	period := h.Context().Value(KeyProduct{}).(*data.AvailabilityPeriod)
-	r.repo.UpdateAvailablePeriod(reservaationId, period)
-	rw.WriteHeader(http.StatusCreated)
-}
-
-func (r *ReservationHandler) AddAvaiablePeriod(rw http.ResponseWriter, h *http.Request) {
+func (r *ReservationHandler) ReservePeriod(rw http.ResponseWriter, h *http.Request) {
 	vars := mux.Vars(h)
 	id := vars["id"]
 
 	// Debugging: Print id to check its value
 	fmt.Printf("ID: %s\n", id)
 
-	period, ok := h.Context().Value(KeyProduct{}).(*data.AvailabilityPeriod)
+	period, ok := h.Context().Value(KeyProduct{}).(*data.ReservedPeriod)
 
 	// Debugging: Print period and ok to inspect them
 	fmt.Printf("Value from context: %#v, Conversion success: %v\n", period, ok)
@@ -119,7 +107,7 @@ func (r *ReservationHandler) AddAvaiablePeriod(rw http.ResponseWriter, h *http.R
 		return
 	}
 
-	r.repo.AddAvaiablePeriod(id, period)
+	r.repo.AddReservedPeriod(id, period)
 	rw.WriteHeader(http.StatusOK)
 }
 
@@ -127,7 +115,7 @@ func (r *ReservationHandler) DeleteReservation(rw http.ResponseWriter, h *http.R
 	vars := mux.Vars(h)
 	id := vars["id"]
 
-	r.repo.DeleteById(id)
+	r.repo.DeleteReservationById(id)
 	rw.WriteHeader(http.StatusOK)
 }
 
@@ -150,7 +138,7 @@ func (r *ReservationHandler) MiddlewareReservationDeserialization(next http.Hand
 
 func (r *ReservationHandler) MiddlewareAvaiablePeriodsDeserialization(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, h *http.Request) {
-		avaiablePeriod := &data.AvailabilityPeriod{}
+		avaiablePeriod := &data.ReservedPeriod{}
 		err := avaiablePeriod.FromJSON(h.Body)
 		if err != nil {
 			http.Error(rw, "Unable to decode json", http.StatusBadRequest)

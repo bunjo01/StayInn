@@ -48,8 +48,6 @@ func main() {
 	router := mux.NewRouter()
 	router.Use(reservationHandler.MiddlewareContentTypeSet)
 
-	//TODO : middleWare
-
 	getRouter := router.Methods(http.MethodGet).Subrouter()
 	getRouter.HandleFunc("/", reservationHandler.GetAllReservations)
 
@@ -67,15 +65,17 @@ func main() {
 	getByIdRouter.HandleFunc("/{id}", reservationHandler.GetReservationById)
 
 	addAvaiablePeriodsRouter := router.Methods(http.MethodPatch).Subrouter()
-	addAvaiablePeriodsRouter.HandleFunc("/{id}", reservationHandler.AddAvaiablePeriod)
+	addAvaiablePeriodsRouter.HandleFunc("/{id}", reservationHandler.ReservePeriod)
 	addAvaiablePeriodsRouter.Use(reservationHandler.MiddlewareAvaiablePeriodsDeserialization)
 
-	updateAvaiablePeriodsRouter := router.Methods(http.MethodPatch).Subrouter()
-	updateAvaiablePeriodsRouter.HandleFunc("/{reservationId}/update", reservationHandler.UpdatePeriod)
-	updateAvaiablePeriodsRouter.Use(reservationHandler.MiddlewareAvaiablePeriodsDeserialization)
+	// TODO
+	//updateAvaiablePeriodsRouter := router.Methods(http.MethodPatch).Subrouter()
+	//updateAvaiablePeriodsRouter.HandleFunc("/{reservationId}/update", reservationHandler.UpdatePeriod)
+	//updateAvaiablePeriodsRouter.Use(reservationHandler.MiddlewareAvaiablePeriodsDeserialization)
 
-	reservePeriodRouter := router.Methods(http.MethodPatch).Subrouter()
-	reservePeriodRouter.HandleFunc("/{reservationId}/period/{periodId}", reservationHandler.ReservePeriod)
+	// TODO Delete
+	//reservePeriodRouter := router.Methods(http.MethodPatch).Subrouter()
+	//reservePeriodRouter.HandleFunc("/{reservationId}/period/{periodId}", reservationHandler.ReservePeriod)
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 
