@@ -11,10 +11,33 @@ type Accommodation struct {
 	ID        gocql.UUID   `json:"id"`
 	Name      string   `json:"name"`
 	Location  string   `json:"location"`
-	Amenities []string `json:"amenities"`
+	Amenities []AmenityEnum `json:"amenities"`
 	MinGuests int      `json:"min_guests"`
 	MaxGuests int      `json:"max_guests"`
 }
+
+type AmenityEnum int
+
+const (
+    Essentials AmenityEnum = iota //0
+	WiFi //1
+    Parking //2
+    AirConditioning //3
+    Kitchen //4
+    TV //5
+    Pool //6
+	PetFriendly //7
+	HairDryer //8
+	Iron //9
+	IndoorFireplace //10
+	Heating //11
+	Washer //12
+	Hangers //13
+	HotWater //14
+	PrivateBathroom //15
+	Gym //16
+	SmokingAllowed //17
+)
 
 func (a *Accommodation) ToJSON(w io.Writer) error {
 	e := json.NewEncoder(w)

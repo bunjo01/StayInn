@@ -66,7 +66,7 @@ func main() {
         ID:         gocql.TimeUUID(),
         Name:       "Primer smeštaja",
         Location:   "Primer lokacije",
-        Amenities:  []string{"Wi-Fi", "Parking"},
+        Amenities:  []data.AmenityEnum{0, 1, 2, 3, 4, 5},
         MinGuests:  2,
         MaxGuests:  4,
     }

@@ -57,11 +57,11 @@ func (ar *AccommodationRepository) CloseSession() {
 
 func (a *AccommodationRepository) CreateAccommodationTable() error {
     query := `
-        CREATE TABLE IF NOT EXISTS accommodation (
+        CREATE TABLE IF NOT EXISTS accommodations (
             id UUID PRIMARY KEY,
             name TEXT,
             location TEXT,
-            amenities SET<TEXT>,
+            amenities SET<INT>,
             min_guests INT,
             max_guests INT
         )
@@ -71,31 +71,45 @@ func (a *AccommodationRepository) CreateAccommodationTable() error {
 
 
 func (ar *AccommodationRepository) CreateAccommodation(ctx context.Context, accommodation *Accommodation) error {
+	amenitiesAsInt := make([]int, len(accommodation.Amenities))
+	for i, amenity := range accommodation.Amenities {
+		amenitiesAsInt[i] = int(amenity)
+	}
 	query := ar.session.Query(
-		"INSERT INTO accommodation (id, name, location, amenities, min_guests, max_guests) VALUES (?, ?, ?, ?, ?, ?)",
-		accommodation.ID, accommodation.Name, accommodation.Location, accommodation.Amenities, accommodation.MinGuests, accommodation.MaxGuests,
+		"INSERT INTO accommodations (id, name, location, amenities, min_guests, max_guests) VALUES (?, ?, ?, ?, ?, ?)",
+		accommodation.ID, accommodation.Name, accommodation.Location, amenitiesAsInt, accommodation.MinGuests, accommodation.MaxGuests,
 	)
 	if err := query.Exec(); err != nil {
+		ar.logger.Fatal(err.Error())
 		return err
 	}
 	return nil
 }
 
 func (ar *AccommodationRepository) GetAllAccommodations(ctx context.Context) ([]*Accommodation, error) {
-    query := "SELECT * FROM accommodation"
+    query := "SELECT * FROM accommodations"
     iter := ar.session.Query(query).Iter()
 
     var accommodations []*Accommodation
 
     for {
         accommodation := &Accommodation{}
-        if !iter.Scan(&accommodation.ID, &accommodation.Name, &accommodation.Location, &accommodation.Amenities, &accommodation.MinGuests, &accommodation.MaxGuests) {
+        var amenities CustomSetInt
+
+        if !iter.Scan(&accommodation.ID, &accommodation.Name, &accommodation.Location, &amenities, &accommodation.MinGuests, &accommodation.MaxGuests) {
             break
         }
+
+        accommodation.Amenities = make([]AmenityEnum, len(amenities.Values))
+        for i, val := range amenities.Values {
+            accommodation.Amenities[i] = AmenityEnum(val)
+        }
+
         accommodations = append(accommodations, accommodation)
     }
 
     if err := iter.Close(); err != nil {
+        ar.logger.Fatal(err.Error())
         return nil, err
     }
 
@@ -103,15 +117,17 @@ func (ar *AccommodationRepository) GetAllAccommodations(ctx context.Context) ([]
 }
 
 
+
 func (ar *AccommodationRepository) GetAccommodation(ctx context.Context, id gocql.UUID) (*Accommodation, error) {
 	var accommodation Accommodation
 
 	query := ar.session.Query(
-		"SELECT id, name, location, amenities, min_guests, max_guests FROM accommodation WHERE id = ?",
+		"SELECT id, name, location, amenities, min_guests, max_guests FROM accommodations WHERE id = ?",
 		id,
 	)
 
 	if err := query.Scan(&accommodation.ID, &accommodation.Name, &accommodation.Location, &accommodation.Amenities, &accommodation.MinGuests, &accommodation.MaxGuests); err != nil {
+		ar.logger.Fatal(err.Error())
 		return nil, err
 	}
 
