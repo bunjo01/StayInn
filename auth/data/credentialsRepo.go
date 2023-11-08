@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -69,3 +70,42 @@ func (pr *CredentialsRepo) Ping() {
 }
 
 // TODO Repo methods
+
+func (cr *CredentialsRepo) ValidateCredentials(username, password string) error {
+    filter := bson.M{"username": username}
+
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+    options := options.FindOne()
+
+    var foundUser Credentials
+    err := cr.cli.Database("authDB").Collection("credentials").FindOne(ctx, filter, options).Decode(&foundUser)
+    if err != nil {
+        return err
+    }
+
+    if foundUser.Password != password {
+        return errors.New("Invalid password")
+    }
+
+    return nil
+}
+
+func (cr *CredentialsRepo) AddCredentials(username, password string) error {
+    newCredentials := Credentials{
+        Username: username,
+        Password: password,
+    }
+
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    _, err := cr.cli.Database("authDB").Collection("credentials").InsertOne(ctx, newCredentials)
+    if err != nil {
+        return err
+    }
+
+    return nil
+}
+
+
