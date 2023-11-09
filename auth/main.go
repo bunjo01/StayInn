@@ -15,35 +15,34 @@ import (
 )
 
 func seedData() {
-    ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-    defer cancel()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-    store, err := data.New(ctx, log.New(os.Stdout, "[data] ", log.LstdFlags))
-    if err != nil {
-        log.Fatal(err)
-    }
-    defer store.Disconnect(ctx)
+	store, err := data.New(ctx, log.New(os.Stdout, "[data] ", log.LstdFlags))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer store.Disconnect(ctx)
 
-    // Ubacite testne podatke
-    testCredentials := data.Credentials{
-        Username: "testUser",
-        Password: "testPassword",
-    }
+	// Test data
+	testCredentials := data.Credentials{
+		Username: "testUser",
+		Password: "testPassword",
+	}
 
 	testCredentials2 := data.Credentials{
 		Username: "admin",
 		Password: "admin",
 	}
 
-    if err := store.AddCredentials(testCredentials.Username, testCredentials.Password); err != nil {
-        log.Fatal(err)
-    }
+	if err := store.AddCredentials(testCredentials.Username, testCredentials.Password); err != nil {
+		log.Fatal(err)
+	}
 
 	if err := store.AddCredentials(testCredentials2.Username, testCredentials2.Password); err != nil {
 		log.Fatal(err)
 	}
 }
-
 
 func main() {
 	seedData()
@@ -81,6 +80,7 @@ func main() {
 	// TODO Router
 
 	router.HandleFunc("/login", credentialsHandler.Login).Methods("POST")
+	router.HandleFunc("/register", credentialsHandler.Register).Methods("POST")
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 
