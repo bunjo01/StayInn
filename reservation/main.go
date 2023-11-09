@@ -58,24 +58,20 @@ func main() {
 	postRouter.HandleFunc("/", reservationHandler.PostReservation)
 	postRouter.Use(reservationHandler.MiddlewareReservationDeserialization)
 
-	deleteRouter := router.Methods(http.MethodDelete).Subrouter()
-	deleteRouter.HandleFunc("/{id}", reservationHandler.DeleteReservation)
+	deleteReservationById := router.Methods(http.MethodDelete).Subrouter()
+	deleteReservationById.HandleFunc("/{id}", reservationHandler.DeleteReservation)
 
-	getByIdRouter := router.Methods(http.MethodGet).Subrouter()
-	getByIdRouter.HandleFunc("/{id}", reservationHandler.GetReservationById)
+	reservePeriodRouter := router.Methods(http.MethodPatch).Subrouter()
+	reservePeriodRouter.HandleFunc("/{id}", reservationHandler.ReservePeriod)
+	reservePeriodRouter.Use(reservationHandler.MiddlewareReservedPeriodDeserialization)
 
-	addAvaiablePeriodsRouter := router.Methods(http.MethodPatch).Subrouter()
-	addAvaiablePeriodsRouter.HandleFunc("/{id}", reservationHandler.ReservePeriod)
-	addAvaiablePeriodsRouter.Use(reservationHandler.MiddlewareAvaiablePeriodsDeserialization)
+	//TODO : NOT WORKING
+	//updateReservedPeriodRouter := router.Methods(http.MethodPatch).Subrouter()
+	//updateReservedPeriodRouter.HandleFunc("/{reservationId}/update", reservationHandler.UpdateReservedPeriod)
+	//updateReservedPeriodRouter.Use(reservationHandler.MiddlewareReservedPeriodDeserialization)
 
-	// TODO
-	//updateAvaiablePeriodsRouter := router.Methods(http.MethodPatch).Subrouter()
-	//updateAvaiablePeriodsRouter.HandleFunc("/{reservationId}/update", reservationHandler.UpdatePeriod)
-	//updateAvaiablePeriodsRouter.Use(reservationHandler.MiddlewareAvaiablePeriodsDeserialization)
-
-	// TODO Delete
-	//reservePeriodRouter := router.Methods(http.MethodPatch).Subrouter()
-	//reservePeriodRouter.HandleFunc("/{reservationId}/period/{periodId}", reservationHandler.ReservePeriod)
+	deleteReservedPeriod := router.Methods(http.MethodDelete).Subrouter()
+	deleteReservedPeriod.HandleFunc("/{reservationId}/period/{periodId}", reservationHandler.DeleteReservedPeriod)
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 

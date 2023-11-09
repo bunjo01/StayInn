@@ -120,8 +120,8 @@ func (rr *ReservationRepo) GetReservedPeriodById(reservationID, periodID string)
 	periodObjId, _ := primitive.ObjectIDFromHex(periodID)
 
 	filter := bson.M{
-		"_id":                     objReservationID,
-		"availabilityPeriods._id": periodObjId,
+		"_id":                 objReservationID,
+		"reservedPeriods._id": periodObjId,
 	}
 
 	var reservation Reservation
@@ -151,19 +151,15 @@ func (rr *ReservationRepo) PostReservation(reservation *Reservation) error {
 	reservation.ID = primitive.NewObjectID()
 	reservation.ReservedPeriods = &[]ReservedPeriod{}
 
-	if reservation.PricePerAccommodationConfiguration.StandardPrice < 0 ||
-		reservation.PricePerAccommodationConfiguration.SummerSeasonPrice < 0 ||
-		reservation.PricePerAccommodationConfiguration.WinterSeasonPrice < 0 ||
-		reservation.PricePerAccommodationConfiguration.WeekendSeasonPrice < 0 {
-		rr.logger.Println("Price per reservation cannot be negative")
+	isPriceValidError := rr.isPricePerAccommodationValid(reservation)
+	if isPriceValidError != nil {
+		rr.logger.Println(isPriceValidError)
 		return nil
 	}
 
-	if reservation.PricePerGuestConfiguration.StandardPrice < 0 ||
-		reservation.PricePerGuestConfiguration.SummerSeasonPrice < 0 ||
-		reservation.PricePerGuestConfiguration.WinterSeasonPrice < 0 ||
-		reservation.PricePerGuestConfiguration.WeekendSeasonPrice < 0 {
-		rr.logger.Println("Price per guest cannot be negative")
+	isPriceValidError = rr.isPricePerGuestValid(reservation)
+	if isPriceValidError != nil {
+		rr.logger.Println(isPriceValidError)
 		return nil
 	}
 
@@ -176,24 +172,6 @@ func (rr *ReservationRepo) PostReservation(reservation *Reservation) error {
 	rr.logger.Printf("Reservation Id: %v\n", result.InsertedID)
 	return nil
 }
-
-// Delete this method
-//func (rr *ReservationRepo) CreateReservation(ctx context.Context, reservationID primitive.ObjectID, periodID primitive.ObjectID) error {
-//	reservationCollection := rr.getCollection()
-//	filter := bson.M{"_id": reservationID, "availabilityPeriods._id": periodID}
-//	update := bson.M{
-//		"$set": bson.M{"availabilityPeriods.$.isAvailable": true},
-//	}
-//	updateOptions := options.Update().SetUpsert(false)
-//
-//	_, err := reservationCollection.UpdateOne(ctx, filter, update, updateOptions)
-//	if err != nil {
-//		log.Printf("Failed to reserve availability period: %v\n", err)
-//		return err
-//	}
-//
-//	return nil
-//}
 
 func (rr *ReservationRepo) AddReservedPeriod(id string, period *ReservedPeriod) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -211,8 +189,7 @@ func (rr *ReservationRepo) AddReservedPeriod(id string, period *ReservedPeriod) 
 
 	period.Price = rr.calculatePrice(id, period)
 
-	objID, _ := primitive.ObjectIDFromHex(id)
-	filter := bson.D{{Key: "_id", Value: objID}}
+	filter := bson.D{{Key: "_id", Value: objId}}
 
 	update := bson.M{"$push": bson.M{
 		"reservedPeriods": period,
@@ -228,48 +205,55 @@ func (rr *ReservationRepo) AddReservedPeriod(id string, period *ReservedPeriod) 
 	return nil
 }
 
-// TODO Stevan 1.9
-func (rr *ReservationRepo) UpdateReservedPeriod(reservationId string, newPeriod *ReservedPeriod) {
-	//ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	//defer cancel()
-	//reservations := rr.getCollection()
-	//
-	//objId, _ := primitive.ObjectIDFromHex(reservationId)
-	//periodObjId := newPeriod.ID.Hex()
-	//
-	//period, _ := rr.FindAvailablePeriodById(reservationId, periodObjId)
-	//
-	//if period != nil {
-	//	if newPeriod.PriceConfiguration.PricePerAccommodation > 0 {
-	//		period.PriceConfiguration.PricePerAccommodation = newPeriod.PriceConfiguration.PricePerAccommodation
-	//	}
-	//	if newPeriod.PriceConfiguration.PricePerGuest > 0 {
-	//		period.PriceConfiguration.PricePerGuest = newPeriod.PriceConfiguration.PricePerGuest
-	//	}
-	//	if !newPeriod.StartDate.IsZero() && newPeriod.StartDate.After(time.Now()) && newPeriod.StartDate.Before(period.EndDate) {
-	//		period.StartDate = newPeriod.StartDate
-	//	}
-	//	if !newPeriod.EndDate.IsZero() && newPeriod.EndDate.After(time.Now()) && newPeriod.EndDate.After(period.StartDate) {
-	//		period.EndDate = newPeriod.EndDate
-	//	}
-	//	period.PriceConfiguration.UsePricePerGuest = newPeriod.PriceConfiguration.UsePricePerGuest
-	//
-	//	filter := bson.M{"_id": objId}
-	//	update := bson.M{
-	//		"$set": bson.M{
-	//			"availabilityPeriods": []*AvailabilityPeriod{period},
-	//		},
-	//	}
-	//
-	//	result, err := reservations.UpdateOne(ctx, filter, update)
-	//	if err != nil {
-	//		log.Fatal(err)
-	//	}
-	//
-	//	rr.logger.Printf("Documents matched: %v\n", result.MatchedCount)
-	//	rr.logger.Printf("Documents updated: %v\n", result.ModifiedCount)
-	//}
+// TODO : NOT WORKING
+func (rr *ReservationRepo) UpdateReservedPeriod(reservationId string, newPeriod *ReservedPeriod) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
+	objId, _ := primitive.ObjectIDFromHex(reservationId)
+	periodObjId := newPeriod.ID.Hex()
+
+	period, _ := rr.GetReservedPeriodById(reservationId, periodObjId)
+
+	if period != nil {
+		isOverlap, err := rr.checkForOverlap(objId, *newPeriod)
+		if err != nil {
+			rr.logger.Println(err)
+			return err // Return the error instead of nil
+		}
+
+		if isOverlap {
+			rr.logger.Println("is isOverlap is not null")
+			return nil
+		}
+
+		rr.logger.Println(period.StartDate)
+		rr.logger.Println(period.ID)
+
+		period.StartDate = newPeriod.StartDate
+		period.EndDate = newPeriod.EndDate
+		period.NumberOfGuests = newPeriod.NumberOfGuests
+		period.Price = rr.calculatePrice(reservationId, period)
+
+		filter := bson.M{"_id": objId, "reservedPeriods._id": period.ID}
+		update := bson.M{
+			"$set": bson.M{
+				"reservedPeriods.$.StartDate":      period.StartDate,
+				"reservedPeriods.$.EndDate":        period.EndDate,
+				"reservedPeriods.$.NumberOfGuests": period.NumberOfGuests,
+			},
+		}
+
+		result, err := rr.getCollection().UpdateOne(ctx, filter, update)
+		if err != nil {
+			return err
+		}
+
+		rr.logger.Printf("Documents matched: %v\n", result.MatchedCount)
+		rr.logger.Printf("Documents updated: %v\n", result.ModifiedCount)
+	}
+
+	return nil
 }
 
 func (rr *ReservationRepo) DeleteReservationById(id string) error {
@@ -288,35 +272,38 @@ func (rr *ReservationRepo) DeleteReservationById(id string) error {
 	return nil
 }
 
-//Delete this method
-//func (rr *ReservationRepo) ReservePeriod(reservationId string, periodId string) error {
-//	reservations := rr.getCollection()
-//
-//	reservationObjID, _ := primitive.ObjectIDFromHex(reservationId)
-//	availabilityPeriodObjID, _ := primitive.ObjectIDFromHex(periodId)
-//
-//	filter := bson.M{
-//		"_id":                     reservationObjID,
-//		"availabilityPeriods._id": availabilityPeriodObjID,
-//	}
-//	update := bson.M{
-//		"$set": bson.M{
-//			"availabilityPeriods.$.isAvailable": false,
-//		},
-//	}
-//
-//	result, err := reservations.UpdateOne(context.Background(), filter, update)
-//
-//	rr.logger.Printf("Documents matched: %v\n", result.MatchedCount)
-//	rr.logger.Printf("Documents updated: %v\n", result.ModifiedCount)
-//
-//	if err != nil {
-//		log.Fatal(err)
-//		return err
-//	}
-//
-//	return nil
-//}
+func (rr *ReservationRepo) DeleteReservedPeriod(reservationId, periodId string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	reservations := rr.getCollection()
+
+	objId, _ := primitive.ObjectIDFromHex(reservationId)
+	_, err := rr.GetReservationById(reservationId)
+	if err != nil {
+		rr.logger.Println(err)
+		return err
+	}
+
+	periodObjId, _ := primitive.ObjectIDFromHex(periodId)
+
+	filter := bson.M{"_id": objId}
+	update := bson.M{
+		"$pull": bson.M{
+			"reservedPeriods": bson.M{"_id": periodObjId},
+		},
+	}
+
+	result, err := reservations.UpdateOne(ctx, filter, update)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	rr.logger.Printf("Documents matched: %v\n", result.MatchedCount)
+	rr.logger.Printf("Documents updated: %v\n", result.ModifiedCount)
+
+	return nil
+}
 
 func (rr *ReservationRepo) getCollection() *mongo.Collection {
 	patientDatabase := rr.cli.Database("reservationDB")
@@ -347,24 +334,26 @@ func (rr *ReservationRepo) checkForOverlap(reservationID primitive.ObjectID, new
 	}
 	for _, existingPeriod := range *foundReservation.ReservedPeriods {
 		var result bool
-		result = rr.isPeriodOverlap(existingPeriod, newPeriod)
-		if result {
-			return true, nil // Overlap found
+		if existingPeriod.ID != newPeriod.ID {
+			result = rr.isPeriodOverlap(existingPeriod, newPeriod)
+			if result {
+				return true, nil // Overlap found
+			}
 		}
 	}
 
 	return false, nil // No overlap found
 }
 
-func (rr *ReservationRepo) isPeriodOverlap(curentPeriod ReservedPeriod, newPeriod ReservedPeriod) bool {
-	if newPeriod.StartDate.After(time.Now()) &&
-		newPeriod.StartDate.Before(newPeriod.EndDate) &&
-		newPeriod.StartDate.After(curentPeriod.StartDate) &&
-		newPeriod.StartDate.After(curentPeriod.EndDate) {
-		return false
-	} else {
+func (rr *ReservationRepo) isPeriodOverlap(currentPeriod ReservedPeriod, newPeriod ReservedPeriod) bool {
+	if (newPeriod.StartDate.After(currentPeriod.StartDate) && newPeriod.StartDate.Before(currentPeriod.EndDate)) ||
+		(newPeriod.EndDate.After(currentPeriod.StartDate) && newPeriod.EndDate.Before(currentPeriod.EndDate)) ||
+		(currentPeriod.StartDate.After(newPeriod.StartDate) && currentPeriod.StartDate.Before(newPeriod.EndDate)) ||
+		(currentPeriod.EndDate.After(newPeriod.StartDate) && currentPeriod.EndDate.Before(newPeriod.EndDate)) ||
+		currentPeriod.EndDate.Equal(newPeriod.EndDate) {
 		return true
 	}
+	return false
 }
 
 func (rr *ReservationRepo) calculatePrice(reservationId string, period *ReservedPeriod) float64 {
@@ -373,6 +362,7 @@ func (rr *ReservationRepo) calculatePrice(reservationId string, period *Reserved
 
 	year := period.StartDate.Year()
 
+	// Calculates summer season
 	startOfSummerSeason := time.Date(year, time.June, 1, 0, 0, 0, 0, time.UTC)
 	endOfSummerSeason := time.Date(year, time.September, 1, 0, 0, 0, 0, time.UTC)
 
@@ -383,6 +373,7 @@ func (rr *ReservationRepo) calculatePrice(reservationId string, period *Reserved
 		return reservation.PricePerGuestConfiguration.SummerSeasonPrice * float64(period.NumberOfGuests)
 	}
 
+	// Calculates winter season
 	startOfWinterSeason := time.Date(year, time.December, 1, 0, 0, 0, 0, time.UTC)
 	endOfWinterSeason := time.Date(year, time.February, 1, 0, 0, 0, 0, time.UTC)
 
@@ -393,6 +384,7 @@ func (rr *ReservationRepo) calculatePrice(reservationId string, period *Reserved
 		return reservation.PricePerGuestConfiguration.WinterSeasonPrice * float64(period.NumberOfGuests)
 	}
 
+	// Calculate weekend
 	isWeekend := period.StartDate.Weekday().String()
 	if isWeekend == "sunday" || isWeekend == "saturday" {
 		if !isPricePerGuest {
@@ -401,9 +393,30 @@ func (rr *ReservationRepo) calculatePrice(reservationId string, period *Reserved
 		return reservation.PricePerGuestConfiguration.WeekendSeasonPrice * float64(period.NumberOfGuests)
 	}
 
+	// Calculate standard
 	if isPricePerGuest {
 		return reservation.PricePerGuestConfiguration.StandardPrice * float64(period.NumberOfGuests)
 	}
 
 	return reservation.PricePerAccommodationConfiguration.StandardPrice * float64(period.NumberOfGuests)
+}
+
+func (rr *ReservationRepo) isPricePerAccommodationValid(reservation *Reservation) error {
+	if reservation.PricePerAccommodationConfiguration.StandardPrice < 0 ||
+		reservation.PricePerAccommodationConfiguration.SummerSeasonPrice < 0 ||
+		reservation.PricePerAccommodationConfiguration.WinterSeasonPrice < 0 ||
+		reservation.PricePerAccommodationConfiguration.WeekendSeasonPrice < 0 {
+		return errors.New("price per accommodation cannot be negative")
+	}
+	return nil
+}
+
+func (rr *ReservationRepo) isPricePerGuestValid(reservation *Reservation) error {
+	if reservation.PricePerGuestConfiguration.StandardPrice < 0 ||
+		reservation.PricePerGuestConfiguration.SummerSeasonPrice < 0 ||
+		reservation.PricePerGuestConfiguration.WinterSeasonPrice < 0 ||
+		reservation.PricePerGuestConfiguration.WeekendSeasonPrice < 0 {
+		return errors.New("price per guest cannot be negative")
+	}
+	return nil
 }

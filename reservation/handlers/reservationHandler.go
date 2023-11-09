@@ -61,32 +61,25 @@ func (r *ReservationHandler) GetReservationById(rw http.ResponseWriter, h *http.
 	}
 }
 
-// Delete this method
-//func (r *ReservationHandler) ReservePeriod(rw http.ResponseWriter, h *http.Request) {
-//	vars := mux.Vars(h)
-//	reservationId := vars["reservationId"]
-//	periodId := vars["periodId"]
-//
-//	r.repo.ReservePeriod(reservationId, periodId)
-//
-//	rw.WriteHeader(http.StatusOK)
-//}
-
 func (r *ReservationHandler) PostReservation(rw http.ResponseWriter, h *http.Request) {
 	reservation := h.Context().Value(KeyProduct{}).(*data.Reservation)
 	r.repo.PostReservation(reservation)
 	rw.WriteHeader(http.StatusCreated)
 }
 
-// TODO
-//func (r *ReservationHandler) UpdatePeriod(rw http.ResponseWriter, h *http.Request) {
-//	vars := mux.Vars(h)
-//	reservaationId := vars["reservationId"]
-//
-//	period := h.Context().Value(KeyProduct{}).(*data.ReservedPeriods)
-//	r.repo.UpdateAvailablePeriod(reservaationId, period)
-//	rw.WriteHeader(http.StatusCreated)
-//}
+// TODO : NOT WORKING
+func (r *ReservationHandler) UpdateReservedPeriod(rw http.ResponseWriter, h *http.Request) {
+	vars := mux.Vars(h)
+	reservationId := vars["reservationId"]
+
+	period := h.Context().Value(KeyProduct{}).(*data.ReservedPeriod)
+	err := r.repo.UpdateReservedPeriod(reservationId, period)
+	if err != nil {
+		rw.WriteHeader(http.StatusNotFound)
+		return
+	}
+	rw.WriteHeader(http.StatusCreated)
+}
 
 func (r *ReservationHandler) ReservePeriod(rw http.ResponseWriter, h *http.Request) {
 	vars := mux.Vars(h)
@@ -119,6 +112,19 @@ func (r *ReservationHandler) DeleteReservation(rw http.ResponseWriter, h *http.R
 	rw.WriteHeader(http.StatusOK)
 }
 
+func (r *ReservationHandler) DeleteReservedPeriod(rw http.ResponseWriter, h *http.Request) {
+	vars := mux.Vars(h)
+	reservationId := vars["reservationId"]
+	periodId := vars["periodId"]
+
+	err := r.repo.DeleteReservedPeriod(reservationId, periodId)
+	if err != nil {
+		rw.WriteHeader(http.StatusNotFound)
+		return
+	}
+	rw.WriteHeader(http.StatusOK)
+}
+
 func (r *ReservationHandler) MiddlewareReservationDeserialization(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, h *http.Request) {
 		reservation := &data.Reservation{}
@@ -136,7 +142,7 @@ func (r *ReservationHandler) MiddlewareReservationDeserialization(next http.Hand
 	})
 }
 
-func (r *ReservationHandler) MiddlewareAvaiablePeriodsDeserialization(next http.Handler) http.Handler {
+func (r *ReservationHandler) MiddlewareReservedPeriodDeserialization(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, h *http.Request) {
 		avaiablePeriod := &data.ReservedPeriod{}
 		err := avaiablePeriod.FromJSON(h.Body)
