@@ -1,8 +1,6 @@
 package main
 
 import (
-	"auth/data"
-	"auth/handlers"
 	"context"
 	"log"
 	"net/http"
@@ -10,42 +8,14 @@ import (
 	"os/signal"
 	"time"
 
-	gorillaHandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"main.go/data"
+	"main.go/handlers"
+
+	gorillaHandlers "github.com/gorilla/handlers"
 )
 
-func seedData() {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	store, err := data.New(ctx, log.New(os.Stdout, "[data] ", log.LstdFlags))
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer store.Disconnect(ctx)
-
-	// Test data
-	testCredentials := data.Credentials{
-		Username: "testUser",
-		Password: "testPassword",
-	}
-
-	testCredentials2 := data.Credentials{
-		Username: "admin",
-		Password: "admin",
-	}
-
-	if err := store.AddCredentials(testCredentials.Username, testCredentials.Password); err != nil {
-		log.Fatal(err)
-	}
-
-	if err := store.AddCredentials(testCredentials2.Username, testCredentials2.Password); err != nil {
-		log.Fatal(err)
-	}
-}
-
 func main() {
-	seedData()
 	//Reading from environment, if not set we will default it to 8080.
 	//This allows flexibility in different environments (for eg. when running multiple docker api's and want to override the default port)
 	port := os.Getenv("PORT")
@@ -72,15 +42,36 @@ func main() {
 	store.Ping()
 
 	//Initialize the handler and inject said logger
-	credentialsHandler := handlers.NewCredentialsHandler(logger, store)
+	reservationHandler := handlers.NewReservationHandler(logger, store)
 
 	//Initialize the router and add a middleware for all the requests
 	router := mux.NewRouter()
+	router.Use(reservationHandler.MiddlewareContentTypeSet)
 
-	// TODO Router
+	getRouter := router.Methods(http.MethodGet).Subrouter()
+	getRouter.HandleFunc("/", reservationHandler.GetAllReservations)
 
-	router.HandleFunc("/login", credentialsHandler.Login).Methods("POST")
-	router.HandleFunc("/register", credentialsHandler.Register).Methods("POST")
+	getReservationByIdRouter := router.Methods(http.MethodGet).Subrouter()
+	getReservationByIdRouter.HandleFunc("/{id}", reservationHandler.GetReservationById)
+
+	postRouter := router.Methods(http.MethodPost).Subrouter()
+	postRouter.HandleFunc("/", reservationHandler.PostReservation)
+	postRouter.Use(reservationHandler.MiddlewareReservationDeserialization)
+
+	deleteReservationById := router.Methods(http.MethodDelete).Subrouter()
+	deleteReservationById.HandleFunc("/{id}", reservationHandler.DeleteReservation)
+
+	reservePeriodRouter := router.Methods(http.MethodPatch).Subrouter()
+	reservePeriodRouter.HandleFunc("/{id}", reservationHandler.ReservePeriod)
+	reservePeriodRouter.Use(reservationHandler.MiddlewareReservedPeriodDeserialization)
+
+	//TODO : NOT WORKING
+	//updateReservedPeriodRouter := router.Methods(http.MethodPatch).Subrouter()
+	//updateReservedPeriodRouter.HandleFunc("/{reservationId}/update", reservationHandler.UpdateReservedPeriod)
+	//updateReservedPeriodRouter.Use(reservationHandler.MiddlewareReservedPeriodDeserialization)
+
+	deleteReservedPeriod := router.Methods(http.MethodDelete).Subrouter()
+	deleteReservedPeriod.HandleFunc("/{reservationId}/period/{periodId}", reservationHandler.DeleteReservedPeriod)
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 
@@ -114,4 +105,5 @@ func main() {
 		logger.Fatal("Cannot gracefully shutdown...")
 	}
 	logger.Println("Server stopped")
+
 }
