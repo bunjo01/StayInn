@@ -12,8 +12,8 @@ type Accommodation struct {
 	Name      string   `json:"name"`
 	Location  string   `json:"location"`
 	Amenities []AmenityEnum `json:"amenities"`
-	MinGuests int      `json:"min_guests"`
-	MaxGuests int      `json:"max_guests"`
+	MinGuests int      `json:"minGuests"`
+	MaxGuests int      `json:"maxGuests"`
 }
 
 type AmenityEnum int
@@ -48,3 +48,17 @@ func (a *Accommodation) FromJSON(r io.Reader) error {
 	d := json.NewDecoder(r)
 	return d.Decode(a)
 }
+
+// func (a *Accommodation) UnmarshalCQL(info gocql.TypeInfo, data []byte) error {
+// 	var amenities []int
+// 	if err := gocql.Unmarshal(info, data, &amenities); err != nil {
+// 		return err
+// 	}
+
+// 	a.Amenities = make([]AmenityEnum, len(amenities))
+// 	for i, val := range amenities {
+// 		a.Amenities[i] = AmenityEnum(val)
+// 	}
+
+// 	return nil
+// }
