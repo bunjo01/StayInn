@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"time"
 
 	gorillaHandlers "github.com/gorilla/handlers"
@@ -20,69 +21,55 @@ func main() {
 		port = "8080"
 	}
 
-	// Inicijalizacija konteksta
+	// Context initialization
 	timeoutContext, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Inicijalizacija loggera
+	// Logger initialization
 	logger := log.New(os.Stdout, "[accommodation-api] ", log.LstdFlags)
 	storeLogger := log.New(os.Stdout, "[accommodation-store] ", log.LstdFlags)
 
-	// Čitanje okoline za Cassandra povezivanje
-	// cassandraHost := os.Getenv("CASSANDRA_HOST")
-	// cassandraPortStr := os.Getenv("CASSANDRA_PORT")
-	// cassandraPort, err := strconv.Atoi(cassandraPortStr)
-	// if err != nil {
-	// 	logger.Fatalf("Failed to parse CASSANDRA_PORT: %v", err)
-	// }
-	// cassandraUser := os.Getenv("CASSANDRA_USER")
-	// cassandraPassword := os.Getenv("CASSANDRA_PASSWORD")
+	// Reading enviroment for Cassandra
+	cassandraHost := os.Getenv("CASSANDRA_HOST")
+	cassandraPortStr := os.Getenv("CASSANDRA_PORT")
+	cassandraPort, err := strconv.Atoi(cassandraPortStr)
+	if err != nil {
+		logger.Fatalf("Failed to parse CASSANDRA_PORT: %v", err)
+	}
+	cassandraUser := os.Getenv("CASSANDRA_USER")
+	cassandraPassword := os.Getenv("CASSANDRA_PASSWORD")
 
-	// // Inicijalizacija sesije za Cassandra bazu
-	// cluster := gocql.NewCluster(cassandraHost)
-	// cluster.Keyspace = "accommodation"
-	// cluster.Port = cassandraPort
-	// cluster.Authenticator = gocql.PasswordAuthenticator{
-	// 	Username: cassandraUser,
-	// 	Password: cassandraPassword,
-	// }
+	// Initializing Cassandra session
+	cluster := gocql.NewCluster(cassandraHost)
+	cluster.Keyspace = "accommodation"
+	cluster.Port = cassandraPort
+	cluster.Authenticator = gocql.PasswordAuthenticator{
+		Username: cassandraUser,
+		Password: cassandraPassword,
+	}
 
-	// session, err := cluster.CreateSession()
-	// if err != nil {
-	// 	logger.Fatal(err)
-	// }
-	// defer session.Close()
+	// Set consistency level if needed
+	cluster.Consistency = gocql.One
 
-	// Inicijalizacija repozitorijuma za smeštaj
+	session, err := cluster.CreateSession()
+	if err != nil {
+		logger.Fatalf("Failed to create Cassandra session: %v", err)
+	} else {
+		defer session.Close()
+		logger.Println("Connected to Cassandra")
+	}
+
+	// Initializing repo for accommodations
 	store, err := data.NewAccommodationRepository(storeLogger)
 	if err != nil {
 		logger.Fatal(err)
 	}
 	defer store.CloseSession()
 
-	// newAccommodation := &data.Accommodation{
-    //     ID:         gocql.TimeUUID(),
-    //     Name:       "Primer smeštaja",
-    //     Location:   "Primer lokacije",
-    //     Amenities:  []data.AmenityEnum{0, 1, 2, 3, 4, 5},
-    //     MinGuests:  2,
-    //     MaxGuests:  4,
-    // }
-
-	// store.CreateAccommodationTable()
-
-	// err = store.CreateAccommodation(context.Background(), newAccommodation)
-    // if err != nil {
-    //     logger.Fatal(err)
-    // }
-
-    // logger.Println("Smeštaj kreiran uspešno.")
-
 	accommodationsHandler := handlers.NewAccommodationsHandler(logger, store)
 
-	// Inicijalizacija router-a
+	// Router init
 	router := mux.NewRouter()
-
 
 	router.HandleFunc("/accommodation", accommodationsHandler.CreateAccommodation).Methods("POST")
 	router.HandleFunc("/accommodation", accommodationsHandler.GetAllAccommodations).Methods("GET")
