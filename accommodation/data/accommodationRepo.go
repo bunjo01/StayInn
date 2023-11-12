@@ -62,8 +62,8 @@ func (a *AccommodationRepository) CreateAccommodationTable() error {
             name TEXT,
             location TEXT,
             amenities SET<INT>,
-            min_guests INT,
-            max_guests INT
+            minGuests INT,
+            maxGuests INT
         )
     `
     return a.session.Query(query).Exec()
@@ -76,7 +76,7 @@ func (ar *AccommodationRepository) CreateAccommodation(ctx context.Context, acco
 		amenitiesAsInt[i] = int(amenity)
 	}
 	query := ar.session.Query(
-		"INSERT INTO accommodations (id, name, location, amenities, min_guests, max_guests) VALUES (?, ?, ?, ?, ?, ?)",
+		"INSERT INTO accommodations (id, name, location, amenities, minGuests, maxGuests) VALUES (?, ?, ?, ?, ?, ?)",
 		accommodation.ID, accommodation.Name, accommodation.Location, amenitiesAsInt, accommodation.MinGuests, accommodation.MaxGuests,
 	)
 	if err := query.Exec(); err != nil {
@@ -87,26 +87,26 @@ func (ar *AccommodationRepository) CreateAccommodation(ctx context.Context, acco
 }
 
 func (ar *AccommodationRepository) GetAllAccommodations(ctx context.Context) ([]*Accommodation, error) {
-    query := "SELECT * FROM accommodations"
+    query := "SELECT id, name, location, amenities, minGuests, maxGuests FROM accommodations"
     iter := ar.session.Query(query).Iter()
 
     var accommodations []*Accommodation
 
     for {
-        accommodation := &Accommodation{}
-        var amenities CustomSetInt
-
-        if !iter.Scan(&accommodation.ID, &accommodation.Name, &accommodation.Location, &amenities, &accommodation.MinGuests, &accommodation.MaxGuests) {
-            break
-        }
-
-        accommodation.Amenities = make([]AmenityEnum, len(amenities.Values))
-        for i, val := range amenities.Values {
-            accommodation.Amenities[i] = AmenityEnum(val)
-        }
-
-        accommodations = append(accommodations, accommodation)
-    }
+		accommodation := &Accommodation{}
+		var amenities []AmenityEnum
+	
+		if !iter.Scan(&accommodation.ID, &accommodation.Name, &accommodation.Location, &amenities, &accommodation.MinGuests, &accommodation.MaxGuests) {
+			break
+		}
+	
+		accommodation.Amenities = make([]AmenityEnum, len(amenities))
+		for i, val := range amenities {
+			accommodation.Amenities[i] = AmenityEnum(val)
+		}
+	
+		accommodations = append(accommodations, accommodation)
+	}
 
     if err := iter.Close(); err != nil {
         ar.logger.Fatal(err.Error())
@@ -136,11 +136,34 @@ func (ar *AccommodationRepository) GetAccommodation(ctx context.Context, id gocq
 
 
 func (ar *AccommodationRepository) UpdateAccommodation(ctx context.Context, accommodation *Accommodation) error {
-	// Implementacija za ažuriranje smeštaja u Cassandra bazi
-	return nil
+    // Pripremi podatke za ažuriranje
+    amenitiesAsInt := make([]int, len(accommodation.Amenities))
+    for i, amenity := range accommodation.Amenities {
+        amenitiesAsInt[i] = int(amenity)
+    }
+
+    // Izvrši upit za ažuriranje smeštaja
+    query := ar.session.Query(
+        "UPDATE accommodations SET name=?, location=?, amenities=?, minGuests=?, maxGuests=? WHERE id=?",
+        accommodation.Name, accommodation.Location, amenitiesAsInt, accommodation.MinGuests, accommodation.MaxGuests, accommodation.ID,
+    )
+
+    if err := query.Exec(); err != nil {
+        ar.logger.Fatal(err.Error())
+        return err
+    }
+
+    return nil
 }
 
+
 func (ar *AccommodationRepository) DeleteAccommodation(ctx context.Context, id gocql.UUID) error {
-	// Implementacija za brisanje smeštaja iz Cassandra baze
-	return nil
+    query := ar.session.Query("DELETE FROM accommodations WHERE id=?", id)
+    
+    if err := query.Exec(); err != nil {
+        ar.logger.Fatal(err.Error())
+        return err
+    }
+
+    return nil
 }

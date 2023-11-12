@@ -92,9 +92,57 @@ func (ah *AccommodationHandler) CreateAccommodation(rw http.ResponseWriter, r *h
 
 
 func (ah *AccommodationHandler) UpdateAccommodation(rw http.ResponseWriter, r *http.Request) {
-	// Implementacija za ažuriranje smeštaja
+    // Izvuci ID smeštaja iz putanje
+    vars := mux.Vars(r)
+    id, err := gocql.ParseUUID(vars["id"])
+    if err != nil {
+        http.Error(rw, "Invalid UUID", http.StatusBadRequest)
+        return
+    }
+
+    // Dekodiraj JSON telo zahteva u objekat Accommodation
+    var updatedAccommodation data.Accommodation
+    if err := json.NewDecoder(r.Body).Decode(&updatedAccommodation); err != nil {
+        http.Error(rw, "Failed to decode request body", http.StatusBadRequest)
+        return
+    }
+
+    // Postavi ID smeštaja na vrednost iz putanje
+    updatedAccommodation.ID = id
+
+    // Ažuriraj smeštaj u bazi podataka
+    if err := ah.repo.UpdateAccommodation(r.Context(), &updatedAccommodation); err != nil {
+        ah.logger.Println("Failed to update accommodation:", err)
+        http.Error(rw, "Failed to update accommodation", http.StatusInternalServerError)
+        return
+    }
+
+    // Vrati ažurirani smeštaj kao odgovor
+    rw.Header().Set("Content-Type", "application/json")
+    rw.WriteHeader(http.StatusOK)
+    if err := json.NewEncoder(rw).Encode(updatedAccommodation); err != nil {
+        ah.logger.Println("Failed to encode updated accommodation:", err)
+        http.Error(rw, "Failed to encode updated accommodation", http.StatusInternalServerError)
+    }
 }
 
+
 func (ah *AccommodationHandler) DeleteAccommodation(rw http.ResponseWriter, r *http.Request) {
-	// Implementacija za brisanje smeštaja
+    // Izvuci ID smeštaja iz putanje
+    vars := mux.Vars(r)
+    id, err := gocql.ParseUUID(vars["id"])
+    if err != nil {
+        http.Error(rw, "Invalid UUID", http.StatusBadRequest)
+        return
+    }
+
+    // Obriši smeštaj iz baze podataka
+    if err := ah.repo.DeleteAccommodation(r.Context(), id); err != nil {
+        ah.logger.Println("Failed to delete accommodation:", err)
+        http.Error(rw, "Failed to delete accommodation", http.StatusInternalServerError)
+        return
+    }
+
+    // Postavi odgovarajući status odgovora
+    rw.WriteHeader(http.StatusNoContent)
 }

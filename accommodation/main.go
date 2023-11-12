@@ -10,8 +10,6 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/gocql/gocql"
-
 	gorillaHandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
@@ -62,46 +60,35 @@ func main() {
 	}
 	defer store.CloseSession()
 
-	newAccommodation := &data.Accommodation{
-        ID:         gocql.TimeUUID(),
-        Name:       "Primer smeštaja",
-        Location:   "Primer lokacije",
-        Amenities:  []data.AmenityEnum{0, 1, 2, 3, 4, 5},
-        MinGuests:  2,
-        MaxGuests:  4,
-    }
+	// newAccommodation := &data.Accommodation{
+    //     ID:         gocql.TimeUUID(),
+    //     Name:       "Primer smeštaja",
+    //     Location:   "Primer lokacije",
+    //     Amenities:  []data.AmenityEnum{0, 1, 2, 3, 4, 5},
+    //     MinGuests:  2,
+    //     MaxGuests:  4,
+    // }
 
-	store.CreateAccommodationTable()
+	// store.CreateAccommodationTable()
 
-	err = store.CreateAccommodation(context.Background(), newAccommodation)
-    if err != nil {
-        logger.Fatal(err)
-    }
+	// err = store.CreateAccommodation(context.Background(), newAccommodation)
+    // if err != nil {
+    //     logger.Fatal(err)
+    // }
 
-    logger.Println("Smeštaj kreiran uspešno.")
+    // logger.Println("Smeštaj kreiran uspešno.")
 
 	accommodationsHandler := handlers.NewAccommodationsHandler(logger, store)
-
-	// accommodations, err := store.GetAllAccommodations(context.Background())
-	// if err != nil {
-	// 	logger.Fatalf("Failed to retrieve accommodations: %v", err)
-	// }
-
-	// for _, accommodation := range accommodations {
-	// 	logger.Printf("Accommodation ID: %s\n", accommodation.ID)
-	// 	logger.Printf("Name: %s\n", accommodation.Name)
-	// 	logger.Printf("Location: %s\n", accommodation.Location)
-	// 	logger.Printf("Amenities: %v\n", accommodation.Amenities)
-	// 	logger.Printf("Min Guests: %d\n", accommodation.MinGuests)
-	// 	logger.Printf("Max Guests: %d\n", accommodation.MaxGuests)
-	// }
 
 	// Inicijalizacija router-a
 	router := mux.NewRouter()
 
 
-	router.HandleFunc("/accommodation", accommodationsHandler.GetAllAccommodations).Methods("GET")
 	router.HandleFunc("/accommodation", accommodationsHandler.CreateAccommodation).Methods("POST")
+	router.HandleFunc("/accommodation", accommodationsHandler.GetAllAccommodations).Methods("GET")
+	router.HandleFunc("/accommodation/{id}",accommodationsHandler.GetAccommodation).Methods("GET")
+	router.HandleFunc("/accommodation/{id}",accommodationsHandler.UpdateAccommodation).Methods("PUT")
+	router.HandleFunc("/accommodation/{id}",accommodationsHandler.DeleteAccommodation).Methods("DELETE")
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 
