@@ -50,11 +50,16 @@ func main() {
 		Password: cassandraPassword,
 	}
 
+	// Set consistency level if needed
+	cluster.Consistency = gocql.Quorum
+
 	session, err := cluster.CreateSession()
 	if err != nil {
-		logger.Fatal(err)
+		logger.Fatalf("Failed to create Cassandra session: %v", err)
+	} else {
+		defer session.Close()
+		logger.Println("Connected to Cassandra")
 	}
-	defer session.Close()
 
 	// Initializing repo for accommodations
 	store, err := data.NewAccommodationRepository(storeLogger)

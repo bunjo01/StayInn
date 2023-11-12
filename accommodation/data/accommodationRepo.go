@@ -11,7 +11,7 @@ import (
 
 type AccommodationRepository struct {
 	session *gocql.Session
-	logger *log.Logger
+	logger  *log.Logger
 }
 
 func NewAccommodationRepository(logger *log.Logger) (*AccommodationRepository, error) {
@@ -22,8 +22,7 @@ func NewAccommodationRepository(logger *log.Logger) (*AccommodationRepository, e
 
 	session, err := cluster.CreateSession()
 	if err != nil {
-		logger.Println(err)
-		return nil, err
+		return nil, fmt.Errorf("failed to create session: %v", err)
 	}
 
 	err = session.Query(
@@ -32,17 +31,20 @@ func NewAccommodationRepository(logger *log.Logger) (*AccommodationRepository, e
 						'class' : 'SimpleStrategy',
 						'replication_factor' : %d
 					}`, "accommodation", 1)).Exec()
-    if err != nil {
-        logger.Println(err)
-    }
+	if err != nil {
+		session.Close()
+		return nil, fmt.Errorf("failed to create keyspace: %v", err)
+	}
+
+	// Close the session after keyspace creation
 	session.Close()
 
 	cluster.Keyspace = "accommodation"
 	cluster.Consistency = gocql.One
+
 	session, err = cluster.CreateSession()
 	if err != nil {
-		logger.Println(err)
-		return nil, err
+		return nil, fmt.Errorf("failed to create session for accommodation keyspace: %v", err)
 	}
 
 	return &AccommodationRepository{
@@ -56,7 +58,7 @@ func (ar *AccommodationRepository) CloseSession() {
 }
 
 func (a *AccommodationRepository) CreateAccommodationTable() error {
-    query := `
+	query := `
         CREATE TABLE IF NOT EXISTS accommodations (
             id UUID PRIMARY KEY,
             name TEXT,
@@ -66,9 +68,8 @@ func (a *AccommodationRepository) CreateAccommodationTable() error {
             max_guests INT
         )
     `
-    return a.session.Query(query).Exec()
+	return a.session.Query(query).Exec()
 }
-
 
 func (ar *AccommodationRepository) CreateAccommodation(ctx context.Context, accommodation *Accommodation) error {
 	amenitiesAsInt := make([]int, len(accommodation.Amenities))
@@ -87,36 +88,34 @@ func (ar *AccommodationRepository) CreateAccommodation(ctx context.Context, acco
 }
 
 func (ar *AccommodationRepository) GetAllAccommodations(ctx context.Context) ([]*Accommodation, error) {
-    query := "SELECT * FROM accommodations"
-    iter := ar.session.Query(query).Iter()
+	query := "SELECT * FROM accommodations"
+	iter := ar.session.Query(query).Iter()
 
-    var accommodations []*Accommodation
+	var accommodations []*Accommodation
 
-    for {
-        accommodation := &Accommodation{}
-        var amenities CustomSetInt
+	for {
+		accommodation := &Accommodation{}
+		var amenities CustomSetInt
 
-        if !iter.Scan(&accommodation.ID, &accommodation.Name, &accommodation.Location, &amenities, &accommodation.MinGuests, &accommodation.MaxGuests) {
-            break
-        }
+		if !iter.Scan(&accommodation.ID, &accommodation.Name, &accommodation.Location, &amenities, &accommodation.MinGuests, &accommodation.MaxGuests) {
+			break
+		}
 
-        accommodation.Amenities = make([]AmenityEnum, len(amenities.Values))
-        for i, val := range amenities.Values {
-            accommodation.Amenities[i] = AmenityEnum(val)
-        }
+		accommodation.Amenities = make([]AmenityEnum, len(amenities.Values))
+		for i, val := range amenities.Values {
+			accommodation.Amenities[i] = AmenityEnum(val)
+		}
 
-        accommodations = append(accommodations, accommodation)
-    }
+		accommodations = append(accommodations, accommodation)
+	}
 
-    if err := iter.Close(); err != nil {
-        ar.logger.Fatal(err.Error())
-        return nil, err
-    }
+	if err := iter.Close(); err != nil {
+		ar.logger.Fatal(err.Error())
+		return nil, err
+	}
 
-    return accommodations, nil
+	return accommodations, nil
 }
-
-
 
 func (ar *AccommodationRepository) GetAccommodation(ctx context.Context, id gocql.UUID) (*Accommodation, error) {
 	var accommodation Accommodation
@@ -133,7 +132,6 @@ func (ar *AccommodationRepository) GetAccommodation(ctx context.Context, id gocq
 
 	return &accommodation, nil
 }
-
 
 func (ar *AccommodationRepository) UpdateAccommodation(ctx context.Context, accommodation *Accommodation) error {
 	// Implementacija za ažuriranje smeštaja u Cassandra bazi

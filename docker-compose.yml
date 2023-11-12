@@ -12,8 +12,8 @@ services:
       - 8080:8080
     environment:
       - PORT=8080
-      - CASS_DB=cassandra:9042
-      - CASSANDRA_HOST=cassandra
+      - CASS_DB=accommodation_db:9042
+      - CASSANDRA_HOST=accommodation_db
       - CASSANDRA_PORT=9042
       - CASSANDRA_USER=root
       - CASSANDRA_PASSWORD=pass
@@ -37,8 +37,8 @@ services:
       - CASSANDRA_PASSWORD=pass
     healthcheck:
       test: ["CMD-SHELL", "cqlsh -e 'describe cluster'"]
-      interval: 15s
-      timeout: 5s
+      interval: 5s
+      timeout: 10s
       retries: 15
     networks:
       - network
