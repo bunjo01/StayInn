@@ -1,6 +1,19 @@
 version: "3.1"
 
 services:
+  api_gateway:
+    image: api_gateway
+    container_name: api_gateway
+    hostname: api_gateway
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "8090:8090"
+    networks:
+      - network
+
   accommodation_service:
     build:
       context: ./accommodation/
