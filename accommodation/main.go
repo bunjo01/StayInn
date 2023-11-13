@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"time"
 
+	gocql "github.com/gocql/gocql"
 	gorillaHandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
@@ -73,9 +74,9 @@ func main() {
 
 	router.HandleFunc("/accommodation", accommodationsHandler.CreateAccommodation).Methods("POST")
 	router.HandleFunc("/accommodation", accommodationsHandler.GetAllAccommodations).Methods("GET")
-	router.HandleFunc("/accommodation/{id}",accommodationsHandler.GetAccommodation).Methods("GET")
-	router.HandleFunc("/accommodation/{id}",accommodationsHandler.UpdateAccommodation).Methods("PUT")
-	router.HandleFunc("/accommodation/{id}",accommodationsHandler.DeleteAccommodation).Methods("DELETE")
+	router.HandleFunc("/accommodation/{id}", accommodationsHandler.GetAccommodation).Methods("GET")
+	router.HandleFunc("/accommodation/{id}", accommodationsHandler.UpdateAccommodation).Methods("PUT")
+	router.HandleFunc("/accommodation/{id}", accommodationsHandler.DeleteAccommodation).Methods("DELETE")
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 
