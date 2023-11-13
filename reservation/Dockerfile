@@ -11,6 +11,6 @@ RUN go build -o reservation
 FROM alpine
 WORKDIR /app
 COPY --from=build_container /app/reservation /usr/bin
-EXPOSE 8080
+EXPOSE 8082
 ENTRYPOINT ["reservation"]
 
