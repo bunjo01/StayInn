@@ -4,6 +4,7 @@ import (
 	"accommodation/data"
 	"accommodation/handlers"
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"strconv"
 	"time"
 
+	gocql "github.com/gocql/gocql"
 	gorillaHandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
@@ -30,6 +32,7 @@ func main() {
 	storeLogger := log.New(os.Stdout, "[accommodation-store] ", log.LstdFlags)
 
 	// Reading enviroment for Cassandra
+	db := os.Getenv("CASS_DB")
 	cassandraHost := os.Getenv("CASSANDRA_HOST")
 	cassandraPortStr := os.Getenv("CASSANDRA_PORT")
 	cassandraPort, err := strconv.Atoi(cassandraPortStr)
@@ -40,18 +43,37 @@ func main() {
 	cassandraPassword := os.Getenv("CASSANDRA_PASSWORD")
 
 	// Initializing Cassandra session
-	cluster := gocql.NewCluster(cassandraHost)
+	cluster := gocql.NewCluster(db)
+	cluster.Keyspace = "system"
+
+	session, err := cluster.CreateSession()
+	if err != nil {
+		log.Fatalf("failed to create session: %v", err)
+	}
+
+	err = session.Query(
+		fmt.Sprintf(`CREATE KEYSPACE IF NOT EXISTS %s
+					WITH replication = {
+						'class' : 'SimpleStrategy',
+						'replication_factor' : %d
+					}`, "accommodation", 1)).Exec()
+	if err != nil {
+		session.Close()
+		log.Fatalf("failed to create keyspace: %v", err)
+	}
+
+	// Close the session after keyspace creation
+	session.Close()
+
+	cluster = gocql.NewCluster(cassandraHost)
 	cluster.Keyspace = "accommodation"
 	cluster.Port = cassandraPort
 	cluster.Authenticator = gocql.PasswordAuthenticator{
 		Username: cassandraUser,
 		Password: cassandraPassword,
 	}
-
-	// Set consistency level if needed
 	cluster.Consistency = gocql.One
-
-	session, err := cluster.CreateSession()
+	session, err = cluster.CreateSession()
 	if err != nil {
 		logger.Fatalf("Failed to create Cassandra session: %v", err)
 	} else {
@@ -60,7 +82,11 @@ func main() {
 	}
 
 	// Initializing repo for accommodations
-	store, err := data.NewAccommodationRepository(storeLogger)
+	store, err := data.NewAccommodationRepository(storeLogger, session)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	err = store.CreateAccommodationTable()
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -73,9 +99,9 @@ func main() {
 
 	router.HandleFunc("/accommodation", accommodationsHandler.CreateAccommodation).Methods("POST")
 	router.HandleFunc("/accommodation", accommodationsHandler.GetAllAccommodations).Methods("GET")
-	router.HandleFunc("/accommodation/{id}",accommodationsHandler.GetAccommodation).Methods("GET")
-	router.HandleFunc("/accommodation/{id}",accommodationsHandler.UpdateAccommodation).Methods("PUT")
-	router.HandleFunc("/accommodation/{id}",accommodationsHandler.DeleteAccommodation).Methods("DELETE")
+	router.HandleFunc("/accommodation/{id}", accommodationsHandler.GetAccommodation).Methods("GET")
+	router.HandleFunc("/accommodation/{id}", accommodationsHandler.UpdateAccommodation).Methods("PUT")
+	router.HandleFunc("/accommodation/{id}", accommodationsHandler.DeleteAccommodation).Methods("DELETE")
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 
