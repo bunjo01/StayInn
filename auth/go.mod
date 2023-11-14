@@ -1,6 +1,6 @@
 module auth
 
-go 1.21.2
+go 1.21.3
 
 require (
 	github.com/gorilla/handlers v1.5.1
