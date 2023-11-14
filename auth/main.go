@@ -50,7 +50,7 @@ func main() {
 	//This allows flexibility in different environments (for eg. when running multiple docker api's and want to override the default port)
 	port := os.Getenv("PORT")
 	if len(port) == 0 {
-		port = "8080"
+		port = "8081"
 	}
 
 	// Initialize context
