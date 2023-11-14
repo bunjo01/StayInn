@@ -13,7 +13,7 @@
     background-color: rgb(210, 161, 75);
 }
 
-.header {
+/* .header {
     width: 100%;
     height: 100px;
     display: block;
@@ -32,7 +32,7 @@
     left: 0;
     margin-top: 10px;
     cursor: pointer;
-}
+} */
 
 .header-search {
     /* width: 800px; */
@@ -116,7 +116,7 @@
 .image-container img {
     width: 100%;
     height: 400px;
-    object-fit: cover; /* Dodato */
+    object-fit: cover;
 }
 
 .image-overlay {
@@ -125,15 +125,15 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5); /* Tamni overlay */
+    background: rgba(0, 0, 0, 0.5);
 }
 
 .text-container {
     position: absolute;
-    top: 50%; /* Dodato */
-    left: 50%; /* Dodato */
-    transform: translate(-50%, -50%); /* Dodato */
-    width: 80%; /* Prilagodite veličinu teksta prema potrebama */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80%;
 }
 
 .text-container p {
