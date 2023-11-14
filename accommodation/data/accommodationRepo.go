@@ -2,49 +2,17 @@ package data
 
 import (
 	"context"
-	"fmt"
 	"log"
-	"os"
 
 	"github.com/gocql/gocql"
 )
 
 type AccommodationRepository struct {
 	session *gocql.Session
-	logger *log.Logger
+	logger  *log.Logger
 }
 
-func NewAccommodationRepository(logger *log.Logger) (*AccommodationRepository, error) {
-	db := os.Getenv("CASS_DB")
-
-	cluster := gocql.NewCluster(db)
-	cluster.Keyspace = "system"
-
-	session, err := cluster.CreateSession()
-	if err != nil {
-		logger.Println(err)
-		return nil, err
-	}
-
-	err = session.Query(
-		fmt.Sprintf(`CREATE KEYSPACE IF NOT EXISTS %s
-					WITH replication = {
-						'class' : 'SimpleStrategy',
-						'replication_factor' : %d
-					}`, "accommodation", 1)).Exec()
-    if err != nil {
-        logger.Println(err)
-    }
-	session.Close()
-
-	cluster.Keyspace = "accommodation"
-	cluster.Consistency = gocql.One
-	session, err = cluster.CreateSession()
-	if err != nil {
-		logger.Println(err)
-		return nil, err
-	}
-
+func NewAccommodationRepository(logger *log.Logger, session *gocql.Session) (*AccommodationRepository, error) {
 	return &AccommodationRepository{
 		session: session,
 		logger:  logger,
@@ -56,7 +24,7 @@ func (ar *AccommodationRepository) CloseSession() {
 }
 
 func (a *AccommodationRepository) CreateAccommodationTable() error {
-    query := `
+	query := `
         CREATE TABLE IF NOT EXISTS accommodations (
             id UUID PRIMARY KEY,
             name TEXT,
@@ -66,9 +34,8 @@ func (a *AccommodationRepository) CreateAccommodationTable() error {
             maxGuests INT
         )
     `
-    return a.session.Query(query).Exec()
+	return a.session.Query(query).Exec()
 }
-
 
 func (ar *AccommodationRepository) CreateAccommodation(ctx context.Context, accommodation *Accommodation) error {
 	amenitiesAsInt := make([]int, len(accommodation.Amenities))
@@ -87,36 +54,34 @@ func (ar *AccommodationRepository) CreateAccommodation(ctx context.Context, acco
 }
 
 func (ar *AccommodationRepository) GetAllAccommodations(ctx context.Context) ([]*Accommodation, error) {
-    query := "SELECT id, name, location, amenities, minGuests, maxGuests FROM accommodations"
-    iter := ar.session.Query(query).Iter()
+	query := "SELECT id, name, location, amenities, minGuests, maxGuests FROM accommodations"
+	iter := ar.session.Query(query).Iter()
 
-    var accommodations []*Accommodation
+	var accommodations []*Accommodation
 
-    for {
+	for {
 		accommodation := &Accommodation{}
 		var amenities []AmenityEnum
-	
+
 		if !iter.Scan(&accommodation.ID, &accommodation.Name, &accommodation.Location, &amenities, &accommodation.MinGuests, &accommodation.MaxGuests) {
 			break
 		}
-	
+
 		accommodation.Amenities = make([]AmenityEnum, len(amenities))
 		for i, val := range amenities {
 			accommodation.Amenities[i] = AmenityEnum(val)
 		}
-	
+
 		accommodations = append(accommodations, accommodation)
 	}
 
-    if err := iter.Close(); err != nil {
-        ar.logger.Fatal(err.Error())
-        return nil, err
-    }
+	if err := iter.Close(); err != nil {
+		ar.logger.Fatal(err.Error())
+		return nil, err
+	}
 
-    return accommodations, nil
+	return accommodations, nil
 }
-
-
 
 func (ar *AccommodationRepository) GetAccommodation(ctx context.Context, id gocql.UUID) (*Accommodation, error) {
 	var accommodation Accommodation
@@ -134,36 +99,34 @@ func (ar *AccommodationRepository) GetAccommodation(ctx context.Context, id gocq
 	return &accommodation, nil
 }
 
-
 func (ar *AccommodationRepository) UpdateAccommodation(ctx context.Context, accommodation *Accommodation) error {
-    // Pripremi podatke za ažuriranje
-    amenitiesAsInt := make([]int, len(accommodation.Amenities))
-    for i, amenity := range accommodation.Amenities {
-        amenitiesAsInt[i] = int(amenity)
-    }
+	// Prep data for update
+	amenitiesAsInt := make([]int, len(accommodation.Amenities))
+	for i, amenity := range accommodation.Amenities {
+		amenitiesAsInt[i] = int(amenity)
+	}
 
-    // Izvrši upit za ažuriranje smeštaja
-    query := ar.session.Query(
-        "UPDATE accommodations SET name=?, location=?, amenities=?, minGuests=?, maxGuests=? WHERE id=?",
-        accommodation.Name, accommodation.Location, amenitiesAsInt, accommodation.MinGuests, accommodation.MaxGuests, accommodation.ID,
-    )
+	// Execute query for accommodation update
+	query := ar.session.Query(
+		"UPDATE accommodations SET name=?, location=?, amenities=?, minGuests=?, maxGuests=? WHERE id=?",
+		accommodation.Name, accommodation.Location, amenitiesAsInt, accommodation.MinGuests, accommodation.MaxGuests, accommodation.ID,
+	)
 
-    if err := query.Exec(); err != nil {
-        ar.logger.Fatal(err.Error())
-        return err
-    }
+	if err := query.Exec(); err != nil {
+		ar.logger.Fatal(err.Error())
+		return err
+	}
 
-    return nil
+	return nil
 }
 
-
 func (ar *AccommodationRepository) DeleteAccommodation(ctx context.Context, id gocql.UUID) error {
-    query := ar.session.Query("DELETE FROM accommodations WHERE id=?", id)
-    
-    if err := query.Exec(); err != nil {
-        ar.logger.Fatal(err.Error())
-        return err
-    }
+	query := ar.session.Query("DELETE FROM accommodations WHERE id=?", id)
 
-    return nil
+	if err := query.Exec(); err != nil {
+		ar.logger.Fatal(err.Error())
+		return err
+	}
+
+	return nil
 }
