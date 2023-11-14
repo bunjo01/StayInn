@@ -1,0 +1,10 @@
+go 1.21.3
+
+toolchain go1.21.4
+
+use (
+	./accommodation
+	./api-gateway
+	./auth
+	./reservation
+)

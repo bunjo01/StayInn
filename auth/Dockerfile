@@ -8,5 +8,5 @@ RUN go build -o auth
 
 FROM alpine
 COPY --from=build_container /app/auth /usr/bin
-EXPOSE 8080
+EXPOSE 8081
 ENTRYPOINT ["auth"]
