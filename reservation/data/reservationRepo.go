@@ -8,67 +8,77 @@ import (
 	"os"
 	"time"
 
-	// NoSQL: module containing Mongo api client
+	"github.com/gocql/gocql"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-
-	// TODO "go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 type ReservationRepo struct {
-	cli    *mongo.Client
-	logger *log.Logger
+	session *gocql.Session
+	logger  *log.Logger
 }
 
 // Constructor
 func New(ctx context.Context, logger *log.Logger) (*ReservationRepo, error) {
-	dburi := os.Getenv("MONGO_DB_URI")
+	db := os.Getenv("CASS_DB")
 
-	client, err := mongo.NewClient(options.Client().ApplyURI(dburi))
+	cluster := gocql.NewCluster(db)
+	cluster.Keyspace = "system"
+	session, err := cluster.CreateSession()
 	if err != nil {
+		logger.Println(err)
 		return nil, err
 	}
 
-	err = client.Connect(ctx)
+	err = session.Query(
+		fmt.Sprintf(`CREATE KEYSPACE IF NOT EXISTS %s
+					WITH replication = {
+						'class' : 'SimpleStrategy'.
+						'replication_factor': %d
+					}`, "reservation", 1)).Exec()
 	if err != nil {
+		logger.Println(err)
+	}
+
+	session.Close()
+
+	cluster.Keyspace = "reservation"
+	cluster.Consistency = gocql.One
+	session, err = cluster.CreateSession()
+	if err != nil {
+		logger.Println(err)
 		return nil, err
 	}
 
 	return &ReservationRepo{
-		cli:    client,
-		logger: logger,
+		session: session,
+		logger:  logger,
 	}, nil
 }
 
 // Disconnect
 func (rr *ReservationRepo) Disconnect(ctx context.Context) error {
-	err := rr.cli.Disconnect(ctx)
-	if err != nil {
-		return err
-	}
-	return nil
+	rr.session.Close()
 }
 
 // Check database connection
 func (rr *ReservationRepo) Ping() {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	// ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// defer cancel()
 
-	// Check connection -> if no error, connection is established
-	err := rr.cli.Ping(ctx, readpref.Primary())
-	if err != nil {
-		rr.logger.Println(err)
-	}
+	// // Check connection -> if no error, connection is established
+	// err := rr.cli.Ping(ctx, readpref.Primary())
+	// if err != nil {
+	// 	rr.logger.Println(err)
+	// }
 
-	// Print available databases
-	databases, err := rr.cli.ListDatabaseNames(ctx, bson.M{})
-	if err != nil {
-		rr.logger.Println(err)
-	}
-	fmt.Println(databases)
+	// // Print available databases
+	// databases, err := rr.cli.ListDatabaseNames(ctx, bson.M{})
+	// if err != nil {
+	// 	rr.logger.Println(err)
+	// }
+	// fmt.Println(databases)
 }
 
 func (rr *ReservationRepo) GetAll() (Reservations, error) {
@@ -306,9 +316,9 @@ func (rr *ReservationRepo) DeleteReservedPeriod(reservationId, periodId string) 
 }
 
 func (rr *ReservationRepo) getCollection() *mongo.Collection {
-	patientDatabase := rr.cli.Database("reservationDB")
-	patientCollection := patientDatabase.Collection("reservation")
-	return patientCollection
+	// patientDatabase := rr.cli.Database("reservationDB")
+	// patientCollection := patientDatabase.Collection("reservation")
+	// return patientCollection
 }
 
 func (rr *ReservationRepo) checkForOverlap(reservationID primitive.ObjectID, newPeriod ReservedPeriod) (bool, error) {

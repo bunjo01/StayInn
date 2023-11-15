@@ -106,7 +106,7 @@ services:
       - 8082:8082
     environment:
       - PORT=8083
-      - MONGO_DB_URI=${MONGO_DB_URI_RESERVATION}
+      - CASS_DB=cassandra:9042
     depends_on:
       reservation_db:
         condition: service_healthy
@@ -116,21 +116,17 @@ services:
   reservation_db:
     hostname: "reservation_db"
     container_name: "reservation_db"
-    image: mongo
+    image: cassandra
     restart: always
     ports:
-      - "27018:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
-      MONGO_INITDB_DATABASE: reservationDB
+      - "9042:9042"
     healthcheck:
-      test: echo 'db.runCommand("ping").ok'
-      interval: 10s
-      timeout: 10s
-      retries: 10
+      test: ["CMD-SHELL", "cqlsh -e 'describe cluster'"]
+      interval: 15s
+      timeout: 5s
+      retries: 15
     volumes:
-      - reservation_db:/data/db
+      - cass_store:/var/lib/cassandra/data
     networks:
       - network
 
