@@ -1,12 +1,4 @@
-FROM golang:latest as builder
-WORKDIR /app
-COPY go.mod go.sum ./
-RUN go mod download
-COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
+FROM nginx:latest
 
-FROM alpine:latest
-WORKDIR /root/
-COPY --from=builder /app/main .
-EXPOSE 8090
-CMD ["./main"]
+COPY ./api_gateway.conf /etc/nginx/conf.d/api_gateway.conf
+RUN rm /etc/nginx/conf.d/default.conf
