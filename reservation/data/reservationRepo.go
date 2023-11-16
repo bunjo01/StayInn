@@ -63,8 +63,8 @@ func (rr *ReservationRepo) CreateTables() {
 		fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s 
         (id UUID, id_accommodation UUID, start_date TIMESTAMP, end_date TIMESTAMP, 
         price DOUBLE, price_per_guest BOOLEAN, 
-        PRIMARY KEY ((id_accommodation), start_date, id)) 
-        WITH CLUSTERING ORDER BY (start_date ASC, id DESC)`,
+        PRIMARY KEY ((id_accommodation), id)) 
+        WITH CLUSTERING ORDER BY (id DESC)`,
 			"available_periods_by_accommodation")).Exec()
 	if err != nil {
 		rr.logger.Println(err)
@@ -130,8 +130,35 @@ func (rr *ReservationRepo) GetReservationsByAvailablePeriod(id string) (Reservat
 }
 
 func (rr *ReservationRepo) InsertAvailablePeriodByAccommodation(availablePeriod *AvailablePeriodByAccommodation) error {
+	var err error
+	if availablePeriod.Price < 0 {
+		err = errors.New("price cannot be negative")
+		return err
+	}
+
+	if availablePeriod.StartDate.Before(time.Now()) {
+		err = errors.New("start date must be in the future")
+		return err
+	}
+
+	if availablePeriod.StartDate.After(availablePeriod.EndDate) {
+		err = errors.New("start date must be before end date")
+		return err
+	}
+
+	isOverLap, err := rr.checkForOverlap(*availablePeriod, availablePeriod.IDAccommodation.String())
+	if err != nil {
+		rr.logger.Println(err)
+		return err
+	}
+
+	if isOverLap {
+		err = errors.New("date overlap")
+		return err
+	}
+
 	availablePeriodId, _ := gocql.RandomUUID()
-	err := rr.session.Query(
+	err = rr.session.Query(
 		`INSERT INTO available_periods_by_accommodation (id, id_accommodation, start_date, end_date, price, price_per_guest) 
 		VALUES (?, ?, ?, ?, ?, ?)`,
 		availablePeriodId, availablePeriod.IDAccommodation, availablePeriod.StartDate, availablePeriod.EndDate,
@@ -145,6 +172,7 @@ func (rr *ReservationRepo) InsertAvailablePeriodByAccommodation(availablePeriod 
 
 func (rr *ReservationRepo) InsertReservationByAvailablePeriod(reservation *ReservationByAvailablePeriod) error {
 	reservationId, _ := gocql.RandomUUID()
+
 	err := rr.session.Query(
 		`INSERT INTO reservations_by_available_period (id, id_accommodation, id_available_period, id_user, start_date, end_date, guest_number, price) 
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -160,7 +188,7 @@ func (rr *ReservationRepo) InsertReservationByAvailablePeriod(reservation *Reser
 func (rr *ReservationRepo) UpdateAvailablePeriodByAccommodation(availablePeriod *AvailablePeriodByAccommodation) error {
 	id := availablePeriod.ID
 	accommodationdId := availablePeriod.IDAccommodation
-	availablePeriods, err := rr.FindAvailablePeriodById(id.String(), accommodationdId.String(), availablePeriod.StartDate)
+	availablePeriods, err := rr.FindAvailablePeriodById(id.String(), accommodationdId.String())
 	if err != nil {
 		rr.logger.Println(err)
 		return err
@@ -171,13 +199,38 @@ func (rr *ReservationRepo) UpdateAvailablePeriodByAccommodation(availablePeriod 
 		return err
 	}
 
+	reservations, err := rr.GetReservationsByAvailablePeriod(id.String())
+	if err != nil {
+		rr.logger.Println(err)
+		return err
+	}
+
+	if len(reservations) != 0 {
+		err = errors.New("cannot change period with reservations")
+		return err
+	}
+
+	if availablePeriod.Price < 0 {
+		err = errors.New("price cannot be negative")
+		return err
+	}
+
+	if availablePeriod.StartDate.Before(time.Now()) {
+		err = errors.New("start date must be in the future")
+		return err
+	}
+
+	if availablePeriod.StartDate.After(availablePeriod.EndDate) {
+		err = errors.New("start date must be before end date")
+		return err
+	}
+
 	err = rr.session.Query(
 		`UPDATE available_periods_by_accommodation 
-		SET  end_date = ?, price = ?, price_per_guest = ? 
-		WHERE id = ? AND id_accommodation = ? AND start_date = ?`,
-		availablePeriod.EndDate,
-		availablePeriod.Price, availablePeriod.PricePerGuest,
-		availablePeriod.ID, availablePeriod.IDAccommodation, availablePeriod.StartDate).Exec()
+		SET  end_date = ?, price = ?, price_per_guest = ?, start_date = ? 
+		WHERE id = ? AND id_accommodation = ?`,
+		availablePeriod.EndDate, availablePeriod.Price, availablePeriod.PricePerGuest,
+		availablePeriod.StartDate, availablePeriod.ID, availablePeriod.IDAccommodation).Exec()
 	if err != nil {
 		rr.logger.Println(err)
 		return err
@@ -186,10 +239,31 @@ func (rr *ReservationRepo) UpdateAvailablePeriodByAccommodation(availablePeriod 
 	return nil
 }
 
-func (rr *ReservationRepo) FindAvailablePeriodById(id, accommodationId string, startDate time.Time) (AvailablePeriodsByAccommodation, error) {
+func (rr *ReservationRepo) FindAvailablePeriodsByAccommodationId(accommodationId string) (AvailablePeriodsByAccommodation, error) {
 	scanner := rr.session.Query(`SELECT id, id_accommodation, start_date, end_date, price, price_per_guest 
-			FROM available_periods_by_accommodation WHERE id = ? AND start_date = ? AND id_accommodation = ?`,
-		id, startDate, accommodationId).Iter().Scanner()
+			FROM available_periods_by_accommodation WHERE id_accommodation = ?`, accommodationId).Iter().Scanner()
+
+	var availablePeriods AvailablePeriodsByAccommodation
+	for scanner.Next() {
+		var period AvailablePeriodByAccommodation
+		err := scanner.Scan(&period.ID, &period.IDAccommodation, &period.StartDate, &period.EndDate, &period.Price, &period.PricePerGuest)
+		if err != nil {
+			rr.logger.Println(err)
+			return nil, err
+		}
+		availablePeriods = append(availablePeriods, &period)
+	}
+	if err := scanner.Err(); err != nil {
+		rr.logger.Println(err)
+		return nil, err
+	}
+	return availablePeriods, nil
+}
+
+func (rr *ReservationRepo) FindAvailablePeriodById(id, accommodationId string) (AvailablePeriodsByAccommodation, error) {
+	scanner := rr.session.Query(`SELECT id, id_accommodation, start_date, end_date, price, price_per_guest 
+			FROM available_periods_by_accommodation WHERE id = ? AND id_accommodation = ?`,
+		id, accommodationId).Iter().Scanner()
 
 	var avaiablePeriods AvailablePeriodsByAccommodation
 	for scanner.Next() {
@@ -206,6 +280,29 @@ func (rr *ReservationRepo) FindAvailablePeriodById(id, accommodationId string, s
 		return nil, err
 	}
 	return avaiablePeriods, nil
+}
+
+func (rr *ReservationRepo) FindAllReservationsByAvailablePeriod(periodId string) (Reservations, error) {
+	scanner := rr.session.Query(`SELECT id, id_accommodation, id_available_period, id_user, start_date, 
+       								    end_date, guest_number, price FROM reservations_by_available_period 
+       		                              WHERE id_available_period = ?`, periodId).Iter().Scanner()
+
+	var reservations Reservations
+	for scanner.Next() {
+		var reservation ReservationByAvailablePeriod
+		err := scanner.Scan(&reservation.ID, &reservation.IDAccommodation, &reservation.IDAvailablePeriod, &reservation.IDUser,
+			&reservation.StartDate, &reservation.EndDate, &reservation.GuestNumber, &reservation.Price)
+		if err != nil {
+			rr.logger.Println(err)
+			return nil, err
+		}
+		reservations = append(reservations, &reservation)
+	}
+	if err := scanner.Err(); err != nil {
+		rr.logger.Println(err)
+		return nil, err
+	}
+	return reservations, nil
 }
 
 func (rr *ReservationRepo) GetDistinctIds(idColumnName string, tableName string) ([]string, error) {
@@ -228,33 +325,53 @@ func (rr *ReservationRepo) GetDistinctIds(idColumnName string, tableName string)
 	return ids, nil
 }
 
-//func (rr *ReservationRepo) checkForOverlap(reservationID primitive.ObjectID, newPeriod ReservedPeriod) (bool, error) {
-//
-//	// Check for overlaps within the reserved periods of the found reservation.
-//	if len(*foundReservation.ReservedPeriods) == 0 {
-//		return false, nil
-//	}
-//	for _, existingPeriod := range *foundReservation.ReservedPeriods {
-//		var result bool
-//		if existingPeriod.ID != newPeriod.ID {
-//			result = rr.isPeriodOverlap(existingPeriod, newPeriod)
-//			if result {
-//				return true, nil // Overlap found
-//			}
-//		}
-//	}
-//
-//	return false, nil // No overlap found
-//}
-//
-//func (rr *ReservationRepo) isPeriodOverlap(currentPeriod ReservedPeriod, newPeriod ReservedPeriod) bool {
-//	if (newPeriod.StartDate.After(currentPeriod.StartDate) && newPeriod.StartDate.Before(currentPeriod.EndDate)) ||
-//		(newPeriod.EndDate.After(currentPeriod.StartDate) && newPeriod.EndDate.Before(currentPeriod.EndDate)) ||
-//		(currentPeriod.StartDate.After(newPeriod.StartDate) && currentPeriod.StartDate.Before(newPeriod.EndDate)) ||
-//		(currentPeriod.EndDate.After(newPeriod.StartDate) && currentPeriod.EndDate.Before(newPeriod.EndDate)) ||
-//		currentPeriod.EndDate.Equal(newPeriod.EndDate) {
-//		return true
-//	}
+func (rr *ReservationRepo) checkForOverlap(newPeriod AvailablePeriodByAccommodation, accommodationId string) (bool, error) {
+	avalablePeriods, err := rr.FindAvailablePeriodsByAccommodationId(accommodationId)
+	if err != nil {
+		rr.logger.Println(err)
+		return true, err
+	}
+
+	// Check for overlaps within the reserved periods of the found reservation.
+	if len(avalablePeriods) == 0 {
+		return false, nil
+	}
+
+	for _, existingPeriod := range avalablePeriods {
+		var result bool
+		if existingPeriod.ID != newPeriod.ID {
+			result = rr.isAvailablePeriodOverlap(*existingPeriod, newPeriod)
+			if result {
+				return true, nil // Overlap found
+			}
+		}
+	}
+
+	return false, nil // No overlap found
+}
+
+func (rr *ReservationRepo) isAvailablePeriodOverlap(currentPeriod AvailablePeriodByAccommodation, newPeriod AvailablePeriodByAccommodation) bool {
+	if (newPeriod.StartDate.After(currentPeriod.StartDate) && newPeriod.StartDate.Before(currentPeriod.EndDate)) ||
+		(newPeriod.EndDate.After(currentPeriod.StartDate) && newPeriod.EndDate.Before(currentPeriod.EndDate)) ||
+		(currentPeriod.StartDate.After(newPeriod.StartDate) && currentPeriod.StartDate.Before(newPeriod.EndDate)) ||
+		(currentPeriod.EndDate.After(newPeriod.StartDate) && currentPeriod.EndDate.Before(newPeriod.EndDate)) ||
+		currentPeriod.EndDate.Equal(newPeriod.EndDate) {
+		return true
+	}
+	return false
+}
+
+func (rr *ReservationRepo) calculatePrice(price float64, pricePerGuest bool, startDate, endDate time.Time, numberOfGuest int16) float64 {
+	dateDifference := endDate.Sub(startDate)
+
+	daysDifference := float64(dateDifference.Hours() / 24)
+
+	if pricePerGuest {
+		return daysDifference * price * float64(numberOfGuest)
+	}
+
+	return daysDifference * price
+}
 
 //
 //func (rr *ReservationRepo) GetAll() (Reservations, error) {
