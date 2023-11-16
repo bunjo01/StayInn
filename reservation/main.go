@@ -3,16 +3,15 @@ package main
 import (
 	"context"
 	"log"
+	"main.go/handlers"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
 
+	gorillaHandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"main.go/data"
-	"main.go/handlers"
-
-	gorillaHandlers "github.com/gorilla/handlers"
 )
 
 func main() {
@@ -28,18 +27,16 @@ func main() {
 	defer cancel()
 
 	//Initialize the logger we are going to use, with prefix and datetime for every log
-	logger := log.New(os.Stdout, "[product-api] ", log.LstdFlags)
-	storeLogger := log.New(os.Stdout, "[patient-store] ", log.LstdFlags)
+	logger := log.New(os.Stdout, "[reservation-api] ", log.LstdFlags)
+	storeLogger := log.New(os.Stdout, "[reservation-store] ", log.LstdFlags)
 
 	// NoSQL: Initialize Product Repository store
 	store, err := data.New(timeoutContext, storeLogger)
 	if err != nil {
 		logger.Fatal(err)
 	}
-	defer store.Disconnect(timeoutContext)
-
-	// NoSQL: Checking if the connection was established
-	store.Ping()
+	defer store.CloseSession()
+	store.CreateTables()
 
 	//Initialize the handler and inject said logger
 	reservationHandler := handlers.NewReservationHandler(logger, store)
@@ -48,30 +45,38 @@ func main() {
 	router := mux.NewRouter()
 	router.Use(reservationHandler.MiddlewareContentTypeSet)
 
-	getRouter := router.Methods(http.MethodGet).Subrouter()
-	getRouter.HandleFunc("/", reservationHandler.GetAllReservations)
+	getAvailablePeriodsByAccommodationRouter := router.Methods(http.MethodGet).Subrouter()
+	getAvailablePeriodsByAccommodationRouter.HandleFunc("/{id}/periods", reservationHandler.GetAllAvailablePeriodsByAccommodation)
 
-	getReservationByIdRouter := router.Methods(http.MethodGet).Subrouter()
-	getReservationByIdRouter.HandleFunc("/{id}", reservationHandler.GetReservationById)
+	getReservationsByAvailablePeriodRouter := router.Methods(http.MethodGet).Subrouter()
+	getReservationsByAvailablePeriodRouter.HandleFunc("/{id}/reservations", reservationHandler.GetAllReservationByAvailablePeriod)
 
-	postRouter := router.Methods(http.MethodPost).Subrouter()
-	postRouter.HandleFunc("/", reservationHandler.PostReservation)
-	postRouter.Use(reservationHandler.MiddlewareReservationDeserialization)
+	postAvailablePeriodsByAccommodationRouter := router.Methods(http.MethodPost).Subrouter()
+	postAvailablePeriodsByAccommodationRouter.HandleFunc("/period", reservationHandler.CreateAvailablePeriod)
+	postAvailablePeriodsByAccommodationRouter.Use(reservationHandler.MiddlewareAvailablePeriodDeserialization)
 
-	deleteReservationById := router.Methods(http.MethodDelete).Subrouter()
-	deleteReservationById.HandleFunc("/{id}", reservationHandler.DeleteReservation)
+	postReservationRouter := router.Methods(http.MethodPost).Subrouter()
+	postReservationRouter.HandleFunc("/reservation", reservationHandler.CreateReservation)
+	postReservationRouter.Use(reservationHandler.MiddlewareReservationDeserialization)
 
-	reservePeriodRouter := router.Methods(http.MethodPatch).Subrouter()
-	reservePeriodRouter.HandleFunc("/{id}", reservationHandler.ReservePeriod)
-	reservePeriodRouter.Use(reservationHandler.MiddlewareReservedPeriodDeserialization)
-
-	//TODO : NOT WORKING
-	//updateReservedPeriodRouter := router.Methods(http.MethodPatch).Subrouter()
-	//updateReservedPeriodRouter.HandleFunc("/{reservationId}/update", reservationHandler.UpdateReservedPeriod)
-	//updateReservedPeriodRouter.Use(reservationHandler.MiddlewareReservedPeriodDeserialization)
-
-	deleteReservedPeriod := router.Methods(http.MethodDelete).Subrouter()
-	deleteReservedPeriod.HandleFunc("/{reservationId}/period/{periodId}", reservationHandler.DeleteReservedPeriod)
+	updateAvailablePeriodsByAccommodationRouter := router.Methods(http.MethodPatch).Subrouter()
+	updateAvailablePeriodsByAccommodationRouter.HandleFunc("/period", reservationHandler.UpdateAvailablePeriodByAccommodation)
+	updateAvailablePeriodsByAccommodationRouter.Use(reservationHandler.MiddlewareAvailablePeriodDeserialization)
+	//
+	//deleteReservationById := router.Methods(http.MethodDelete).Subrouter()
+	//deleteReservationById.HandleFunc("/{id}", reservationHandler.DeleteReservation)
+	//
+	//reservePeriodRouter := router.Methods(http.MethodPatch).Subrouter()
+	//reservePeriodRouter.HandleFunc("/{id}", reservationHandler.ReservePeriod)
+	//reservePeriodRouter.Use(reservationHandler.MiddlewareReservedPeriodDeserialization)
+	//
+	//
+	////updateReservedPeriodRouter := router.Methods(http.MethodPatch).Subrouter()
+	////updateReservedPeriodRouter.HandleFunc("/{reservationId}/update", reservationHandler.UpdateReservedPeriod)
+	////updateReservedPeriodRouter.Use(reservationHandler.MiddlewareReservedPeriodDeserialization)
+	//
+	//deleteReservedPeriod := router.Methods(http.MethodDelete).Subrouter()
+	//deleteReservedPeriod.HandleFunc("/{reservationId}/period/{periodId}", reservationHandler.DeleteReservedPeriod)
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 
