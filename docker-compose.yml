@@ -25,10 +25,7 @@ services:
     environment:
       - PORT=8080
       - CASS_DB=${CASS_DB}
-      - CASSANDRA_HOST=${CASSANDRA_HOST}
-      - CASSANDRA_PORT=${CASSANDRA_PORT}
-      - CASSANDRA_USER=${CASSANDRA_USER}
-      - CASSANDRA_PASSWORD=${CASSANDRA_PASSWORD}
+      - MONGO_DB_URI=${MONGO_DB_URI_ACCOMMODATION}
     depends_on:
       accommodation_db:
         condition: service_healthy
