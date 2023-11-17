@@ -4,7 +4,6 @@ toolchain go1.21.4
 
 use (
 	./accommodation
-	./api-gateway
 	./auth
 	./reservation
 )

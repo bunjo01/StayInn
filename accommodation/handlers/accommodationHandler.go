@@ -6,8 +6,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gocql/gocql"
 	"github.com/gorilla/mux"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type AccommodationHandler struct {
@@ -35,12 +35,11 @@ func (ah *AccommodationHandler) GetAllAccommodations(rw http.ResponseWriter, r *
 	}
 }
 
-
 func (ah *AccommodationHandler) GetAccommodation(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	id, err := gocql.ParseUUID(vars["id"])
+	id, err := primitive.ObjectIDFromHex(vars["id"])
 	if err != nil {
-		http.Error(rw, "Invalid UUID", http.StatusBadRequest)
+		http.Error(rw, "Invalid ID", http.StatusBadRequest)
 		return
 	}
 
@@ -64,85 +63,70 @@ func (ah *AccommodationHandler) GetAccommodation(rw http.ResponseWriter, r *http
 }
 
 func (ah *AccommodationHandler) CreateAccommodation(rw http.ResponseWriter, r *http.Request) {
-    // Dekodiraj JSON telo zahteva u objekat Accommodation
-    var accommodation data.Accommodation
-    if err := json.NewDecoder(r.Body).Decode(&accommodation); err != nil {
-        http.Error(rw, "Failed to decode request body", http.StatusBadRequest)
-        return
-    }
+	var accommodation data.Accommodation
+	if err := json.NewDecoder(r.Body).Decode(&accommodation); err != nil {
+		http.Error(rw, "Failed to decode request body", http.StatusBadRequest)
+		return
+	}
 
-    // Generiši jedinstveni ID za smeštaj
-    accommodation.ID = gocql.TimeUUID()
+	// Dodajemo smeštaj
+	accommodation.ID = primitive.NewObjectID()
+	if err := ah.repo.CreateAccommodation(r.Context(), &accommodation); err != nil {
+		ah.logger.Println("Failed to create accommodation:", err)
+		http.Error(rw, "Failed to create accommodation", http.StatusInternalServerError)
+		return
+	}
 
-    // Kreiraj smeštaj u bazi podataka
-    if err := ah.repo.CreateAccommodation(r.Context(), &accommodation); err != nil {
-        ah.logger.Println("Failed to create accommodation:", err)
-        http.Error(rw, "Failed to create accommodation", http.StatusInternalServerError)
-        return
-    }
-
-    // Postavi odgovarajući status odgovora i pošaljite odgovor
-    rw.Header().Set("Content-Type", "application/json")
-    rw.WriteHeader(http.StatusCreated)
-    if err := json.NewEncoder(rw).Encode(accommodation); err != nil {
-        ah.logger.Println("Failed to encode accommodation:", err)
-        http.Error(rw, "Failed to encode accommodation", http.StatusInternalServerError)
-    }
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(rw).Encode(accommodation); err != nil {
+		ah.logger.Println("Failed to encode accommodation:", err)
+		http.Error(rw, "Failed to encode accommodation", http.StatusInternalServerError)
+	}
 }
-
 
 func (ah *AccommodationHandler) UpdateAccommodation(rw http.ResponseWriter, r *http.Request) {
-    // Izvuci ID smeštaja iz putanje
-    vars := mux.Vars(r)
-    id, err := gocql.ParseUUID(vars["id"])
-    if err != nil {
-        http.Error(rw, "Invalid UUID", http.StatusBadRequest)
-        return
-    }
+	vars := mux.Vars(r)
+	id, err := primitive.ObjectIDFromHex(vars["id"])
+	if err != nil {
+		http.Error(rw, "Invalid ID", http.StatusBadRequest)
+		return
+	}
 
-    // Dekodiraj JSON telo zahteva u objekat Accommodation
-    var updatedAccommodation data.Accommodation
-    if err := json.NewDecoder(r.Body).Decode(&updatedAccommodation); err != nil {
-        http.Error(rw, "Failed to decode request body", http.StatusBadRequest)
-        return
-    }
+	var updatedAccommodation data.Accommodation
+	if err := json.NewDecoder(r.Body).Decode(&updatedAccommodation); err != nil {
+		http.Error(rw, "Failed to decode request body", http.StatusBadRequest)
+		return
+	}
 
-    // Postavi ID smeštaja na vrednost iz putanje
-    updatedAccommodation.ID = id
+	updatedAccommodation.ID = id
+	if err := ah.repo.UpdateAccommodation(r.Context(), &updatedAccommodation); err != nil {
+		ah.logger.Println("Failed to update accommodation:", err)
+		http.Error(rw, "Failed to update accommodation", http.StatusInternalServerError)
+		return
+	}
 
-    // Ažuriraj smeštaj u bazi podataka
-    if err := ah.repo.UpdateAccommodation(r.Context(), &updatedAccommodation); err != nil {
-        ah.logger.Println("Failed to update accommodation:", err)
-        http.Error(rw, "Failed to update accommodation", http.StatusInternalServerError)
-        return
-    }
-
-    // Vrati ažurirani smeštaj kao odgovor
-    rw.Header().Set("Content-Type", "application/json")
-    rw.WriteHeader(http.StatusOK)
-    if err := json.NewEncoder(rw).Encode(updatedAccommodation); err != nil {
-        ah.logger.Println("Failed to encode updated accommodation:", err)
-        http.Error(rw, "Failed to encode updated accommodation", http.StatusInternalServerError)
-    }
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(rw).Encode(updatedAccommodation); err != nil {
+		ah.logger.Println("Failed to encode updated accommodation:", err)
+		http.Error(rw, "Failed to encode updated accommodation", http.StatusInternalServerError)
+	}
 }
 
-
 func (ah *AccommodationHandler) DeleteAccommodation(rw http.ResponseWriter, r *http.Request) {
-    // Izvuci ID smeštaja iz putanje
-    vars := mux.Vars(r)
-    id, err := gocql.ParseUUID(vars["id"])
-    if err != nil {
-        http.Error(rw, "Invalid UUID", http.StatusBadRequest)
-        return
-    }
+	vars := mux.Vars(r)
+	id, err := primitive.ObjectIDFromHex(vars["id"])
+	if err != nil {
+		http.Error(rw, "Invalid ID", http.StatusBadRequest)
+		return
+	}
 
-    // Obriši smeštaj iz baze podataka
-    if err := ah.repo.DeleteAccommodation(r.Context(), id); err != nil {
-        ah.logger.Println("Failed to delete accommodation:", err)
-        http.Error(rw, "Failed to delete accommodation", http.StatusInternalServerError)
-        return
-    }
+	if err := ah.repo.DeleteAccommodation(r.Context(), id); err != nil {
+		ah.logger.Println("Failed to delete accommodation:", err)
+		http.Error(rw, "Failed to delete accommodation", http.StatusInternalServerError)
+		return
+	}
 
-    // Postavi odgovarajući status odgovora
-    rw.WriteHeader(http.StatusNoContent)
+	rw.WriteHeader(http.StatusNoContent)
 }
