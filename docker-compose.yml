@@ -10,6 +10,7 @@ services:
     restart: on-failure
     ports:
       - "8000:8000"
+      - "443:443"
     networks:
       - network
 
@@ -24,7 +25,6 @@ services:
       - 8080:8080
     environment:
       - PORT=8080
-      - CASS_DB=${CASS_DB}
       - MONGO_DB_URI=${MONGO_DB_URI_ACCOMMODATION}
     depends_on:
       accommodation_db:
