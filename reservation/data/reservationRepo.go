@@ -1,13 +1,12 @@
 package data
 
 import (
-	"context"
 	"errors"
 	"fmt"
-	"github.com/gocql/gocql"
 	"log"
-	"os"
 	"time"
+
+	"github.com/gocql/gocql"
 )
 
 type ReservationRepo struct {
@@ -16,37 +15,7 @@ type ReservationRepo struct {
 }
 
 // Constructor
-func New(ctx context.Context, logger *log.Logger) (*ReservationRepo, error) {
-	db := os.Getenv("CASS_DB")
-
-	cluster := gocql.NewCluster(db)
-	cluster.Keyspace = "system"
-	session, err := cluster.CreateSession()
-	if err != nil {
-		logger.Println(err)
-		return nil, err
-	}
-
-	err = session.Query(
-		fmt.Sprintf(`CREATE KEYSPACE IF NOT EXISTS %s
-					WITH replication = {
-						'class' : 'SimpleStrategy'.
-						'replication_factor': %d
-					}`, "reservation", 1)).Exec()
-	if err != nil {
-		logger.Println(err)
-	}
-
-	session.Close()
-
-	cluster.Keyspace = "reservation"
-	cluster.Consistency = gocql.One
-	session, err = cluster.CreateSession()
-	if err != nil {
-		logger.Println(err)
-		return nil, err
-	}
-
+func New(logger *log.Logger, session *gocql.Session) (*ReservationRepo, error) {
 	return &ReservationRepo{
 		session: session,
 		logger:  logger,
@@ -58,7 +27,7 @@ func (rr *ReservationRepo) CloseSession() {
 	rr.session.Close()
 }
 
-func (rr *ReservationRepo) CreateTables() {
+func (rr *ReservationRepo) CreateTables() error {
 	err := rr.session.Query(
 		fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s 
         (id UUID, id_accommodation UUID, start_date TIMESTAMP, end_date TIMESTAMP, 
@@ -68,6 +37,7 @@ func (rr *ReservationRepo) CreateTables() {
 			"available_periods_by_accommodation")).Exec()
 	if err != nil {
 		rr.logger.Println(err)
+		return err
 	}
 
 	err = rr.session.Query(
@@ -79,8 +49,9 @@ func (rr *ReservationRepo) CreateTables() {
 			"reservations_by_available_period")).Exec()
 	if err != nil {
 		rr.logger.Println(err)
+		return err
 	}
-
+	return nil
 }
 
 func (rr *ReservationRepo) GetAvailablePeriodsByAccommodation(id string) (AvailablePeriodsByAccommodation, error) {

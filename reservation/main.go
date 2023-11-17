@@ -2,13 +2,17 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
-	"main.go/handlers"
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"time"
 
+	"main.go/handlers"
+
+	"github.com/gocql/gocql"
 	gorillaHandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"main.go/data"
@@ -30,13 +34,68 @@ func main() {
 	logger := log.New(os.Stdout, "[reservation-api] ", log.LstdFlags)
 	storeLogger := log.New(os.Stdout, "[reservation-store] ", log.LstdFlags)
 
-	// NoSQL: Initialize Product Repository store
-	store, err := data.New(timeoutContext, storeLogger)
+	// Initializing Cassandra DB
+	db := os.Getenv("CASS_DB")
+	cassandraHost := os.Getenv("CASSANDRA_HOST")
+	cassandraPortStr := os.Getenv("CASSANDRA_PORT")
+	cassandraPort, err := strconv.Atoi(cassandraPortStr)
+	if err != nil {
+		logger.Fatalf("failed to parse CASSANDRA_PORT: %v", err)
+	}
+	cassandraUser := os.Getenv("CASSANDRA_USER")
+	cassandraPassword := os.Getenv("CASSANDRA_PASSWORD")
+
+	cluster := gocql.NewCluster(db)
+	cluster.Keyspace = "system"
+
+	session, err := cluster.CreateSession()
+	if err != nil {
+		log.Fatalf("failed to create session: %v", err)
+	}
+
+	err = session.Query(
+		fmt.Sprintf(`CREATE KEYSPACE IF NOT EXISTS %s
+						WITH replication = {
+							'class' : 'SimpleStrategy',
+							'replication_factor' : %d
+						}`, "reservation", 1)).Exec()
+
+	if err != nil {
+		session.Close()
+		log.Fatalf("failed to create keyspace: %v", err)
+	}
+
+	session.Close()
+
+	cluster = gocql.NewCluster(cassandraHost)
+	cluster.Keyspace = "reservation"
+	cluster.Port = cassandraPort
+	cluster.Authenticator = gocql.PasswordAuthenticator{
+		Username: cassandraUser,
+		Password: cassandraPassword,
+	}
+	cluster.Consistency = gocql.One
+
+	session, err = cluster.CreateSession()
+	if err != nil {
+		logger.Fatalf("failed to create Cassandra session: %v", err)
+	} else {
+		defer session.Close()
+		logger.Println("connected to Cassandra")
+	}
+
+	// Initializing repo
+	store, err := data.New(storeLogger, session)
 	if err != nil {
 		logger.Fatal(err)
 	}
+
+	err = store.CreateTables()
+	if err != nil {
+		logger.Fatal(err)
+	}
+
 	defer store.CloseSession()
-	store.CreateTables()
 
 	//Initialize the handler and inject said logger
 	reservationHandler := handlers.NewReservationHandler(logger, store)
