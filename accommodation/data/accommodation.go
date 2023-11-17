@@ -4,16 +4,16 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/gocql/gocql"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Accommodation struct {
-	ID        gocql.UUID   `json:"id"`
-	Name      string   `json:"name"`
-	Location  string   `json:"location"`
-	Amenities []AmenityEnum `json:"amenities"`
-	MinGuests int      `json:"minGuests"`
-	MaxGuests int      `json:"maxGuests"`
+	ID        primitive.ObjectID   `json:"id" bson:"_id"`
+	Name      string   `json:"name" bson:"name"`
+	Location  string   `json:"location" bson:"location"`
+	Amenities []AmenityEnum `json:"amenities" bson:"amenities"`
+	MinGuests int      `json:"minGuests" bson:"minGuests"`
+	MaxGuests int      `json:"maxGuests" bson:"maxGuests"`
 }
 
 type AmenityEnum int
@@ -49,16 +49,17 @@ func (a *Accommodation) FromJSON(r io.Reader) error {
 	return d.Decode(a)
 }
 
-// func (a *Accommodation) UnmarshalCQL(info gocql.TypeInfo, data []byte) error {
-// 	var amenities []int
-// 	if err := gocql.Unmarshal(info, data, &amenities); err != nil {
-// 		return err
-// 	}
+func (a *Accommodation) GetAmenitiesAsInt() []int {
+	amenitiesAsInt := make([]int, len(a.Amenities))
+	for i, amenity := range a.Amenities {
+		amenitiesAsInt[i] = int(amenity)
+	}
+	return amenitiesAsInt
+}
 
-// 	a.Amenities = make([]AmenityEnum, len(amenities))
-// 	for i, val := range amenities {
-// 		a.Amenities[i] = AmenityEnum(val)
-// 	}
-
-// 	return nil
-// }
+func (a *Accommodation) SetAmenitiesFromInt(amenitiesAsInt []int) {
+	a.Amenities = make([]AmenityEnum, len(amenitiesAsInt))
+	for i, val := range amenitiesAsInt {
+		a.Amenities[i] = AmenityEnum(val)
+	}
+}
