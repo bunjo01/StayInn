@@ -2,97 +2,107 @@ package data
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"os"
+	"time"
 
-	"github.com/gocql/gocql"
+	// NoSQL: module containing Mongo api client
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	// TODO "go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 type AccommodationRepository struct {
-	session *gocql.Session
-	logger  *log.Logger
+	cli    *mongo.Client
+	logger *log.Logger
 }
 
-func NewAccommodationRepository(logger *log.Logger, session *gocql.Session) (*AccommodationRepository, error) {
+func NewAccommodationRepository(ctx context.Context, logger *log.Logger) (*AccommodationRepository, error) {
+	dburi := os.Getenv("MONGO_DB_URI")
+
+	client, err := mongo.NewClient(options.Client().ApplyURI(dburi))
+	if err != nil {
+		return nil, err
+	}
+
+	err = client.Connect(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	return &AccommodationRepository{
-		session: session,
-		logger:  logger,
+		cli:    client,
+		logger: logger,
 	}, nil
 }
 
-func (ar *AccommodationRepository) CloseSession() {
-	ar.session.Close()
-}
-
-func (a *AccommodationRepository) CreateAccommodationTable() error {
-	query := `
-        CREATE TABLE IF NOT EXISTS accommodations (
-            id UUID PRIMARY KEY,
-            name TEXT,
-            location TEXT,
-            amenities SET<INT>,
-            minGuests INT,
-            maxGuests INT
-        )
-    `
-	return a.session.Query(query).Exec()
-}
-
-func (ar *AccommodationRepository) CreateAccommodation(ctx context.Context, accommodation *Accommodation) error {
-	amenitiesAsInt := make([]int, len(accommodation.Amenities))
-	for i, amenity := range accommodation.Amenities {
-		amenitiesAsInt[i] = int(amenity)
-	}
-	query := ar.session.Query(
-		"INSERT INTO accommodations (id, name, location, amenities, minGuests, maxGuests) VALUES (?, ?, ?, ?, ?, ?)",
-		accommodation.ID, accommodation.Name, accommodation.Location, amenitiesAsInt, accommodation.MinGuests, accommodation.MaxGuests,
-	)
-	if err := query.Exec(); err != nil {
+func (ar *AccommodationRepository) Disconnect(ctx context.Context) error {
+	err := ar.cli.Disconnect(ctx)
+	if err != nil {
 		ar.logger.Fatal(err.Error())
 		return err
 	}
 	return nil
 }
 
-func (ar *AccommodationRepository) GetAllAccommodations(ctx context.Context) ([]*Accommodation, error) {
-	query := "SELECT id, name, location, amenities, minGuests, maxGuests FROM accommodations"
-	iter := ar.session.Query(query).Iter()
+func (ar *AccommodationRepository) Ping() {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	var accommodations []*Accommodation
-
-	for {
-		accommodation := &Accommodation{}
-		var amenities []AmenityEnum
-
-		if !iter.Scan(&accommodation.ID, &accommodation.Name, &accommodation.Location, &amenities, &accommodation.MinGuests, &accommodation.MaxGuests) {
-			break
-		}
-
-		accommodation.Amenities = make([]AmenityEnum, len(amenities))
-		for i, val := range amenities {
-			accommodation.Amenities[i] = AmenityEnum(val)
-		}
-
-		accommodations = append(accommodations, accommodation)
+	err := ar.cli.Ping(ctx, readpref.Primary())
+	if err != nil {
+		ar.logger.Println(err)
 	}
 
-	if err := iter.Close(); err != nil {
-		ar.logger.Fatal(err.Error())
+	databases, err := ar.cli.ListDatabaseNames(ctx, bson.M{})
+	if err != nil {
+		ar.logger.Println(err)
+	}
+	fmt.Println(databases)
+}
+
+func (ar *AccommodationRepository) CreateAccommodation(ctx context.Context, accommodation *Accommodation) error {
+	collection := ar.getAccommodationCollection()
+
+	_, err := collection.InsertOne(ctx, accommodation)
+	if err != nil {
+		ar.logger.Println(err)
+		return err
+	}
+
+	return nil
+}
+
+func (ar *AccommodationRepository) GetAllAccommodations(ctx context.Context) ([]*Accommodation, error) {
+	collection := ar.getAccommodationCollection()
+
+	cursor, err := collection.Find(ctx, bson.M{})
+	if err != nil {
+		ar.logger.Println(err)
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var accommodations []*Accommodation
+	if err := cursor.All(ctx, &accommodations); err != nil {
+		ar.logger.Println(err)
 		return nil, err
 	}
 
 	return accommodations, nil
 }
 
-func (ar *AccommodationRepository) GetAccommodation(ctx context.Context, id gocql.UUID) (*Accommodation, error) {
+func (ar *AccommodationRepository) GetAccommodation(ctx context.Context, id primitive.ObjectID) (*Accommodation, error) {
+	collection := ar.getAccommodationCollection()
+
 	var accommodation Accommodation
-
-	query := ar.session.Query(
-		"SELECT id, name, location, amenities, min_guests, max_guests FROM accommodations WHERE id = ?",
-		id,
-	)
-
-	if err := query.Scan(&accommodation.ID, &accommodation.Name, &accommodation.Location, &accommodation.Amenities, &accommodation.MinGuests, &accommodation.MaxGuests); err != nil {
-		ar.logger.Fatal(err.Error())
+	err := collection.FindOne(ctx, bson.M{"_id": id}).Decode(&accommodation)
+	if err != nil {
+		ar.logger.Println(err)
 		return nil, err
 	}
 
@@ -100,33 +110,35 @@ func (ar *AccommodationRepository) GetAccommodation(ctx context.Context, id gocq
 }
 
 func (ar *AccommodationRepository) UpdateAccommodation(ctx context.Context, accommodation *Accommodation) error {
-	// Prep data for update
-	amenitiesAsInt := make([]int, len(accommodation.Amenities))
-	for i, amenity := range accommodation.Amenities {
-		amenitiesAsInt[i] = int(amenity)
-	}
+	collection := ar.getAccommodationCollection()
 
-	// Execute query for accommodation update
-	query := ar.session.Query(
-		"UPDATE accommodations SET name=?, location=?, amenities=?, minGuests=?, maxGuests=? WHERE id=?",
-		accommodation.Name, accommodation.Location, amenitiesAsInt, accommodation.MinGuests, accommodation.MaxGuests, accommodation.ID,
-	)
+	filter := bson.M{"_id": accommodation.ID}
+	update := bson.M{"$set": accommodation}
 
-	if err := query.Exec(); err != nil {
-		ar.logger.Fatal(err.Error())
+	_, err := collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		ar.logger.Println(err)
 		return err
 	}
 
 	return nil
 }
 
-func (ar *AccommodationRepository) DeleteAccommodation(ctx context.Context, id gocql.UUID) error {
-	query := ar.session.Query("DELETE FROM accommodations WHERE id=?", id)
+func (ar *AccommodationRepository) DeleteAccommodation(ctx context.Context, id primitive.ObjectID) error {
+	collection := ar.getAccommodationCollection()
 
-	if err := query.Exec(); err != nil {
-		ar.logger.Fatal(err.Error())
+	filter := bson.M{"_id": id}
+	_, err := collection.DeleteOne(ctx, filter)
+	if err != nil {
+		ar.logger.Println(err)
 		return err
 	}
 
 	return nil
+}
+
+func (ar *AccommodationRepository) getAccommodationCollection() *mongo.Collection {
+	patientDatabase := ar.cli.Database("mongoDemo")
+    patientsCollection := patientDatabase.Collection("accommodations")
+	return patientsCollection
 }

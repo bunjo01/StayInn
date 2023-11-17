@@ -3,7 +3,7 @@ WORKDIR /app
 COPY go.mod .
 COPY go.sum .
 RUN go mod download
-RUN go get github.com/gocql/gocql
+RUN go get go.mongodb.org/mongo-driver/mongo
 COPY . .
 RUN go build -o accommodation
 
