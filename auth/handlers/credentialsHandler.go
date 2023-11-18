@@ -34,7 +34,15 @@ func (ch *CredentialsHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	token, err := ch.repo.GenerateToken(credentials.Username)
+    if err != nil {
+        http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+        return
+    }
+
 	w.WriteHeader(http.StatusOK)
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(map[string]string{"token": token})
 	w.Write([]byte("Successfully logged in"))
 }
 
