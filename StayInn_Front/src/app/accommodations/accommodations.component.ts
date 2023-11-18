@@ -17,13 +17,14 @@ export class AccommodationsComponent implements OnInit {
 
   loadAccommodations() {
     this.accommodationService.getAccommodations().subscribe(
-      (data) => {
-        this.accommodations = data;
+      (result) => {
+        this.accommodations = result;
       },
       (error) => {
         console.error('Error fetching accommodations:', error);
       }
     );
   }
+  
 
 }
