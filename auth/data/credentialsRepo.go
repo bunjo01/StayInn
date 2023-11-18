@@ -11,6 +11,7 @@ import (
 	// NoSQL: module containing Mongo api client
 	"go.mongodb.org/mongo-driver/bson"
 	// TODO "go.mongodb.org/mongo-driver/bson/primitive"
+	"github.com/dgrijalva/jwt-go"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -20,6 +21,8 @@ type CredentialsRepo struct {
 	cli    *mongo.Client
 	logger *log.Logger
 }
+
+const jwtSecret = "stayinn_secret"
 
 // Constructor
 func New(ctx context.Context, logger *log.Logger) (*CredentialsRepo, error) {
@@ -140,4 +143,21 @@ func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName,
 		return errors.New("username already exists")
 	}
 	return nil
+}
+
+// Generate token
+
+func (cr *CredentialsRepo) GenerateToken(username string) (string, error) {
+    claims := jwt.MapClaims{
+        "username": username,
+        "exp":      time.Now().Add(time.Hour * 24).Unix(),
+    }
+
+    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+    signedToken, err := token.SignedString([]byte(jwtSecret))
+    if err != nil {
+        return "", err
+    }
+
+    return signedToken, nil
 }
