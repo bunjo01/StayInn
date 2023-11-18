@@ -1,6 +1,7 @@
 .login-container {
     width: 400px;
     margin: 20px auto;
+    margin-bottom: 189px;
     background-color: #ffffff;
     border: 1px solid #ddd;
     border-radius: 5px;
@@ -14,7 +15,7 @@
 
 .login-form h1 {
     color: #007BFF;
-    font-family: Arial, Helvetica, sans-serif;
+    margin-bottom: 40px;
 }
 
 .form-group {

@@ -1,0 +1,32 @@
+* {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.card-container {
+    width: 100%;
+    margin: 20px auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+  
+  .card {
+    width: 32%;
+    margin-bottom: 20px;
+    background-color: goldenrod;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 10px;
+  }
+  
+  .card-image {
+    width: 100%;
+    height: auto;
+    border-radius: 6px 6px 0px 0px;
+  }
+  
+  .card-title {
+    margin-top: 10px;
+    font-weight: bold;
+    color: white;
+  }
