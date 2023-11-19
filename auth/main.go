@@ -25,21 +25,13 @@ func seedData() {
 	defer store.Disconnect(ctx)
 
 	// Test data
-	testCredentials := data.Credentials{
+	tc := data.Credentials{
 		Username: "testUser",
 		Password: "testPassword",
+		Email:    "test@mail.com",
 	}
 
-	testCredentials2 := data.Credentials{
-		Username: "admin",
-		Password: "admin",
-	}
-
-	if err := store.AddCredentials(testCredentials.Username, testCredentials.Password); err != nil {
-		log.Fatal(err)
-	}
-
-	if err := store.AddCredentials(testCredentials2.Username, testCredentials2.Password); err != nil {
+	if err := store.AddCredentials(tc.Username, tc.Password, tc.Email); err != nil {
 		log.Fatal(err)
 	}
 }

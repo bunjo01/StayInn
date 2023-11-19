@@ -1,11 +1,13 @@
 package data
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	// NoSQL: module containing Mongo api client
@@ -20,6 +22,24 @@ import (
 type CredentialsRepo struct {
 	cli    *mongo.Client
 	logger *log.Logger
+}
+
+// Custom errors for better handling
+
+type UsernameExistsError struct {
+	Message string
+}
+
+func (e UsernameExistsError) Error() string {
+	return e.Message
+}
+
+type PasswordCheckError struct {
+	Message string
+}
+
+func (e PasswordCheckError) Error() string {
+	return e.Message
 }
 
 const jwtSecret = "stayinn_secret"
@@ -96,10 +116,11 @@ func (cr *CredentialsRepo) ValidateCredentials(username, password string) error 
 	return nil
 }
 
-func (cr *CredentialsRepo) AddCredentials(username, password string) error {
+func (cr *CredentialsRepo) AddCredentials(username, password, email string) error {
 	newCredentials := Credentials{
 		Username: username,
 		Password: password,
+		Email:    email,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -129,35 +150,68 @@ func (cr *CredentialsRepo) CheckUsername(username string) bool {
 	return errors.Is(err, mongo.ErrNoDocuments)
 }
 
+// Checks if password is contained in the blacklist.
+// Returns true if it passes the check, else returns false
+func (cr *CredentialsRepo) CheckPassword(password string) (bool, error) {
+	file, err := os.Open("security/blacklist.txt")
+	if err != nil {
+		log.Printf("error while opening blacklist.txt: %v", err)
+		return false, err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		if strings.TrimSpace(scanner.Text()) == password {
+			return false, nil
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Printf("error while scanning blacklist.txt: %v", err)
+		return false, err
+	}
+
+	return true, nil
+}
+
 // Registers a new user to the system.
 // Saves credentials to auth service and passes rest of info to profile service
 func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName, email, address string) error {
-	if cr.CheckUsername(username) {
-		err := cr.AddCredentials(username, password)
+	usernameOK := cr.CheckUsername(username)
+	passwordOK, err := cr.CheckPassword(strings.ToLower(password))
+	if err != nil {
+		return err
+	}
+
+	if usernameOK && passwordOK {
+		err := cr.AddCredentials(username, password, email)
 		if err != nil {
 			cr.logger.Fatal(err.Error())
 			return err
 		}
 		// TODO pass info to profile service
-	} else {
-		return errors.New("username already exists")
+	} else if !usernameOK {
+		return UsernameExistsError{Message: "username already exists"}
+	} else if !passwordOK {
+		return PasswordCheckError{Message: "choose a more secure password"}
 	}
+
 	return nil
 }
 
 // Generate token
-
 func (cr *CredentialsRepo) GenerateToken(username string) (string, error) {
-    claims := jwt.MapClaims{
-        "username": username,
-        "exp":      time.Now().Add(time.Hour * 24).Unix(),
-    }
+	claims := jwt.MapClaims{
+		"username": username,
+		"exp":      time.Now().Add(time.Hour * 24).Unix(),
+	}
 
-    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-    signedToken, err := token.SignedString([]byte(jwtSecret))
-    if err != nil {
-        return "", err
-    }
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signedToken, err := token.SignedString([]byte(jwtSecret))
+	if err != nil {
+		return "", err
+	}
 
-    return signedToken, nil
+	return signedToken, nil
 }

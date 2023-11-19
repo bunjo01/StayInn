@@ -8,5 +8,7 @@ RUN go build -o auth
 
 FROM alpine
 COPY --from=build_container /app/auth /usr/bin
+RUN mkdir security
+COPY ./security/blacklist.txt ./security/
 EXPOSE 8081
 ENTRYPOINT ["auth"]
