@@ -11,7 +11,6 @@
   }
   
   .card {
-    width: 32%;
     margin-bottom: 20px;
     background-color: goldenrod;
     border: 1px solid #ddd;
@@ -23,6 +22,7 @@
     width: 100%;
     height: auto;
     border-radius: 6px 6px 0px 0px;
+    max-width: 300px;
   }
   
   .card-title {
@@ -30,3 +30,21 @@
     font-weight: bold;
     color: white;
   }
+
+  .amenities-list {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+  }
+  
+  .amenities-list li {
+    color: white;
+    border: 5px black solid;
+    border-radius: 5px;
+    padding: 5px;
+    margin-right: 10px;
+    margin-bottom: 5px;
+    font-weight: 600;
+  }
+  

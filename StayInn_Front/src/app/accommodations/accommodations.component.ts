@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { AccommodationService } from 'src/app/services/accommodation.service';
-import { Accommodation } from 'src/app/model/accommodation';
+import { Accommodation, AmenityEnum } from 'src/app/model/accommodation';
 @Component({
   selector: 'app-accommodations',
   templateUrl: './accommodations.component.html',
@@ -26,5 +26,7 @@ export class AccommodationsComponent implements OnInit {
     );
   }
   
-
+  getAmenityName(amenity: number): string {
+    return AmenityEnum[amenity];
+  }
 }
