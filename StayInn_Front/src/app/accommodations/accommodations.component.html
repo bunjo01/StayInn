@@ -1,6 +1,14 @@
 <div class="card-container">
   <div *ngFor="let accommodation of accommodations" class="card">
-      <img [src]="accommodation.image" alt="{{ accommodation.location }}" class="card-image">
-      <div class="card-title">{{ accommodation.location }}</div>
+      <img src="../../assets/images/stay-inn.jpg" alt="{{ accommodation.name }} image" class="card-image">
+      <div class="card-title">{{ accommodation.name }}</div>
+      <h1>{{accommodation.location}}</h1>
+      <ul class="amenities-list">
+        <li *ngFor="let amenity of accommodation.amenities">
+          <p>{{ getAmenityName(amenity) }}</p>
+        </li>
+      </ul>
+      <h3>Minimal number of guests: {{accommodation.minGuests}}</h3>
+      <h3>Maximal number of guests: {{accommodation.maxGuests}}</h3>
   </div>
 </div>
