@@ -2,17 +2,20 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"time"
 
-	"github.com/gorilla/mux"
-	"main.go/data"
 	"main.go/handlers"
 
+	"github.com/gocql/gocql"
 	gorillaHandlers "github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
+	"main.go/data"
 )
 
 func main() {
@@ -28,18 +31,71 @@ func main() {
 	defer cancel()
 
 	//Initialize the logger we are going to use, with prefix and datetime for every log
-	logger := log.New(os.Stdout, "[product-api] ", log.LstdFlags)
-	storeLogger := log.New(os.Stdout, "[patient-store] ", log.LstdFlags)
+	logger := log.New(os.Stdout, "[reservation-api] ", log.LstdFlags)
+	storeLogger := log.New(os.Stdout, "[reservation-store] ", log.LstdFlags)
 
-	// NoSQL: Initialize Product Repository store
-	store, err := data.New(timeoutContext, storeLogger)
+	// Initializing Cassandra DB
+	db := os.Getenv("CASS_DB")
+	cassandraHost := os.Getenv("CASSANDRA_HOST")
+	cassandraPortStr := os.Getenv("CASSANDRA_PORT")
+	cassandraPort, err := strconv.Atoi(cassandraPortStr)
+	if err != nil {
+		logger.Fatalf("failed to parse CASSANDRA_PORT: %v", err)
+	}
+	cassandraUser := os.Getenv("CASSANDRA_USER")
+	cassandraPassword := os.Getenv("CASSANDRA_PASSWORD")
+
+	cluster := gocql.NewCluster(db)
+	cluster.Keyspace = "system"
+
+	session, err := cluster.CreateSession()
+	if err != nil {
+		log.Fatalf("failed to create session: %v", err)
+	}
+
+	err = session.Query(
+		fmt.Sprintf(`CREATE KEYSPACE IF NOT EXISTS %s
+						WITH replication = {
+							'class' : 'SimpleStrategy',
+							'replication_factor' : %d
+						}`, "reservation", 1)).Exec()
+
+	if err != nil {
+		session.Close()
+		log.Fatalf("failed to create keyspace: %v", err)
+	}
+
+	session.Close()
+
+	cluster = gocql.NewCluster(cassandraHost)
+	cluster.Keyspace = "reservation"
+	cluster.Port = cassandraPort
+	cluster.Authenticator = gocql.PasswordAuthenticator{
+		Username: cassandraUser,
+		Password: cassandraPassword,
+	}
+	cluster.Consistency = gocql.One
+
+	session, err = cluster.CreateSession()
+	if err != nil {
+		logger.Fatalf("failed to create Cassandra session: %v", err)
+	} else {
+		defer session.Close()
+		logger.Println("connected to Cassandra")
+	}
+
+	// Initializing repo
+	store, err := data.New(storeLogger, session)
 	if err != nil {
 		logger.Fatal(err)
 	}
-	defer store.Disconnect(timeoutContext)
 
-	// NoSQL: Checking if the connection was established
-	store.Ping()
+	err = store.CreateTables()
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	defer store.CloseSession()
 
 	//Initialize the handler and inject said logger
 	reservationHandler := handlers.NewReservationHandler(logger, store)
@@ -48,30 +104,38 @@ func main() {
 	router := mux.NewRouter()
 	router.Use(reservationHandler.MiddlewareContentTypeSet)
 
-	getRouter := router.Methods(http.MethodGet).Subrouter()
-	getRouter.HandleFunc("/", reservationHandler.GetAllReservations)
+	getAvailablePeriodsByAccommodationRouter := router.Methods(http.MethodGet).Subrouter()
+	getAvailablePeriodsByAccommodationRouter.HandleFunc("/{id}/periods", reservationHandler.GetAllAvailablePeriodsByAccommodation)
 
-	getReservationByIdRouter := router.Methods(http.MethodGet).Subrouter()
-	getReservationByIdRouter.HandleFunc("/{id}", reservationHandler.GetReservationById)
+	getReservationsByAvailablePeriodRouter := router.Methods(http.MethodGet).Subrouter()
+	getReservationsByAvailablePeriodRouter.HandleFunc("/{id}/reservations", reservationHandler.GetAllReservationByAvailablePeriod)
 
-	postRouter := router.Methods(http.MethodPost).Subrouter()
-	postRouter.HandleFunc("/", reservationHandler.PostReservation)
-	postRouter.Use(reservationHandler.MiddlewareReservationDeserialization)
+	postAvailablePeriodsByAccommodationRouter := router.Methods(http.MethodPost).Subrouter()
+	postAvailablePeriodsByAccommodationRouter.HandleFunc("/period", reservationHandler.CreateAvailablePeriod)
+	postAvailablePeriodsByAccommodationRouter.Use(reservationHandler.MiddlewareAvailablePeriodDeserialization)
 
-	deleteReservationById := router.Methods(http.MethodDelete).Subrouter()
-	deleteReservationById.HandleFunc("/{id}", reservationHandler.DeleteReservation)
+	postReservationRouter := router.Methods(http.MethodPost).Subrouter()
+	postReservationRouter.HandleFunc("/reservation", reservationHandler.CreateReservation)
+	postReservationRouter.Use(reservationHandler.MiddlewareReservationDeserialization)
 
-	reservePeriodRouter := router.Methods(http.MethodPatch).Subrouter()
-	reservePeriodRouter.HandleFunc("/{id}", reservationHandler.ReservePeriod)
-	reservePeriodRouter.Use(reservationHandler.MiddlewareReservedPeriodDeserialization)
-
-	//TODO : NOT WORKING
-	//updateReservedPeriodRouter := router.Methods(http.MethodPatch).Subrouter()
-	//updateReservedPeriodRouter.HandleFunc("/{reservationId}/update", reservationHandler.UpdateReservedPeriod)
-	//updateReservedPeriodRouter.Use(reservationHandler.MiddlewareReservedPeriodDeserialization)
-
-	deleteReservedPeriod := router.Methods(http.MethodDelete).Subrouter()
-	deleteReservedPeriod.HandleFunc("/{reservationId}/period/{periodId}", reservationHandler.DeleteReservedPeriod)
+	updateAvailablePeriodsByAccommodationRouter := router.Methods(http.MethodPatch).Subrouter()
+	updateAvailablePeriodsByAccommodationRouter.HandleFunc("/period", reservationHandler.UpdateAvailablePeriodByAccommodation)
+	updateAvailablePeriodsByAccommodationRouter.Use(reservationHandler.MiddlewareAvailablePeriodDeserialization)
+	//
+	//deleteReservationById := router.Methods(http.MethodDelete).Subrouter()
+	//deleteReservationById.HandleFunc("/{id}", reservationHandler.DeleteReservation)
+	//
+	//reservePeriodRouter := router.Methods(http.MethodPatch).Subrouter()
+	//reservePeriodRouter.HandleFunc("/{id}", reservationHandler.ReservePeriod)
+	//reservePeriodRouter.Use(reservationHandler.MiddlewareReservedPeriodDeserialization)
+	//
+	//
+	////updateReservedPeriodRouter := router.Methods(http.MethodPatch).Subrouter()
+	////updateReservedPeriodRouter.HandleFunc("/{reservationId}/update", reservationHandler.UpdateReservedPeriod)
+	////updateReservedPeriodRouter.Use(reservationHandler.MiddlewareReservedPeriodDeserialization)
+	//
+	//deleteReservedPeriod := router.Methods(http.MethodDelete).Subrouter()
+	//deleteReservedPeriod.HandleFunc("/{reservationId}/period/{periodId}", reservationHandler.DeleteReservedPeriod)
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 

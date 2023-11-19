@@ -8,10 +8,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
 	"time"
 
-	gocql "github.com/gocql/gocql"
 	gorillaHandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
@@ -30,42 +28,13 @@ func main() {
 	logger := log.New(os.Stdout, "[accommodation-api] ", log.LstdFlags)
 	storeLogger := log.New(os.Stdout, "[accommodation-store] ", log.LstdFlags)
 
-	// Reading enviroment for Cassandra
-	cassandraHost := os.Getenv("CASSANDRA_HOST")
-	cassandraPortStr := os.Getenv("CASSANDRA_PORT")
-	cassandraPort, err := strconv.Atoi(cassandraPortStr)
-	if err != nil {
-		logger.Fatalf("Failed to parse CASSANDRA_PORT: %v", err)
-	}
-	cassandraUser := os.Getenv("CASSANDRA_USER")
-	cassandraPassword := os.Getenv("CASSANDRA_PASSWORD")
-
-	// Initializing Cassandra session
-	cluster := gocql.NewCluster(cassandraHost)
-	cluster.Keyspace = "accommodation"
-	cluster.Port = cassandraPort
-	cluster.Authenticator = gocql.PasswordAuthenticator{
-		Username: cassandraUser,
-		Password: cassandraPassword,
-	}
-
-	// Set consistency level if needed
-	cluster.Consistency = gocql.One
-
-	session, err := cluster.CreateSession()
-	if err != nil {
-		logger.Fatalf("Failed to create Cassandra session: %v", err)
-	} else {
-		defer session.Close()
-		logger.Println("Connected to Cassandra")
-	}
-
 	// Initializing repo for accommodations
-	store, err := data.NewAccommodationRepository(storeLogger)
+	store, err := data.NewAccommodationRepository(timeoutContext, storeLogger)
 	if err != nil {
 		logger.Fatal(err)
 	}
-	defer store.CloseSession()
+	defer store.Disconnect(timeoutContext)
+	store.Ping()
 
 	accommodationsHandler := handlers.NewAccommodationsHandler(logger, store)
 
@@ -78,7 +47,12 @@ func main() {
 	router.HandleFunc("/accommodation/{id}", accommodationsHandler.UpdateAccommodation).Methods("PUT")
 	router.HandleFunc("/accommodation/{id}", accommodationsHandler.DeleteAccommodation).Methods("DELETE")
 
-	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
+	// CORS middleware
+	cors := gorillaHandlers.CORS(
+		gorillaHandlers.AllowedOrigins([]string{"*"}),
+		gorillaHandlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "DELETE", "OPTIONS"}),
+		gorillaHandlers.AllowedHeaders([]string{"Content-Type"}),
+	)
 
 	server := http.Server{
 		Addr:         ":" + port,

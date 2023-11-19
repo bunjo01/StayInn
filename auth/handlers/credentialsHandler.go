@@ -3,7 +3,6 @@ package handlers
 import (
 	"auth/data"
 	"encoding/json"
-	"errors"
 	"log"
 	"net/http"
 )
@@ -34,8 +33,15 @@ func (ch *CredentialsHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	token, err := ch.repo.GenerateToken(credentials.Username)
+	if err != nil {
+		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Successfully logged in"))
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"token": token})
 }
 
 // Handler method for registration
@@ -47,8 +53,11 @@ func (ch *CredentialsHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 	err := ch.repo.RegisterUser(newUser.Username, newUser.Password, newUser.FirstName, newUser.LastName,
 		newUser.Email, newUser.Address)
-	if err != nil && errors.Is(err, errors.New("username already exists")) {
-		http.Error(w, "Username not unique", http.StatusBadRequest)
+	if err != nil && err.Error() == "username already exists" {
+		http.Error(w, "Username is not unique", http.StatusBadRequest)
+		return
+	} else if err != nil && err.Error() == "choose a more secure password" {
+		http.Error(w, "Password did not pass the security check. Pick a stronger password", http.StatusBadRequest)
 		return
 	} else if err != nil {
 		http.Error(w, "Failed to register new user", http.StatusInternalServerError)
@@ -56,5 +65,4 @@ func (ch *CredentialsHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Successfully registered"))
 }

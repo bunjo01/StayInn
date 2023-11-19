@@ -1,12 +1,9 @@
-FROM golang:latest as builder
-WORKDIR /app
-COPY go.mod go.sum ./
-RUN go mod download
-COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
+FROM nginx:latest
 
-FROM alpine:latest
-WORKDIR /root/
-COPY --from=builder /app/main .
-EXPOSE 8090
-CMD ["./main"]
+COPY ./api_gateway.conf /etc/nginx/conf.d/api_gateway.conf
+COPY ./localhost.crt /etc/ssl/certs/localhost.crt
+COPY ./localhost.csr /etc/ssl/csr/localhost.csr
+COPY ./localhost.ext /etc/ssl/certs/localhost.ext
+COPY ./localhost.key /etc/ssl/private/localhost.key
+
+RUN rm /etc/nginx/conf.d/default.conf

@@ -1,4 +1,6 @@
-﻿Projektni zadatak iz predmeta
+﻿### **‼️npm and docker-compose required for running scripts‼️**
+---
+Projektni zadatak iz predmeta
 
 **Servisno orijentisane arhitekture i NoSQL baze podataka**
 
