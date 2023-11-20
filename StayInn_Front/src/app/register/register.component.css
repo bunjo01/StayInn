@@ -62,3 +62,8 @@ a {
 a:hover {
     text-decoration: underline;
 }
+
+.text-danger {
+    color: red;
+    font-weight: 500;
+}
