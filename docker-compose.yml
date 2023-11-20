@@ -10,6 +10,7 @@ services:
     restart: on-failure
     ports:
       - "8000:8000"
+      - "443:443"
     networks:
       - network
 
@@ -24,11 +25,7 @@ services:
       - 8080:8080
     environment:
       - PORT=8080
-      - CASS_DB=${CASS_DB}
-      - CASSANDRA_HOST=${CASSANDRA_HOST}
-      - CASSANDRA_PORT=${CASSANDRA_PORT}
-      - CASSANDRA_USER=${CASSANDRA_USER}
-      - CASSANDRA_PASSWORD=${CASSANDRA_PASSWORD}
+      - MONGO_DB_URI=${MONGO_DB_URI_ACCOMMODATION}
     depends_on:
       accommodation_db:
         condition: service_healthy
@@ -134,10 +131,50 @@ services:
     networks:
       - network
 
+  profile_service:
+    build:
+      context: ./profile/
+      dockerfile: Dockerfile
+    restart: always
+    container_name: "profile_service"
+    hostname: "profile_service"
+    ports:
+      - 8083:8083
+    environment:
+      - PORT=8083
+      - MONGO_DB_URI=${MONGO_DB_URI_PROFILE}
+    depends_on:
+      profile_db:
+        condition: service_healthy
+    networks:
+      - network
+
+  profile_db:
+    hostname: "profile_db"
+    container_name: "profile_db"
+    image: mongo
+    restart: always
+    ports:
+      - "27019:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: profileDB
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok'
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    volumes:
+      - profile_db:/data/db
+    networks:
+      - network
+
 volumes:
   accommodation_db:
   auth_db:
   cass_store:
+  profile_db:
 
 networks:
   network:

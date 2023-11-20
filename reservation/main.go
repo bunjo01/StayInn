@@ -110,6 +110,9 @@ func main() {
 	getReservationsByAvailablePeriodRouter := router.Methods(http.MethodGet).Subrouter()
 	getReservationsByAvailablePeriodRouter.HandleFunc("/{id}/reservations", reservationHandler.GetAllReservationByAvailablePeriod)
 
+	findAvailablePeriodByIdAndByAccommodationId := router.Methods(http.MethodGet).Subrouter()
+	findAvailablePeriodByIdAndByAccommodationId.HandleFunc("/{accomodationID}/{periodID}", reservationHandler.FindAvailablePeriodByIdAndByAccommodationId)
+
 	postAvailablePeriodsByAccommodationRouter := router.Methods(http.MethodPost).Subrouter()
 	postAvailablePeriodsByAccommodationRouter.HandleFunc("/period", reservationHandler.CreateAvailablePeriod)
 	postAvailablePeriodsByAccommodationRouter.Use(reservationHandler.MiddlewareAvailablePeriodDeserialization)
@@ -121,21 +124,9 @@ func main() {
 	updateAvailablePeriodsByAccommodationRouter := router.Methods(http.MethodPatch).Subrouter()
 	updateAvailablePeriodsByAccommodationRouter.HandleFunc("/period", reservationHandler.UpdateAvailablePeriodByAccommodation)
 	updateAvailablePeriodsByAccommodationRouter.Use(reservationHandler.MiddlewareAvailablePeriodDeserialization)
-	//
-	//deleteReservationById := router.Methods(http.MethodDelete).Subrouter()
-	//deleteReservationById.HandleFunc("/{id}", reservationHandler.DeleteReservation)
-	//
-	//reservePeriodRouter := router.Methods(http.MethodPatch).Subrouter()
-	//reservePeriodRouter.HandleFunc("/{id}", reservationHandler.ReservePeriod)
-	//reservePeriodRouter.Use(reservationHandler.MiddlewareReservedPeriodDeserialization)
-	//
-	//
-	////updateReservedPeriodRouter := router.Methods(http.MethodPatch).Subrouter()
-	////updateReservedPeriodRouter.HandleFunc("/{reservationId}/update", reservationHandler.UpdateReservedPeriod)
-	////updateReservedPeriodRouter.Use(reservationHandler.MiddlewareReservedPeriodDeserialization)
-	//
-	//deleteReservedPeriod := router.Methods(http.MethodDelete).Subrouter()
-	//deleteReservedPeriod.HandleFunc("/{reservationId}/period/{periodId}", reservationHandler.DeleteReservedPeriod)
+
+	deleteReservation := router.Methods(http.MethodDelete).Subrouter()
+	deleteReservation.HandleFunc("/{periodID}/{reservationID}", reservationHandler.DeleteReservation)
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 
