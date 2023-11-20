@@ -44,8 +44,8 @@ func (rr *ReservationRepo) CreateTables() error {
 		fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s 
         (id UUID, id_accommodation UUID, id_available_period UUID, id_user UUID,
         start_date TIMESTAMP, end_date TIMESTAMP, guest_number INT, price DOUBLE,
-        PRIMARY KEY ((id_available_period), start_date, id)) 
-        WITH CLUSTERING ORDER BY (start_date ASC, id DESC)`,
+        PRIMARY KEY ((id_available_period),  id)) 
+        WITH CLUSTERING ORDER BY (id ASC)`,
 			"reservations_by_available_period")).Exec()
 	if err != nil {
 		rr.logger.Println(err)
@@ -142,13 +142,42 @@ func (rr *ReservationRepo) InsertAvailablePeriodByAccommodation(availablePeriod 
 }
 
 func (rr *ReservationRepo) InsertReservationByAvailablePeriod(reservation *ReservationByAvailablePeriod) error {
-	reservationId, _ := gocql.RandomUUID()
+	// reservationId, _ := gocql.RandomUUID()
 
-	err := rr.session.Query(
-		`INSERT INTO reservations_by_available_period (id, id_accommodation, id_available_period, id_user, start_date, end_date, guest_number, price) 
+	// Provera da li je rezervacija unutar odgovarajućeg opsega slobodnog perioda
+	availablePeriod, err := rr.FindAvailablePeriodById(reservation.IDAvailablePeriod.String(), reservation.IDAccommodation.String())
+	if err != nil {
+		rr.logger.Println("Greška pri dobijanju slobodnog perioda:", err)
+		rr.logger.Println(availablePeriod.ToJSON(log.Writer()))
+		return err
+	}
+	if reservation.StartDate.Before(availablePeriod.StartDate) || reservation.EndDate.After(availablePeriod.EndDate) {
+		rr.logger.Println("Rezervacija nije unutar odgovarajućeg opsega slobodnog perioda")
+		return errors.New("rezervacija nije unutar odgovarajućeg opsega slobodnog perioda")
+	}
+
+	existingReservations, err := rr.FindAllReservationsByAvailablePeriod(availablePeriod.ID.String())
+	if err != nil {
+		rr.logger.Println("Greska pri dobijanju postojecih rezervacija:", err)
+		return err
+	}
+
+	for _, existingReservation := range existingReservations {
+		if (reservation.StartDate.Before(existingReservation.EndDate) || reservation.StartDate.Equal(existingReservation.EndDate)) &&
+			(reservation.EndDate.After(existingReservation.StartDate) || reservation.EndDate.Equal(existingReservation.StartDate)) {
+			rr.logger.Println("Nova rezervacija se preklapa sa postojecom rezervacijom.")
+			return errors.New("nova rezervacija se preklapa sa postojecom rezervacijom")
+		}
+
+	}
+
+	calculatedPrice := rr.calculatePrice(availablePeriod.Price, availablePeriod.PricePerGuest, reservation.StartDate, reservation.EndDate, int16(reservation.GuestNumber))
+	err = rr.session.Query(
+		`INSERT INTO reservations_by_available_period 
+		(id, id_accommodation, id_available_period, id_user, start_date, end_date, guest_number, price) 
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		reservationId, reservation.IDAccommodation, reservation.IDAvailablePeriod, reservation.IDUser,
-		reservation.StartDate, reservation.EndDate, reservation.GuestNumber, reservation.Price).Exec()
+		reservation.ID, reservation.IDAccommodation, reservation.IDAvailablePeriod, reservation.IDUser,
+		reservation.StartDate, reservation.EndDate, reservation.GuestNumber, calculatedPrice).Exec()
 	if err != nil {
 		rr.logger.Println(err)
 		return err
@@ -159,7 +188,7 @@ func (rr *ReservationRepo) InsertReservationByAvailablePeriod(reservation *Reser
 func (rr *ReservationRepo) UpdateAvailablePeriodByAccommodation(availablePeriod *AvailablePeriodByAccommodation) error {
 	id := availablePeriod.ID
 	accommodationdId := availablePeriod.IDAccommodation
-	availablePeriods, err := rr.FindAvailablePeriodById(id.String(), accommodationdId.String())
+	availablePeriods, err := rr.FindAvailablePeriodsById(id.String(), accommodationdId.String())
 	if err != nil {
 		rr.logger.Println(err)
 		return err
@@ -231,7 +260,7 @@ func (rr *ReservationRepo) FindAvailablePeriodsByAccommodationId(accommodationId
 	return availablePeriods, nil
 }
 
-func (rr *ReservationRepo) FindAvailablePeriodById(id, accommodationId string) (AvailablePeriodsByAccommodation, error) {
+func (rr *ReservationRepo) FindAvailablePeriodsById(id, accommodationId string) (AvailablePeriodsByAccommodation, error) {
 	scanner := rr.session.Query(`SELECT id, id_accommodation, start_date, end_date, price, price_per_guest 
 			FROM available_periods_by_accommodation WHERE id = ? AND id_accommodation = ?`,
 		id, accommodationId).Iter().Scanner()
@@ -251,6 +280,22 @@ func (rr *ReservationRepo) FindAvailablePeriodById(id, accommodationId string) (
 		return nil, err
 	}
 	return avaiablePeriods, nil
+}
+
+func (rr *ReservationRepo) FindAvailablePeriodById(id, accommodationID string) (*AvailablePeriodByAccommodation, error) {
+	query := `SELECT id, id_accommodation, start_date, end_date, price, price_per_guest 
+              FROM available_periods_by_accommodation 
+              WHERE id = ? AND id_accommodation = ? LIMIT 1`
+
+	var period AvailablePeriodByAccommodation
+	err := rr.session.Query(query, id, accommodationID).Consistency(gocql.One).Scan(
+		&period.ID, &period.IDAccommodation, &period.StartDate, &period.EndDate, &period.Price, &period.PricePerGuest,
+	)
+	if err != nil {
+		rr.logger.Println(err)
+		return nil, err
+	}
+	return &period, nil
 }
 
 func (rr *ReservationRepo) FindAllReservationsByAvailablePeriod(periodId string) (Reservations, error) {
@@ -274,6 +319,47 @@ func (rr *ReservationRepo) FindAllReservationsByAvailablePeriod(periodId string)
 		return nil, err
 	}
 	return reservations, nil
+}
+
+func (rr *ReservationRepo) FindReservationByIdAndAvailablePeriod(id, periodID string) (*ReservationByAvailablePeriod, error) {
+	query := `SELECT id, id_accommodation, id_available_period, id_user, start_date, 
+               end_date, guest_number, price 
+               FROM reservations_by_available_period 
+               WHERE id = ? AND id_available_period = ? LIMIT 1`
+
+	var reservation ReservationByAvailablePeriod
+	err := rr.session.Query(query, id, periodID).Consistency(gocql.One).Scan(
+		&reservation.ID, &reservation.IDAccommodation, &reservation.IDAvailablePeriod, &reservation.IDUser,
+		&reservation.StartDate, &reservation.EndDate, &reservation.GuestNumber, &reservation.Price,
+	)
+	if err != nil {
+		rr.logger.Println(err)
+		return nil, err
+	}
+	return &reservation, nil
+}
+
+func (rr *ReservationRepo) DeleteReservationByIdAndAvailablePeriodID(id, periodID string) error {
+	reservation, err := rr.FindReservationByIdAndAvailablePeriod(id, periodID)
+	if err != nil {
+		rr.logger.Println(err)
+		return err
+	}
+
+	// Check if the start date of the reservation has passed
+	if time.Now().After(reservation.StartDate) {
+		// If the start date has passed, disallow deletion and return an error
+		return errors.New("cannot delete reservation after start date has passed")
+	}
+
+	query := `DELETE FROM reservations_by_available_period
+              WHERE id = ? AND id_available_period = ?`
+
+	if err := rr.session.Query(query, id, periodID).Exec(); err != nil {
+		rr.logger.Println(err)
+		return err
+	}
+	return nil
 }
 
 func (rr *ReservationRepo) GetDistinctIds(idColumnName string, tableName string) ([]string, error) {
@@ -343,312 +429,3 @@ func (rr *ReservationRepo) calculatePrice(price float64, pricePerGuest bool, sta
 
 	return daysDifference * price
 }
-
-//
-//func (rr *ReservationRepo) GetAll() (Reservations, error) {
-//
-//	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-//	defer cancel()
-//
-//	reservationCollection := rr.getCollection()
-//
-//	var reservations Reservations
-//	reserationCursor, err := reservationCollection.Find(ctx, bson.M{})
-//	if err != nil {
-//		rr.logger.Println(err)
-//		return nil, err
-//	}
-//	if err = reserationCursor.All(ctx, &reservations); err != nil {
-//		rr.logger.Println(err)
-//		return nil, err
-//	}
-//	return reservations, nil
-//}
-//
-//func (rr *ReservationRepo) GetReservationById(id string) (*Reservation, error) {
-//	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-//	defer cancel()
-//
-//	reservationCollection := rr.getCollection()
-//
-//	var reservation Reservation
-//	objID, _ := primitive.ObjectIDFromHex(id)
-//	err := reservationCollection.FindOne(ctx, bson.M{"_id": objID}).Decode(&reservation)
-//	if err != nil {
-//		rr.logger.Println(err)
-//		return nil, err
-//	}
-//	return &reservation, nil
-//}
-//
-//func (rr *ReservationRepo) GetReservedPeriodById(reservationID, periodID string) (*ReservedPeriod, error) {
-//	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-//	defer cancel()
-//	reservations := rr.getCollection()
-//
-//	objReservationID, err := primitive.ObjectIDFromHex(reservationID)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	periodObjId, _ := primitive.ObjectIDFromHex(periodID)
-//
-//	filter := bson.M{
-//		"_id":                 objReservationID,
-//		"reservedPeriods._id": periodObjId,
-//	}
-//
-//	var reservation Reservation
-//	err = reservations.FindOne(ctx, filter).Decode(&reservation)
-//	if err != nil {
-//		if err == mongo.ErrNoDocuments {
-//			return nil, errors.New("Reservation not found")
-//		}
-//		return nil, err
-//	}
-//
-//	// Find the specific AvailabilityPeriod within the Reservation.
-//	for _, period := range *reservation.ReservedPeriods {
-//		if period.ID.Hex() == periodID {
-//			return &period, nil
-//		}
-//	}
-//
-//	return nil, errors.New("AvailabilityPeriod not found in Reservation")
-//}
-//
-//func (rr *ReservationRepo) PostReservation(reservation *Reservation) error {
-//	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-//	defer cancel()
-//	reservationCollection := rr.getCollection()
-//
-//	reservation.ID = primitive.NewObjectID()
-//	reservation.ReservedPeriods = &[]ReservedPeriod{}
-//
-//	isPriceValidError := rr.isPricePerAccommodationValid(reservation)
-//	if isPriceValidError != nil {
-//		rr.logger.Println(isPriceValidError)
-//		return nil
-//	}
-//
-//	isPriceValidError = rr.isPricePerGuestValid(reservation)
-//	if isPriceValidError != nil {
-//		rr.logger.Println(isPriceValidError)
-//		return nil
-//	}
-//
-//	result, err := reservationCollection.InsertOne(ctx, &reservation)
-//
-//	if err != nil {
-//		rr.logger.Println(err)
-//		return err
-//	}
-//	rr.logger.Printf("Reservation Id: %v\n", result.InsertedID)
-//	return nil
-//}
-//
-//func (rr *ReservationRepo) AddReservedPeriod(id string, period *ReservedPeriod) error {
-//	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-//	defer cancel()
-//	reservations := rr.getCollection()
-//
-//	objId, _ := primitive.ObjectIDFromHex(id)
-//	period.ID = primitive.NewObjectID()
-//
-//	isNotValidPeriod, _ := rr.checkForOverlap(objId, *period)
-//	if isNotValidPeriod {
-//		rr.logger.Println("Not valid period date")
-//		return nil
-//	}
-//
-//	period.Price = rr.calculatePrice(id, period)
-//
-//	filter := bson.D{{Key: "_id", Value: objId}}
-//
-//	update := bson.M{"$push": bson.M{
-//		"reservedPeriods": period,
-//	}}
-//	result, err := reservations.UpdateOne(ctx, filter, update)
-//	rr.logger.Printf("Documents matched: %v\n", result.MatchedCount)
-//	rr.logger.Printf("Documents updated: %v\n", result.ModifiedCount)
-//
-//	if err != nil {
-//		rr.logger.Println(err)
-//		return err
-//	}
-//	return nil
-//}
-//
-//// TODO : NOT WORKING
-//func (rr *ReservationRepo) UpdateReservedPeriod(reservationId string, newPeriod *ReservedPeriod) error {
-//	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-//	defer cancel()
-//
-//	objId, _ := primitive.ObjectIDFromHex(reservationId)
-//	periodObjId := newPeriod.ID.Hex()
-//
-//	period, _ := rr.GetReservedPeriodById(reservationId, periodObjId)
-//
-//	if period != nil {
-//		isOverlap, err := rr.checkForOverlap(objId, *newPeriod)
-//		if err != nil {
-//			rr.logger.Println(err)
-//			return err // Return the error instead of nil
-//		}
-//
-//		if isOverlap {
-//			rr.logger.Println("is isOverlap is not null")
-//			return nil
-//		}
-//
-//		rr.logger.Println(period.StartDate)
-//		rr.logger.Println(period.ID)
-//
-//		period.StartDate = newPeriod.StartDate
-//		period.EndDate = newPeriod.EndDate
-//		period.NumberOfGuests = newPeriod.NumberOfGuests
-//		period.Price = rr.calculatePrice(reservationId, period)
-//
-//		filter := bson.M{"_id": objId, "reservedPeriods._id": period.ID}
-//		update := bson.M{
-//			"$set": bson.M{
-//				"reservedPeriods.$.StartDate":      period.StartDate,
-//				"reservedPeriods.$.EndDate":        period.EndDate,
-//				"reservedPeriods.$.NumberOfGuests": period.NumberOfGuests,
-//			},
-//		}
-//
-//		result, err := rr.getCollection().UpdateOne(ctx, filter, update)
-//		if err != nil {
-//			return err
-//		}
-//
-//		rr.logger.Printf("Documents matched: %v\n", result.MatchedCount)
-//		rr.logger.Printf("Documents updated: %v\n", result.ModifiedCount)
-//	}
-//
-//	return nil
-//}
-//
-//func (rr *ReservationRepo) DeleteReservationById(id string) error {
-//	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-//	defer cancel()
-//	reservationCollection := rr.getCollection()
-//
-//	objID, _ := primitive.ObjectIDFromHex(id)
-//	filter := bson.D{{Key: "_id", Value: objID}}
-//	result, err := reservationCollection.DeleteOne(ctx, filter)
-//	if err != nil {
-//		rr.logger.Println(err)
-//		return err
-//	}
-//	rr.logger.Printf("Reservation deleted: %v\n", result.DeletedCount)
-//	return nil
-//}
-//
-//func (rr *ReservationRepo) DeleteReservedPeriod(reservationId, periodId string) error {
-//	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-//	defer cancel()
-//
-//	reservations := rr.getCollection()
-//
-//	objId, _ := primitive.ObjectIDFromHex(reservationId)
-//	_, err := rr.GetReservationById(reservationId)
-//	if err != nil {
-//		rr.logger.Println(err)
-//		return err
-//	}
-//
-//	periodObjId, _ := primitive.ObjectIDFromHex(periodId)
-//
-//	filter := bson.M{"_id": objId}
-//	update := bson.M{
-//		"$pull": bson.M{
-//			"reservedPeriods": bson.M{"_id": periodObjId},
-//		},
-//	}
-//
-//	result, err := reservations.UpdateOne(ctx, filter, update)
-//	if err != nil {
-//		log.Fatal(err)
-//	}
-//
-//	rr.logger.Printf("Documents matched: %v\n", result.MatchedCount)
-//	rr.logger.Printf("Documents updated: %v\n", result.ModifiedCount)
-//
-//	return nil
-//}
-//
-//func (rr *ReservationRepo) getCollection() *mongo.Collection {
-//	// patientDatabase := rr.cli.Database("reservationDB")
-//	// patientCollection := patientDatabase.Collection("reservation")
-//	// return patientCollection
-//}
-//
-//	return false
-//}
-//
-//func (rr *ReservationRepo) calculatePrice(reservationId string, period *ReservedPeriod) float64 {
-//	reservation, _ := rr.GetReservationById(reservationId)
-//	isPricePerGuest := reservation.PricePerGuest
-//
-//	year := period.StartDate.Year()
-//
-//	// Calculates summer season
-//	startOfSummerSeason := time.Date(year, time.June, 1, 0, 0, 0, 0, time.UTC)
-//	endOfSummerSeason := time.Date(year, time.September, 1, 0, 0, 0, 0, time.UTC)
-//
-//	if period.StartDate.After(startOfSummerSeason) && period.StartDate.Before(endOfSummerSeason) {
-//		if !isPricePerGuest {
-//			return reservation.PricePerAccommodationConfiguration.SummerSeasonPrice
-//		}
-//		return reservation.PricePerGuestConfiguration.SummerSeasonPrice * float64(period.NumberOfGuests)
-//	}
-//
-//	// Calculates winter season
-//	startOfWinterSeason := time.Date(year, time.December, 1, 0, 0, 0, 0, time.UTC)
-//	endOfWinterSeason := time.Date(year, time.February, 1, 0, 0, 0, 0, time.UTC)
-//
-//	if period.StartDate.After(startOfWinterSeason) && period.StartDate.Before(endOfWinterSeason) {
-//		if !isPricePerGuest {
-//			return reservation.PricePerAccommodationConfiguration.WinterSeasonPrice
-//		}
-//		return reservation.PricePerGuestConfiguration.WinterSeasonPrice * float64(period.NumberOfGuests)
-//	}
-//
-//	// Calculate weekend
-//	isWeekend := period.StartDate.Weekday().String()
-//	if isWeekend == "sunday" || isWeekend == "saturday" {
-//		if !isPricePerGuest {
-//			return reservation.PricePerAccommodationConfiguration.WeekendSeasonPrice
-//		}
-//		return reservation.PricePerGuestConfiguration.WeekendSeasonPrice * float64(period.NumberOfGuests)
-//	}
-//
-//	// Calculate standard
-//	if isPricePerGuest {
-//		return reservation.PricePerGuestConfiguration.StandardPrice * float64(period.NumberOfGuests)
-//	}
-//
-//	return reservation.PricePerAccommodationConfiguration.StandardPrice * float64(period.NumberOfGuests)
-//}
-//
-//func (rr *ReservationRepo) isPricePerAccommodationValid(reservation *Reservation) error {
-//	if reservation.PricePerAccommodationConfiguration.StandardPrice < 0 ||
-//		reservation.PricePerAccommodationConfiguration.SummerSeasonPrice < 0 ||
-//		reservation.PricePerAccommodationConfiguration.WinterSeasonPrice < 0 ||
-//		reservation.PricePerAccommodationConfiguration.WeekendSeasonPrice < 0 {
-//		return errors.New("price per accommodation cannot be negative")
-//	}
-//	return nil
-//}
-//
-//func (rr *ReservationRepo) isPricePerGuestValid(reservation *Reservation) error {
-//	if reservation.PricePerGuestConfiguration.StandardPrice < 0 ||
-//		reservation.PricePerGuestConfiguration.SummerSeasonPrice < 0 ||
-//		reservation.PricePerGuestConfiguration.WinterSeasonPrice < 0 ||
-//		reservation.PricePerGuestConfiguration.WeekendSeasonPrice < 0 {
-//		return errors.New("price per guest cannot be negative")
-//	}
-//	return nil
-//}

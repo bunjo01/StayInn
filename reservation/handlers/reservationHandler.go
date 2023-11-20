@@ -2,10 +2,11 @@ package handlers
 
 import (
 	"context"
-	"github.com/gorilla/mux"
 	"log"
-	"main.go/data"
 	"net/http"
+
+	"github.com/gorilla/mux"
+	"main.go/data"
 )
 
 type KeyProduct struct{}
@@ -33,6 +34,29 @@ func (r *ReservationHandler) GetAllAvailablePeriodsByAccommodation(rw http.Respo
 	}
 
 	err = availablePeriods.ToJSON(rw)
+	if err != nil {
+		http.Error(rw, "Unable to convert to json:", http.StatusInternalServerError)
+		r.logger.Fatal("Unable to convert to json :", err)
+		return
+	}
+}
+
+func (r *ReservationHandler) FindAvailablePeriodByIdAndByAccommodationId(rw http.ResponseWriter, h *http.Request) {
+	vars := mux.Vars(h)
+	periodID := vars["periodID"]
+	accomodationID := vars["accomodationID"]
+
+	availablePeriod, err := r.repo.FindAvailablePeriodById(periodID, accomodationID)
+	if err != nil {
+		r.logger.Println("Database exception: ", err)
+	}
+
+	if availablePeriod == nil {
+		r.logger.Println("Ne postoji period sa datim ID-em ili u datom smestaju")
+		return
+	}
+
+	err = availablePeriod.ToJSON(rw)
 	if err != nil {
 		http.Error(rw, "Unable to convert to json:", http.StatusInternalServerError)
 		r.logger.Fatal("Unable to convert to json :", err)
@@ -74,10 +98,11 @@ func (r *ReservationHandler) CreateAvailablePeriod(rw http.ResponseWriter, h *ht
 
 func (r *ReservationHandler) CreateReservation(rw http.ResponseWriter, h *http.Request) {
 	reservation := h.Context().Value(KeyProduct{}).(*data.ReservationByAvailablePeriod)
+
 	err := r.repo.InsertReservationByAvailablePeriod(reservation)
 	if err != nil {
 		r.logger.Print("Database exception: ", err)
-		rw.WriteHeader(http.StatusBadRequest)
+		rw.WriteHeader(http.StatusConflict)
 		return
 	}
 	rw.WriteHeader(http.StatusCreated)
@@ -92,6 +117,19 @@ func (r *ReservationHandler) UpdateAvailablePeriodByAccommodation(rw http.Respon
 		return
 	}
 	rw.WriteHeader(http.StatusCreated)
+}
+
+func (r *ReservationHandler) DeleteReservation(rw http.ResponseWriter, h *http.Request) {
+	vars := mux.Vars(h)
+	periodID := vars["periodID"]
+	reservationID := vars["reservationID"]
+
+	err := r.repo.DeleteReservationByIdAndAvailablePeriodID(reservationID, periodID)
+	if err != nil {
+		r.logger.Println("Database exception: ", err)
+	}
+
+	rw.WriteHeader(http.StatusAccepted)
 }
 
 func (r *ReservationHandler) MiddlewareAvailablePeriodDeserialization(next http.Handler) http.Handler {
@@ -131,128 +169,3 @@ func (r *ReservationHandler) MiddlewareContentTypeSet(next http.Handler) http.Ha
 		next.ServeHTTP(rw, h)
 	})
 }
-
-//
-//func (r *ReservationHandler) GetReservationById(rw http.ResponseWriter, h *http.Request) {
-//	vars := mux.Vars(h)
-//	id := vars["id"]
-//
-//	reservation, err := r.repo.GetReservationById(id)
-//	if err != nil {
-//		r.logger.Print("Database exception: ", err)
-//	}
-//
-//	if reservation == nil {
-//		http.Error(rw, "Reservation with given id not found", http.StatusNotFound)
-//		r.logger.Printf("Reservation with id: '%s' not found", id)
-//		return
-//	}
-//
-//	err = reservation.ToJSON(rw)
-//	if err != nil {
-//		http.Error(rw, "Unable to convert to json", http.StatusInternalServerError)
-//		r.logger.Fatal("Unable to convert to json :", err)
-//		return
-//	}
-//}
-//
-//func (r *ReservationHandler) PostReservation(rw http.ResponseWriter, h *http.Request) {
-//	reservation := h.Context().Value(KeyProduct{}).(*data.Reservation)
-//	r.repo.PostReservation(reservation)
-//	rw.WriteHeader(http.StatusCreated)
-//}
-//
-//// TODO : NOT WORKING
-//func (r *ReservationHandler) UpdateReservedPeriod(rw http.ResponseWriter, h *http.Request) {
-//	vars := mux.Vars(h)
-//	reservationId := vars["reservationId"]
-//
-//	period := h.Context().Value(KeyProduct{}).(*data.ReservedPeriod)
-//	err := r.repo.UpdateReservedPeriod(reservationId, period)
-//	if err != nil {
-//		rw.WriteHeader(http.StatusNotFound)
-//		return
-//	}
-//	rw.WriteHeader(http.StatusCreated)
-//}
-//
-//func (r *ReservationHandler) ReservePeriod(rw http.ResponseWriter, h *http.Request) {
-//	vars := mux.Vars(h)
-//	id := vars["id"]
-//
-//	// Debugging: Print id to check its value
-//	fmt.Printf("ID: %s\n", id)
-//
-//	period, ok := h.Context().Value(KeyProduct{}).(*data.ReservedPeriod)
-//
-//	// Debugging: Print period and ok to inspect them
-//	fmt.Printf("Value from context: %#v, Conversion success: %v\n", period, ok)
-//
-//	if !ok {
-//		log.Printf("Error: Conversion failed, value is not of type *data.AvailabilityPeriod")
-//		// Handle the error appropriately
-//		rw.WriteHeader(http.StatusInternalServerError)
-//		return
-//	}
-//
-//	r.repo.AddReservedPeriod(id, period)
-//	rw.WriteHeader(http.StatusOK)
-//}
-//
-//func (r *ReservationHandler) DeleteReservation(rw http.ResponseWriter, h *http.Request) {
-//	vars := mux.Vars(h)
-//	id := vars["id"]
-//
-//	r.repo.DeleteReservationById(id)
-//	rw.WriteHeader(http.StatusOK)
-//}
-//
-//func (r *ReservationHandler) DeleteReservedPeriod(rw http.ResponseWriter, h *http.Request) {
-//	vars := mux.Vars(h)
-//	reservationId := vars["reservationId"]
-//	periodId := vars["periodId"]
-//
-//	err := r.repo.DeleteReservedPeriod(reservationId, periodId)
-//	if err != nil {
-//		rw.WriteHeader(http.StatusNotFound)
-//		return
-//	}
-//	rw.WriteHeader(http.StatusOK)
-//}
-//
-//func (r *ReservationHandler) MiddlewareReservationDeserialization(next http.Handler) http.Handler {
-//	return http.HandlerFunc(func(rw http.ResponseWriter, h *http.Request) {
-//		reservation := &data.Reservation{}
-//		err := reservation.FromJSON(h.Body)
-//		if err != nil {
-//			http.Error(rw, "Unable to decode json", http.StatusBadRequest)
-//			r.logger.Fatal(err)
-//			return
-//		}
-//
-//		ctx := context.WithValue(h.Context(), KeyProduct{}, reservation)
-//		h = h.WithContext(ctx)
-//
-//		next.ServeHTTP(rw, h)
-//	})
-//}
-//
-//func (r *ReservationHandler) MiddlewareReservedPeriodDeserialization(next http.Handler) http.Handler {
-//	return http.HandlerFunc(func(rw http.ResponseWriter, h *http.Request) {
-//		avaiablePeriod := &data.ReservedPeriod{}
-//		err := avaiablePeriod.FromJSON(h.Body)
-//		if err != nil {
-//			http.Error(rw, "Unable to decode json", http.StatusBadRequest)
-//			r.logger.Fatal(err)
-//			return
-//		}
-//
-//		ctx := context.WithValue(h.Context(), KeyProduct{}, avaiablePeriod)
-//		h = h.WithContext(ctx)
-//
-//		println(avaiablePeriod)
-//
-//		next.ServeHTTP(rw, h)
-//	})
-//}
-//
