@@ -10,6 +10,8 @@ import { RegisterComponent } from './register/register.component';
 import { HeaderComponent } from './header/header.component';
 import { AccommodationsComponent } from './accommodations/accommodations.component';
 import { FooterComponent } from './footer/footer.component';
+import { AddAvailablePeriodTemplateComponent } from './reservations/add-available-period-template/add-available-period-template.component';
+import { DatePipe } from '@angular/common';
 import { RECAPTCHA_V3_SITE_KEY, RecaptchaV3Module } from 'ng-recaptcha';
 import { environment } from 'src/environments/environment';
 
@@ -21,7 +23,8 @@ import { environment } from 'src/environments/environment';
     RegisterComponent,
     HeaderComponent,
     AccommodationsComponent,
-    FooterComponent
+    FooterComponent,
+    AddAvailablePeriodTemplateComponent
   ],
   imports: [
     BrowserModule,
@@ -36,6 +39,7 @@ import { environment } from 'src/environments/environment';
       provide: RECAPTCHA_V3_SITE_KEY,
       useValue: '6LeTihYpAAAAAAv9D98iix0zlwb9OQt7TmgOswwT',
     },
+    DatePipe
   ],
   bootstrap: [AppComponent]
 })
