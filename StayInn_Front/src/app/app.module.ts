@@ -12,6 +12,8 @@ import { AccommodationsComponent } from './accommodations/accommodations.compone
 import { FooterComponent } from './footer/footer.component';
 import { AddAvailablePeriodTemplateComponent } from './reservations/add-available-period-template/add-available-period-template.component';
 import { DatePipe } from '@angular/common';
+import { RECAPTCHA_V3_SITE_KEY, RecaptchaV3Module } from 'ng-recaptcha';
+import { environment } from 'src/environments/environment';
 
 @NgModule({
   declarations: [
@@ -29,9 +31,16 @@ import { DatePipe } from '@angular/common';
     AppRoutingModule,
     HttpClientModule,
     FormsModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    RecaptchaV3Module,
   ],
-  providers: [DatePipe],
+  providers: [
+    {
+      provide: RECAPTCHA_V3_SITE_KEY,
+      useValue: '6LeTihYpAAAAAAv9D98iix0zlwb9OQt7TmgOswwT',
+    },
+    DatePipe
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule { }
