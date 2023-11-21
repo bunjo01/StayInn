@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"profile/data"
+	"profile/handlers"
 	"time"
 
 	gorillaHandlers "github.com/gorilla/handlers"
@@ -40,14 +41,24 @@ func main() {
 	store.Ping()
 
 	// Initialize the handler and inject said logger
-	//userHandler := handlers.NewUserHandler(logger, store)
+	userHandler := handlers.NewUserHandler(logger, store)
 
 	// Initialize the router and add a middleware for all the requests
 	router := mux.NewRouter()
 
-	// TODO Router
+	// Router
 
-	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
+	router.HandleFunc("/users", userHandler.CreateUser).Methods("POST")
+	router.HandleFunc("/users", userHandler.GetAllUsers).Methods("GET")
+	router.HandleFunc("/users/{id}", userHandler.GetUser).Methods("GET")
+	router.HandleFunc("/users/{id}", userHandler.UpdateUser).Methods("PUT")
+	router.HandleFunc("/users/{id}", userHandler.DeleteUser).Methods("DELETE")
+
+	cors := gorillaHandlers.CORS(
+		gorillaHandlers.AllowedOrigins([]string{"*"}),
+		gorillaHandlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "DELETE", "OPTIONS"}),
+		gorillaHandlers.AllowedHeaders([]string{"Content-Type"}),
+	)
 
 	// Initialize the server
 	server := http.Server{
