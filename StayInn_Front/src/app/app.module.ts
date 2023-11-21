@@ -10,6 +10,8 @@ import { RegisterComponent } from './register/register.component';
 import { HeaderComponent } from './header/header.component';
 import { AccommodationsComponent } from './accommodations/accommodations.component';
 import { FooterComponent } from './footer/footer.component';
+import { AddAvailablePeriodTemplateComponent } from './reservations/add-available-period-template/add-available-period-template.component';
+import { DatePipe } from '@angular/common';
 
 @NgModule({
   declarations: [
@@ -19,7 +21,8 @@ import { FooterComponent } from './footer/footer.component';
     RegisterComponent,
     HeaderComponent,
     AccommodationsComponent,
-    FooterComponent
+    FooterComponent,
+    AddAvailablePeriodTemplateComponent
   ],
   imports: [
     BrowserModule,
@@ -28,7 +31,7 @@ import { FooterComponent } from './footer/footer.component';
     FormsModule,
     ReactiveFormsModule
   ],
-  providers: [],
+  providers: [DatePipe],
   bootstrap: [AppComponent]
 })
 export class AppModule { }
