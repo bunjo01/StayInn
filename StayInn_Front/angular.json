@@ -72,7 +72,12 @@
               "browserTarget": "StayInn_Front:build:development"
             }
           },
-          "defaultConfiguration": "development"
+          "defaultConfiguration": "development",
+          "options": {
+            "ssl": true,
+            "sslCert": "../api-gateway/localhost.crt",
+            "sslKey": "../api-gateway/localhost.key"
+          }
         },
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",

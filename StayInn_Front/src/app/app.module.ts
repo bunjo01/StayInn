@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
-
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { EntryComponent } from './entry/entry.component';
@@ -10,6 +10,8 @@ import { RegisterComponent } from './register/register.component';
 import { HeaderComponent } from './header/header.component';
 import { AccommodationsComponent } from './accommodations/accommodations.component';
 import { FooterComponent } from './footer/footer.component';
+import { RECAPTCHA_V3_SITE_KEY, RecaptchaV3Module } from 'ng-recaptcha';
+import { environment } from 'src/environments/environment';
 
 @NgModule({
   declarations: [
@@ -24,9 +26,17 @@ import { FooterComponent } from './footer/footer.component';
   imports: [
     BrowserModule,
     AppRoutingModule,
-    HttpClientModule
+    HttpClientModule,
+    FormsModule,
+    ReactiveFormsModule,
+    RecaptchaV3Module,
   ],
-  providers: [],
+  providers: [
+    {
+      provide: RECAPTCHA_V3_SITE_KEY,
+      useValue: '6LeTihYpAAAAAAv9D98iix0zlwb9OQt7TmgOswwT',
+    },
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule { }
