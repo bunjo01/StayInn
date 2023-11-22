@@ -2,10 +2,11 @@ package handlers
 
 import (
 	"context"
-	"github.com/gorilla/mux"
 	"log"
-	"main.go/data"
 	"net/http"
+
+	"github.com/gorilla/mux"
+	"main.go/data"
 )
 
 type KeyProduct struct{}
@@ -33,6 +34,29 @@ func (r *ReservationHandler) GetAllAvailablePeriodsByAccommodation(rw http.Respo
 	}
 
 	err = availablePeriods.ToJSON(rw)
+	if err != nil {
+		http.Error(rw, "Unable to convert to json:", http.StatusInternalServerError)
+		r.logger.Fatal("Unable to convert to json :", err)
+		return
+	}
+}
+
+func (r *ReservationHandler) FindAvailablePeriodByIdAndByAccommodationId(rw http.ResponseWriter, h *http.Request) {
+	vars := mux.Vars(h)
+	periodID := vars["periodID"]
+	accomodationID := vars["accomodationID"]
+
+	availablePeriod, err := r.repo.FindAvailablePeriodById(periodID, accomodationID)
+	if err != nil {
+		r.logger.Println("Database exception: ", err)
+	}
+
+	if availablePeriod == nil {
+		r.logger.Println("Ne postoji period sa datim ID-em ili u datom smestaju")
+		return
+	}
+
+	err = availablePeriod.ToJSON(rw)
 	if err != nil {
 		http.Error(rw, "Unable to convert to json:", http.StatusInternalServerError)
 		r.logger.Fatal("Unable to convert to json :", err)
@@ -74,10 +98,11 @@ func (r *ReservationHandler) CreateAvailablePeriod(rw http.ResponseWriter, h *ht
 
 func (r *ReservationHandler) CreateReservation(rw http.ResponseWriter, h *http.Request) {
 	reservation := h.Context().Value(KeyProduct{}).(*data.ReservationByAvailablePeriod)
+
 	err := r.repo.InsertReservationByAvailablePeriod(reservation)
 	if err != nil {
 		r.logger.Print("Database exception: ", err)
-		rw.WriteHeader(http.StatusBadRequest)
+		rw.WriteHeader(http.StatusConflict)
 		return
 	}
 	rw.WriteHeader(http.StatusCreated)
@@ -92,6 +117,19 @@ func (r *ReservationHandler) UpdateAvailablePeriodByAccommodation(rw http.Respon
 		return
 	}
 	rw.WriteHeader(http.StatusCreated)
+}
+
+func (r *ReservationHandler) DeleteReservation(rw http.ResponseWriter, h *http.Request) {
+	vars := mux.Vars(h)
+	periodID := vars["periodID"]
+	reservationID := vars["reservationID"]
+
+	err := r.repo.DeleteReservationByIdAndAvailablePeriodID(reservationID, periodID)
+	if err != nil {
+		r.logger.Println("Database exception: ", err)
+	}
+
+	rw.WriteHeader(http.StatusAccepted)
 }
 
 func (r *ReservationHandler) MiddlewareAvailablePeriodDeserialization(next http.Handler) http.Handler {

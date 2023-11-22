@@ -1,48 +1,25 @@
 package main
 
 import (
-	"auth/data"
-	"auth/handlers"
 	"context"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"profile/data"
+	"profile/handlers"
 	"time"
 
 	gorillaHandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
 
-func seedData() {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	store, err := data.New(ctx, log.New(os.Stdout, "[data] ", log.LstdFlags))
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer store.Disconnect(ctx)
-
-	// Test data
-	tc := data.Credentials{
-		Username: "testUser",
-		Password: "testPassword",
-		Email:    "test@mail.com",
-	}
-
-	if err := store.AddCredentials(tc.Username, tc.Password, tc.Email); err != nil {
-		log.Fatal(err)
-	}
-}
-
 func main() {
-	// seedData()
-	//Reading from environment, if not set we will default it to 8080.
+	//Reading from environment, if not set we will default it to 8083.
 	//This allows flexibility in different environments (for eg. when running multiple docker api's and want to override the default port)
 	port := os.Getenv("PORT")
 	if len(port) == 0 {
-		port = "8081"
+		port = "8083"
 	}
 
 	// Initialize context
@@ -50,10 +27,10 @@ func main() {
 	defer cancel()
 
 	//Initialize the logger we are going to use, with prefix and datetime for every log
-	logger := log.New(os.Stdout, "[product-api] ", log.LstdFlags)
-	storeLogger := log.New(os.Stdout, "[patient-store] ", log.LstdFlags)
+	logger := log.New(os.Stdout, "[profile-api] ", log.LstdFlags)
+	storeLogger := log.New(os.Stdout, "[profile-store] ", log.LstdFlags)
 
-	// NoSQL: Initialize Product Repository store
+	// NoSQL: Initialize Profile Repository store
 	store, err := data.New(timeoutContext, storeLogger)
 	if err != nil {
 		logger.Fatal(err)
@@ -63,20 +40,27 @@ func main() {
 	// NoSQL: Checking if the connection was established
 	store.Ping()
 
-	//Initialize the handler and inject said logger
-	credentialsHandler := handlers.NewCredentialsHandler(logger, store)
+	// Initialize the handler and inject said logger
+	userHandler := handlers.NewUserHandler(logger, store)
 
-	//Initialize the router and add a middleware for all the requests
+	// Initialize the router and add a middleware for all the requests
 	router := mux.NewRouter()
 
-	// TODO Router
+	// Router
 
-	router.HandleFunc("/login", credentialsHandler.Login).Methods("POST")
-	router.HandleFunc("/register", credentialsHandler.Register).Methods("POST")
+	router.HandleFunc("/users", userHandler.CreateUser).Methods("POST")
+	router.HandleFunc("/users", userHandler.GetAllUsers).Methods("GET")
+	router.HandleFunc("/users/{id}", userHandler.GetUser).Methods("GET")
+	router.HandleFunc("/users/{id}", userHandler.UpdateUser).Methods("PUT")
+	router.HandleFunc("/users/{id}", userHandler.DeleteUser).Methods("DELETE")
 
-	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
+	cors := gorillaHandlers.CORS(
+		gorillaHandlers.AllowedOrigins([]string{"*"}),
+		gorillaHandlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "DELETE", "OPTIONS"}),
+		gorillaHandlers.AllowedHeaders([]string{"Content-Type"}),
+	)
 
-	//Initialize the server
+	// Initialize the server
 	server := http.Server{
 		Addr:         ":" + port,
 		Handler:      cors(router),

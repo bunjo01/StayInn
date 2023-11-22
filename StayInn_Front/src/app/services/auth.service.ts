@@ -17,4 +17,8 @@ export class AuthService {
   register(body: User): Observable<User> {
     return this.http.post<User>(this.apiUrl + '/register', body);
   }
+
+  login(credentials: { username: string, password: string }): Observable<any> {
+    return this.http.post<any>(this.apiUrl + '/login', credentials);
+  }
 }
