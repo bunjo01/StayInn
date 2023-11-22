@@ -12,6 +12,9 @@ import { AccommodationsComponent } from './accommodations/accommodations.compone
 import { FooterComponent } from './footer/footer.component';
 import { AddAvailablePeriodTemplateComponent } from './reservations/add-available-period-template/add-available-period-template.component';
 import { DatePipe } from '@angular/common';
+import { AvailablePeriodsComponent } from './reservations/available-periods/available-periods.component';
+import { AddReservationComponent } from './reservations/add-resevation/add-reservation.component';
+import { ReservationsComponent } from './reservations/reservations/reservations.component';
 
 @NgModule({
   declarations: [
@@ -22,7 +25,12 @@ import { DatePipe } from '@angular/common';
     HeaderComponent,
     AccommodationsComponent,
     FooterComponent,
-    AddAvailablePeriodTemplateComponent
+    AddAvailablePeriodTemplateComponent,
+    AvailablePeriodsComponent,
+    AvailablePeriodsComponent,
+    AddReservationComponent,
+    ReservationsComponent,
+    ReservationsComponent
   ],
   imports: [
     BrowserModule,

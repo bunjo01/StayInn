@@ -3,14 +3,15 @@ package data
 import (
 	"encoding/json"
 	"github.com/gocql/gocql"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"io"
 	"time"
 )
 
 type AvailablePeriodByAccommodation struct {
 	ID              gocql.UUID
-	IDAccommodation gocql.UUID // Partition key
-	StartDate       time.Time  // Sort key
+	IDAccommodation primitive.ObjectID // Partition key
+	StartDate       time.Time          // Sort key
 	EndDate         time.Time
 	Price           float64
 	PricePerGuest   bool
@@ -18,9 +19,9 @@ type AvailablePeriodByAccommodation struct {
 
 type ReservationByAvailablePeriod struct {
 	ID                gocql.UUID
-	IDAccommodation   gocql.UUID
+	IDAccommodation   primitive.ObjectID
 	IDAvailablePeriod gocql.UUID // Partition key
-	IDUser            gocql.UUID
+	IDUser            primitive.ObjectID
 	StartDate         time.Time // Sort key
 	EndDate           time.Time
 	GuestNumber       int16
@@ -29,38 +30,6 @@ type ReservationByAvailablePeriod struct {
 
 type AvailablePeriodsByAccommodation []*AvailablePeriodByAccommodation
 type Reservations []*ReservationByAvailablePeriod
-
-//type Reservation struct {
-//	ID                                 primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-//	IDAccommodations                   primitive.ObjectID `bson:"idAccommodations" json:"idAccommodations"`
-//	ReservedPeriods                    *[]ReservedPeriod  `bson:"reservedPeriods" json:"reservedPeriods"`
-//	PricePerGuestConfiguration         PricePerGuestConfiguration
-//	PricePerAccommodationConfiguration PricePerAccommodationConfiguration
-//	PricePerGuest                      bool
-//}
-
-//type ReservedPeriod struct {
-//	ID             primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-//	IDUser         primitive.ObjectID `bson:"idUser" json:"idUser"`
-//	StartDate      time.Time          `bson:"startDate" json:"startDate"`
-//	EndDate        time.Time          `bson:"endDate" json:"endDate"`
-//	NumberOfGuests int                `bson:"numberOfGuests" json:"numberOfGuests"`
-//	Price          float64            `bson:"price" json:"price"`
-//}
-//
-//type PricePerGuestConfiguration struct {
-//	StandardPrice      float64 `bson:"standardPrice" json:"standardPrice"`
-//	SummerSeasonPrice  float64 `bson:"summerSeasonPrice" json:"summerSeasonPrice"`
-//	WinterSeasonPrice  float64 `bson:"winterSeasonPrice" json:"winterSeasonPrice"`
-//	WeekendSeasonPrice float64 `bson:"weekendSeasonPrice" json:"weekendSeasonPrice"`
-//}
-//
-//type PricePerAccommodationConfiguration struct {
-//	StandardPrice      float64 `bson:"standardPrice" json:"standardPrice"`
-//	SummerSeasonPrice  float64 `bson:"summerSeasonPrice" json:"summerSeasonPrice"`
-//	WinterSeasonPrice  float64 `bson:"winterSeasonPrice" json:"winterSeasonPrice"`
-//	WeekendSeasonPrice float64 `bson:"weekendSeasonPrice" json:"weekendSeasonPrice"`
-//}
 
 func (r *ReservationByAvailablePeriod) ToJSON(w io.Writer) error {
 	e := json.NewEncoder(w)
