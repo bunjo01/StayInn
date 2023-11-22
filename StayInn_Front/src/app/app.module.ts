@@ -15,6 +15,8 @@ import { DatePipe } from '@angular/common';
 import { AvailablePeriodsComponent } from './reservations/available-periods/available-periods.component';
 import { AddReservationComponent } from './reservations/add-resevation/add-reservation.component';
 import { ReservationsComponent } from './reservations/reservations/reservations.component';
+import { RECAPTCHA_V3_SITE_KEY, RecaptchaV3Module } from 'ng-recaptcha';
+import { environment } from 'src/environments/environment';
 
 @NgModule({
   declarations: [
@@ -27,19 +29,25 @@ import { ReservationsComponent } from './reservations/reservations/reservations.
     FooterComponent,
     AddAvailablePeriodTemplateComponent,
     AvailablePeriodsComponent,
-    AvailablePeriodsComponent,
     AddReservationComponent,
     ReservationsComponent,
-    ReservationsComponent
+
   ],
   imports: [
     BrowserModule,
     AppRoutingModule,
     HttpClientModule,
     FormsModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    RecaptchaV3Module,
   ],
-  providers: [DatePipe],
+  providers: [
+    {
+      provide: RECAPTCHA_V3_SITE_KEY,
+      useValue: '6LeTihYpAAAAAAv9D98iix0zlwb9OQt7TmgOswwT',
+    },
+    DatePipe
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

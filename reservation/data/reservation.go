@@ -2,10 +2,15 @@ package data
 
 import (
 	"encoding/json"
+<<<<<<< HEAD
 	"github.com/gocql/gocql"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+=======
+>>>>>>> 54f28f3b4a911cd0b8037bcc8b8267ccd167cdc9
 	"io"
 	"time"
+
+	"github.com/gocql/gocql"
 )
 
 type AvailablePeriodByAccommodation struct {
