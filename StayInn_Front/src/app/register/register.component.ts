@@ -3,6 +3,8 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { User } from '../model/user';
 import { AuthService } from '../services/auth.service';
+import { environment } from 'src/environments/environment';
+import { ReCaptchaV3Service } from 'ng-recaptcha';
 
 @Component({
   selector: 'app-register',
@@ -11,20 +13,23 @@ import { AuthService } from '../services/auth.service';
 })
 export class RegisterComponent {
   form: FormGroup;
+  recaptchaSiteKey: string = environment.recaptcha.siteKey;
+  recaptchaResolved: boolean = false;
 
   constructor(
     private authService: AuthService,
     private fb: FormBuilder,
-    private router: Router
+    private router: Router,
+    private recaptchaV3Service: ReCaptchaV3Service
   ) {
     this.form = this.fb.group({
-      username: [null, Validators.required, Validators.min(3)],
-      password: [null, Validators.required, Validators.min(6)],
-      cPassword: [null, Validators.required],
-      firstName: [null, Validators.required, Validators.max(35)],
-      lastName: [null, Validators.required, Validators.max(35)],
+      username: [null, Validators.pattern('^(?=.{3,20}$)(?![_.])(?!.*[_.]{2})[a-zA-Z0-9._]+(?<![_.])$')],
+      password: [null, Validators.pattern('^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$')],
+      cPassword: [null, Validators.pattern('^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$')],
+      firstName: [null, Validators.pattern("^(?=.{1,35}$)[A-Za-z]+(?:[' -][A-Za-z]+)*$")],
+      lastName: [null, Validators.pattern("^(?=.{1,35}$)[A-Za-z]+(?:[' -][A-Za-z]+)*$")],
       email: [null, Validators.email],
-      address: [null, Validators.required, Validators.pattern("[A-Za-z0-9'\.\-\s\,]")]
+      address: [null, Validators.pattern("^[A-Za-z0-9](?!.*['\.\-\s\,]$)[A-Za-z0-9'\.\-\s\,]{0,68}[A-Za-z0-9]$")]
     });
   }
 
@@ -55,5 +60,13 @@ export class RegisterComponent {
         console.error('Error while registrating: ', error);
       }
     );
+  }
+
+  solveCaptcha(): void {
+    this.recaptchaV3Service.execute('importantAction').subscribe((token: string) => {
+      console.debug(`reCAPTCHA resolved with token: [${token}]`);
+      this.recaptchaResolved = true;
+      this.submit();
+    });
   }
 }

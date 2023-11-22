@@ -34,7 +34,7 @@ import { environment } from 'src/environments/environment';
   providers: [
     {
       provide: RECAPTCHA_V3_SITE_KEY,
-      useValue: '6LeTihYpAAAAAAv9D98iix0zlwb9OQt7TmgOswwT',
+      useValue: environment.recaptcha.siteKey,
     },
   ],
   bootstrap: [AppComponent]
