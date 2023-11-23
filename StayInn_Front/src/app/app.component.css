@@ -2,5 +2,3 @@ html, body {
     margin: 0;
     padding: 0;
 }
-
-@import '../../node_modules/ngx-toastr/toastr.css';

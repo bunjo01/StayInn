@@ -33,7 +33,14 @@ import { environment } from 'src/environments/environment';
     FormsModule,
     ReactiveFormsModule,
     RecaptchaV3Module,
-    ToastrModule.forRoot()
+    ToastrModule.forRoot({
+      closeButton: true,
+      timeOut: 4000,
+      extendedTimeOut: 500,
+      preventDuplicates: true,
+      countDuplicates: true,
+      resetTimeoutOnDuplicate: true
+    })
   ],
   providers: [
     {
