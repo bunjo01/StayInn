@@ -1,25 +1,30 @@
-<!-- login.component.html -->
 <div class="login-container">
     <div class="login-form">
         <h1>Login</h1>
-        <form *ngIf="form" [formGroup]="form" (ngSubmit)="send()">
+        <form *ngIf="form" [formGroup]="form" (ngSubmit)="solveCaptcha()">
             <div class="form-group">
                 <label for="username">Username:</label>
                 <input type="text" id="username" name="username" formControlName="username" />
-                <small class="text-danger" *ngIf="form.get('username') && form.get('username').hasError('required') && form.get('username').touched">
-                    Username is required.
+                <small class="text-danger" *ngIf="form.get('username') && form.get('username').hasError('pattern') && form.get('username').touched">
+                    Username is required. Alphanumeric characters, underscore and dot are allowed.
+                    Min. length 3, max. length 20.
+                    Examples of invalid usernames:
+                      - _username
+                      - username.
+                      - user_.name
+                      - user..name
                 </small>
             </div>
             <div class="form-group">
                 <label for="password">Password:</label>
                 <input type="password" id="password" name="password" formControlName="password" />
-                <small class="text-danger" *ngIf="form.get('password') && form.get('password').hasError('required') && form.get('password').touched">
-                    Password is required.
+                <small class="text-danger" *ngIf="form.get('password') && form.get('password').hasError('pattern') && form.get('password').touched">
+                    Password is required. Minimum eight characters, at least one uppercase letter, one lowercase letter and one number
                 </small>
             </div>
 
             <div class="form-group">
-                <ng-recaptcha [siteKey]="recaptchaSiteKey" (resolved)="onCaptchaResolved($event)"></ng-recaptcha>
+                <re-captcha [siteKey]="recaptchaSiteKey"></re-captcha>
                 <button class="login-button" type="submit">Login</button>
             </div>
         </form>
