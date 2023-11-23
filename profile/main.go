@@ -55,7 +55,6 @@ func main() {
 	router.HandleFunc("/users/{id}", userHandler.DeleteUser).Methods("DELETE")
 
 	cors := gorillaHandlers.CORS(
-		gorillaHandlers.AllowedOrigins([]string{"*"}),
 		gorillaHandlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "DELETE", "OPTIONS"}),
 		gorillaHandlers.AllowedHeaders([]string{"Content-Type"}),
 	)
