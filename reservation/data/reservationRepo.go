@@ -6,6 +6,8 @@ import (
 	"log"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
+
 	"github.com/gocql/gocql"
 )
 
@@ -30,7 +32,7 @@ func (rr *ReservationRepo) CloseSession() {
 func (rr *ReservationRepo) CreateTables() error {
 	err := rr.session.Query(
 		fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s 
-        (id UUID, id_accommodation UUID, start_date TIMESTAMP, end_date TIMESTAMP, 
+        (id UUID, id_accommodation TEXT, start_date TIMESTAMP, end_date TIMESTAMP, 
         price DOUBLE, price_per_guest BOOLEAN, 
         PRIMARY KEY ((id_accommodation), id)) 
         WITH CLUSTERING ORDER BY (id DESC)`,
@@ -42,7 +44,7 @@ func (rr *ReservationRepo) CreateTables() error {
 
 	err = rr.session.Query(
 		fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s 
-        (id UUID, id_accommodation UUID, id_available_period UUID, id_user UUID,
+        (id UUID, id_accommodation TEXT, id_available_period UUID, id_user TEXT,
         start_date TIMESTAMP, end_date TIMESTAMP, guest_number INT, price DOUBLE,
         PRIMARY KEY ((id_available_period),  id)) 
         WITH CLUSTERING ORDER BY (id ASC)`,
@@ -55,42 +57,71 @@ func (rr *ReservationRepo) CreateTables() error {
 }
 
 func (rr *ReservationRepo) GetAvailablePeriodsByAccommodation(id string) (AvailablePeriodsByAccommodation, error) {
-	scanner := rr.session.Query(`SELECT id, id_accommodation, start_date, end_date, price, price_per_guest 
-			FROM available_periods_by_accommodation WHERE id_accommodation = ?`,
+	scanner := rr.session.Query(`
+		SELECT id, id_accommodation, start_date, end_date, price, price_per_guest 
+		FROM available_periods_by_accommodation WHERE id_accommodation = ?`,
 		id).Iter().Scanner()
 
-	var avaiablePeriods AvailablePeriodsByAccommodation
+	var availablePeriods AvailablePeriodsByAccommodation
 	for scanner.Next() {
 		var period AvailablePeriodByAccommodation
-		err := scanner.Scan(&period.ID, &period.IDAccommodation, &period.StartDate, &period.EndDate, &period.Price, &period.PricePerGuest)
+		var idAccommodation string
+
+		err := scanner.Scan(&period.ID, &idAccommodation, &period.StartDate, &period.EndDate, &period.Price, &period.PricePerGuest)
 		if err != nil {
 			rr.logger.Println(err)
 			return nil, err
 		}
-		avaiablePeriods = append(avaiablePeriods, &period)
+
+		// Convert idAccommodation string to primitive.ObjectID
+		objectID, err := primitive.ObjectIDFromHex(idAccommodation)
+		if err != nil {
+			rr.logger.Println(err)
+			return nil, err
+		}
+		period.IDAccommodation = objectID
+
+		availablePeriods = append(availablePeriods, &period)
 	}
 	if err := scanner.Err(); err != nil {
 		rr.logger.Println(err)
 		return nil, err
 	}
-	return avaiablePeriods, nil
+	return availablePeriods, nil
 }
 
-func (rr *ReservationRepo) GetReservationsByAvailablePeriod(id string) (Reservations, error) {
-	scanner := rr.session.Query(`SELECT id, id_accommodation, id_available_period, id_user, start_date, 
-       		end_date, guest_number, price 
-			FROM reservations_by_available_period WHERE id_available_period = ?`,
-		id).Iter().Scanner()
+func (rr *ReservationRepo) GetReservationsByAvailablePeriod(idAvailablePeriod string) (Reservations, error) {
+	scanner := rr.session.Query(`
+		SELECT id, id_accommodation, id_available_period, id_user, start_date, end_date, guest_number, price
+		FROM reservations_by_available_period WHERE id_available_period = ?`,
+		idAvailablePeriod).Iter().Scanner()
 
 	var reservations Reservations
 	for scanner.Next() {
 		var reservation ReservationByAvailablePeriod
-		err := scanner.Scan(&reservation.ID, &reservation.IDAccommodation, &reservation.IDAvailablePeriod, &reservation.IDUser,
-			&reservation.StartDate, &reservation.EndDate, &reservation.GuestNumber, &reservation.Price)
+		var idAccommodationStr, idUserStr string
+
+		err := scanner.Scan(&reservation.ID, &idAccommodationStr, &reservation.IDAvailablePeriod, &idUserStr, &reservation.StartDate, &reservation.EndDate, &reservation.GuestNumber, &reservation.Price)
 		if err != nil {
 			rr.logger.Println(err)
 			return nil, err
 		}
+
+		// Convert idAccommodationStr and idUserStr strings to primitive.ObjectID
+		idAccommodation, err := primitive.ObjectIDFromHex(idAccommodationStr)
+		if err != nil {
+			rr.logger.Println(err)
+			return nil, err
+		}
+		reservation.IDAccommodation = idAccommodation
+
+		idUser, err := primitive.ObjectIDFromHex(idUserStr)
+		if err != nil {
+			rr.logger.Println(err)
+			return nil, err
+		}
+		reservation.IDUser = idUser
+
 		reservations = append(reservations, &reservation)
 	}
 	if err := scanner.Err(); err != nil {
@@ -129,10 +160,11 @@ func (rr *ReservationRepo) InsertAvailablePeriodByAccommodation(availablePeriod 
 	}
 
 	availablePeriodId, _ := gocql.RandomUUID()
+	idAccommodation := availablePeriod.IDAccommodation.Hex()
 	err = rr.session.Query(
 		`INSERT INTO available_periods_by_accommodation (id, id_accommodation, start_date, end_date, price, price_per_guest) 
 		VALUES (?, ?, ?, ?, ?, ?)`,
-		availablePeriodId, availablePeriod.IDAccommodation, availablePeriod.StartDate, availablePeriod.EndDate,
+		availablePeriodId, idAccommodation, availablePeriod.StartDate, availablePeriod.EndDate,
 		availablePeriod.Price, availablePeriod.PricePerGuest).Exec()
 	if err != nil {
 		rr.logger.Println(err)
@@ -142,8 +174,17 @@ func (rr *ReservationRepo) InsertAvailablePeriodByAccommodation(availablePeriod 
 }
 
 func (rr *ReservationRepo) InsertReservationByAvailablePeriod(reservation *ReservationByAvailablePeriod) error {
-	// reservationId, _ := gocql.RandomUUID()
+	reservationId, _ := gocql.RandomUUID()
 
+	// Convert primitive.ObjectID to string
+	idAccommodationStr := reservation.IDAccommodation.Hex()
+	idUserStr := reservation.IDUser.Hex()
+
+	err := rr.session.Query(
+		`INSERT INTO reservations_by_available_period (id, id_accommodation, id_available_period, id_user, start_date, end_date, guest_number, price) 
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		reservationId, idAccommodationStr, reservation.IDAvailablePeriod, idUserStr,
+		reservation.StartDate, reservation.EndDate, reservation.GuestNumber, reservation.Price).Exec()
 	// Provera da li je rezervacija unutar odgovarajućeg opsega slobodnog perioda
 	availablePeriod, err := rr.FindAvailablePeriodById(reservation.IDAvailablePeriod.String(), reservation.IDAccommodation.String())
 	if err != nil {
@@ -428,4 +469,17 @@ func (rr *ReservationRepo) calculatePrice(price float64, pricePerGuest bool, sta
 	}
 
 	return daysDifference * price
+}
+
+func (rr *ReservationRepo) convertObjectIDToUUID(objectID primitive.ObjectID) (gocql.UUID, error) {
+	// Konvertujte ObjectID u heksadecimalni string
+	hexString := objectID.Hex()
+
+	// Parsirajte heksadecimalni string u gocql.UUID
+	uuid, err := gocql.ParseUUID(hexString)
+	if err != nil {
+		return gocql.UUID{}, err
+	}
+
+	return uuid, nil
 }

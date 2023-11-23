@@ -6,12 +6,13 @@ import (
 	"time"
 
 	"github.com/gocql/gocql"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type AvailablePeriodByAccommodation struct {
 	ID              gocql.UUID
-	IDAccommodation gocql.UUID // Partition key
-	StartDate       time.Time  // Sort key
+	IDAccommodation primitive.ObjectID // Partition key
+	StartDate       time.Time          // Sort key
 	EndDate         time.Time
 	Price           float64
 	PricePerGuest   bool
@@ -19,9 +20,9 @@ type AvailablePeriodByAccommodation struct {
 
 type ReservationByAvailablePeriod struct {
 	ID                gocql.UUID
-	IDAccommodation   gocql.UUID
+	IDAccommodation   primitive.ObjectID
 	IDAvailablePeriod gocql.UUID // Partition key
-	IDUser            gocql.UUID
+	IDUser            primitive.ObjectID
 	StartDate         time.Time // Sort key
 	EndDate           time.Time
 	GuestNumber       int16

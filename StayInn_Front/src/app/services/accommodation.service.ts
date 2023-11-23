@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpResponse } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
+import { BehaviorSubject, Observable, of } from 'rxjs';
 import { Accommodation } from 'src/app/model/accommodation';
 import { environment } from 'src/environments/environment';
 
@@ -9,6 +9,7 @@ import { environment } from 'src/environments/environment';
 })
 export class AccommodationService {
   private apiUrl = environment.baseUrl + '/api/accommodations';
+  private currentAccommodation = new BehaviorSubject<Accommodation | null>(null);
 
   constructor(
     private http: HttpClient
@@ -16,6 +17,14 @@ export class AccommodationService {
 
   getAccommodations(): Observable<Accommodation[]> {
     return this.http.get<Accommodation[]>(this.apiUrl + '/accommodation');
+  }
+
+  sendAccommodation(data: Accommodation) {
+    this.currentAccommodation.next(data);
+  }
+
+  getAccommodation() {
+    return this.currentAccommodation.asObservable();
   }
 
   // private accommodations: Accommodation[] = [
