@@ -1,5 +1,7 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { ToastrModule } from 'ngx-toastr';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -10,6 +12,11 @@ import { RegisterComponent } from './register/register.component';
 import { HeaderComponent } from './header/header.component';
 import { AccommodationsComponent } from './accommodations/accommodations.component';
 import { FooterComponent } from './footer/footer.component';
+import { AddAvailablePeriodTemplateComponent } from './reservations/add-available-period-template/add-available-period-template.component';
+import { DatePipe } from '@angular/common';
+import { AvailablePeriodsComponent } from './reservations/available-periods/available-periods.component';
+import { AddReservationComponent } from './reservations/add-resevation/add-reservation.component';
+import { ReservationsComponent } from './reservations/reservations/reservations.component';
 import { RECAPTCHA_V3_SITE_KEY, RecaptchaV3Module } from 'ng-recaptcha';
 import { environment } from 'src/environments/environment';
 
@@ -21,21 +28,36 @@ import { environment } from 'src/environments/environment';
     RegisterComponent,
     HeaderComponent,
     AccommodationsComponent,
-    FooterComponent
+    FooterComponent,
+    AddAvailablePeriodTemplateComponent,
+    AvailablePeriodsComponent,
+    AddReservationComponent,
+    ReservationsComponent,
+
   ],
   imports: [
     BrowserModule,
+    BrowserAnimationsModule,
     AppRoutingModule,
     HttpClientModule,
     FormsModule,
     ReactiveFormsModule,
     RecaptchaV3Module,
+    ToastrModule.forRoot({
+      closeButton: true,
+      timeOut: 4000,
+      extendedTimeOut: 500,
+      preventDuplicates: true,
+      countDuplicates: true,
+      resetTimeoutOnDuplicate: true
+    })
   ],
   providers: [
     {
       provide: RECAPTCHA_V3_SITE_KEY,
-      useValue: '6LeTihYpAAAAAAv9D98iix0zlwb9OQt7TmgOswwT',
+      useValue: environment.recaptcha.siteKey,
     },
+    DatePipe
   ],
   bootstrap: [AppComponent]
 })

@@ -1,0 +1,16 @@
+<!-- <button (click)="navigateToAddReservationPeriod()">Add available period</button> -->
+
+<div *ngIf="reservations">
+    <h2>Reserved dates</h2>
+    <ul>
+      <li *ngFor="let reservation of reservations">
+        <strong>Start Date:</strong> {{ reservation.StartDate }}<br>
+        <strong>End Date:</strong> {{ reservation.EndDate }}<br>
+        <strong>Guest number:</strong> {{ reservation.Price }}<br>
+        <strong>Price :</strong> {{ reservation.Price }}<br>
+ 
+        <br><br>
+      </li>
+    </ul>
+  </div>
+  

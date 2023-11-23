@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -67,4 +68,82 @@ func (ur *UserRepo) Ping() {
 	fmt.Println(databases)
 }
 
-// TODO Repo methods
+// Repo methods
+
+func (ur *UserRepo) CreateProfileDetails(ctx context.Context, user *NewUser) error {
+	collection := ur.getUserCollection()
+
+	_, err := collection.InsertOne(ctx, user)
+	if err != nil {
+		ur.logger.Println(err)
+		return err
+	}
+
+	return nil
+}
+
+func (ur *UserRepo) GetAllUsers(ctx context.Context) ([]*NewUser, error) {
+	collection := ur.getUserCollection()
+
+	cursor, err := collection.Find(ctx, bson.M{})
+	if err != nil {
+		ur.logger.Println(err)
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var users []*NewUser
+	if err := cursor.All(ctx, &users); err != nil {
+		ur.logger.Println(err)
+		return nil, err
+	}
+
+	return users, nil
+}
+
+func (ur *UserRepo) GetUser(ctx context.Context, id primitive.ObjectID) (*NewUser, error) {
+	collection := ur.getUserCollection()
+
+	var user NewUser
+	err := collection.FindOne(ctx, bson.M{"_id": id}).Decode(&user)
+	if err != nil {
+		ur.logger.Println(err)
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (ur *UserRepo) UpdateUser(ctx context.Context, user *NewUser) error {
+	collection := ur.getUserCollection()
+
+	filter := bson.M{"_id": user.ID}
+	update := bson.M{"$set": user}
+
+	_, err := collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		ur.logger.Println(err)
+		return err
+	}
+
+	return nil
+}
+
+func (ur *UserRepo) DeleteUser(ctx context.Context, id primitive.ObjectID) error {
+	collection := ur.getUserCollection()
+
+	filter := bson.M{"_id": id}
+	_, err := collection.DeleteOne(ctx, filter)
+	if err != nil {
+		ur.logger.Println(err)
+		return err
+	}
+
+	return nil
+}
+
+func (ur *UserRepo) getUserCollection() *mongo.Collection {
+	patientDatabase := ur.cli.Database("mongoDemo")
+    patientsCollection := patientDatabase.Collection("users")
+	return patientsCollection
+}

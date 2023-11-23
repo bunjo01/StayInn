@@ -8,3 +8,5 @@
   body {
     overflow-x: hidden;
   }
+
+  @import '../node_modules/ngx-toastr/toastr.css';
