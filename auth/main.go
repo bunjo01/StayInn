@@ -74,7 +74,7 @@ func main() {
 	router.HandleFunc("/login", credentialsHandler.Login).Methods("POST")
 	router.HandleFunc("/register", credentialsHandler.Register).Methods("POST")
 
-	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
+	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"https://localhost:4200"}))
 
 	//Initialize the server
 	server := http.Server{
