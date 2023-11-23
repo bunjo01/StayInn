@@ -3,9 +3,10 @@ package data
 import (
 	"errors"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/gocql/gocql"
 )
@@ -173,9 +174,8 @@ func (rr *ReservationRepo) InsertAvailablePeriodByAccommodation(availablePeriod 
 }
 
 func (rr *ReservationRepo) InsertReservationByAvailablePeriod(reservation *ReservationByAvailablePeriod) error {
-	// reservationId, _ := gocql.RandomUUID()
-
-<<<<<<< HEAD
+	reservationId, _ := gocql.RandomUUID()
+	
 	// Convert primitive.ObjectID to string
 	idAccommodationStr := reservation.IDAccommodation.Hex()
 	idUserStr := reservation.IDUser.Hex()
@@ -185,7 +185,6 @@ func (rr *ReservationRepo) InsertReservationByAvailablePeriod(reservation *Reser
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 		reservationId, idAccommodationStr, reservation.IDAvailablePeriod, idUserStr,
 		reservation.StartDate, reservation.EndDate, reservation.GuestNumber, reservation.Price).Exec()
-=======
 	// Provera da li je rezervacija unutar odgovarajućeg opsega slobodnog perioda
 	availablePeriod, err := rr.FindAvailablePeriodById(reservation.IDAvailablePeriod.String(), reservation.IDAccommodation.String())
 	if err != nil {
@@ -220,7 +219,6 @@ func (rr *ReservationRepo) InsertReservationByAvailablePeriod(reservation *Reser
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 		reservation.ID, reservation.IDAccommodation, reservation.IDAvailablePeriod, reservation.IDUser,
 		reservation.StartDate, reservation.EndDate, reservation.GuestNumber, calculatedPrice).Exec()
->>>>>>> 54f28f3b4a911cd0b8037bcc8b8267ccd167cdc9
 	if err != nil {
 		rr.logger.Println(err)
 		return err
@@ -472,7 +470,6 @@ func (rr *ReservationRepo) calculatePrice(price float64, pricePerGuest bool, sta
 
 	return daysDifference * price
 }
-<<<<<<< HEAD
 
 func (rr *ReservationRepo) convertObjectIDToUUID(objectID primitive.ObjectID) (gocql.UUID, error) {
 	// Konvertujte ObjectID u heksadecimalni string
@@ -486,5 +483,3 @@ func (rr *ReservationRepo) convertObjectIDToUUID(objectID primitive.ObjectID) (g
 
 	return uuid, nil
 }
-=======
->>>>>>> 54f28f3b4a911cd0b8037bcc8b8267ccd167cdc9
