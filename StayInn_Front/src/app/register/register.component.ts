@@ -5,6 +5,7 @@ import { User } from '../model/user';
 import { AuthService } from '../services/auth.service';
 import { environment } from 'src/environments/environment';
 import { ReCaptchaV3Service } from 'ng-recaptcha';
+import { ToastrService } from 'ngx-toastr';
 
 @Component({
   selector: 'app-register',
@@ -20,7 +21,8 @@ export class RegisterComponent {
     private authService: AuthService,
     private fb: FormBuilder,
     private router: Router,
-    private recaptchaV3Service: ReCaptchaV3Service
+    private recaptchaV3Service: ReCaptchaV3Service,
+    private toastr: ToastrService
   ) {
     this.form = this.fb.group({
       username: [null, Validators.pattern('^(?=.{3,20}$)(?![_.])(?!.*[_.]{2})[a-zA-Z0-9._]+(?<![_.])$')],
@@ -39,7 +41,7 @@ export class RegisterComponent {
     if (this.form.value.password !== this.form.value.cPassword) {
       console.log(this.form.value.password + ' ' + this.form.value.cPassword);
       
-      alert('Passwords do not match');
+      this.toastr.warning('Passwords do not match', 'Check passwords');
       return;
     }
 
@@ -52,7 +54,7 @@ export class RegisterComponent {
 
     this.authService.register(user).subscribe(
       (result) => {
-        alert('Successful registration');
+        this.toastr.success('Successful registration', 'Registration');
         console.log(result);
         this.router.navigate(['login']);
       },

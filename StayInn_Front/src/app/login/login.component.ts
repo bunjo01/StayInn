@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { ReCaptchaV3Service } from 'ng-recaptcha';
 import { environment } from 'src/environments/environment';
+import { ToastrService } from 'ngx-toastr';
 
 @Component({
   selector: 'app-login',
@@ -20,7 +21,8 @@ export class LoginComponent {
     private authService: AuthService,
     private fb: FormBuilder,
     private router: Router,
-    private recaptchaV3Service: ReCaptchaV3Service
+    private recaptchaV3Service: ReCaptchaV3Service,
+    private toastr: ToastrService
   ) {
     this.form = this.fb.group({
       username: ['', Validators.pattern('^(?=.{3,20}$)(?![_.])(?!.*[_.]{2})[a-zA-Z0-9._]+(?<![_.])$')],
@@ -35,20 +37,20 @@ export class LoginComponent {
     }
 
     if (!this.recaptchaResolved) {
-      alert('Please complete the reCAPTCHA verification.');
+      this.toastr.warning('Please complete the reCAPTCHA verification.', 'reCAPTCHA');
       return;
     }
 
     this.authService.login(this.form.value).subscribe(
       (result) => {
-        alert('Login successful');
+        this.toastr.success('Login successful', 'Login');
         console.log(result);
         localStorage.setItem('token', result);
         this.router.navigate(['']);
       },
       (error) => {
         console.error('Error during login: ', error);
-        alert('Login failed. Please check your credentials.');
+        this.toastr.error('Login failed. Please check your credentials.', 'Failed login');
       }
     );
   }
