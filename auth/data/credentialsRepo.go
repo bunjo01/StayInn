@@ -2,10 +2,13 @@ package data
 
 import (
 	"bufio"
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -96,6 +99,7 @@ func (cr *CredentialsRepo) Ping() {
 // TODO Repo methods
 
 func (cr *CredentialsRepo) ValidateCredentials(username, password string) error {
+	collection := cr.getCredentialsCollection()
 	filter := bson.M{"username": username}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -103,7 +107,7 @@ func (cr *CredentialsRepo) ValidateCredentials(username, password string) error 
 	options := options.FindOne()
 
 	var foundUser Credentials
-	err := cr.cli.Database("authDB").Collection("credentials").FindOne(ctx, filter, options).Decode(&foundUser)
+	err := collection.FindOne(ctx, filter, options).Decode(&foundUser)
 	if err != nil {
 		cr.logger.Fatal(err.Error())
 		return err
@@ -117,6 +121,8 @@ func (cr *CredentialsRepo) ValidateCredentials(username, password string) error 
 }
 
 func (cr *CredentialsRepo) AddCredentials(username, password, email string) error {
+	collection := cr.getCredentialsCollection()
+
 	newCredentials := Credentials{
 		Username: username,
 		Password: password,
@@ -126,7 +132,7 @@ func (cr *CredentialsRepo) AddCredentials(username, password, email string) erro
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := cr.cli.Database("authDB").Collection("credentials").InsertOne(ctx, newCredentials)
+	_, err := collection.InsertOne(ctx, newCredentials)
 	if err != nil {
 		cr.logger.Fatal(err.Error())
 		return err
@@ -138,17 +144,19 @@ func (cr *CredentialsRepo) AddCredentials(username, password, email string) erro
 // Checks if username already exists in database.
 // Returns true if username is unique, else returns false
 func (cr *CredentialsRepo) CheckUsername(username string) bool {
-	filter := bson.M{"username": username}
+	collection := cr.getCredentialsCollection()
+    filter := bson.M{"username": username}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	options := options.FindOne()
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+    options := options.FindOne()
 
-	var foundUser Credentials
-	err := cr.cli.Database("authDB").Collection("credentials").FindOne(ctx, filter, options).Decode(&foundUser)
+    var foundUser Credentials
+    err := collection.FindOne(ctx, filter, options).Decode(&foundUser)
 
-	return errors.Is(err, mongo.ErrNoDocuments)
+    return errors.Is(err, mongo.ErrNoDocuments)
 }
+
 
 // Checks if password is contained in the blacklist.
 // Returns true if it passes the check, else returns false
@@ -190,7 +198,14 @@ func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName,
 			cr.logger.Fatal(err.Error())
 			return err
 		}
-		// TODO pass info to profile service
+
+		// pass info to profile service
+
+		// err = cr.passInfoToProfileService(username, firstName, lastName, email, address)
+        // if err != nil {
+        //     return err
+        // }
+
 	} else if !usernameOK {
 		return UsernameExistsError{Message: "username already exists"}
 	} else if !passwordOK {
@@ -199,6 +214,43 @@ func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName,
 
 	return nil
 }
+
+func (cr *CredentialsRepo) passInfoToProfileService(username, firstName, lastName, email, address string) error {
+    newUser := NewUser{
+        Username:  username,
+        Password:  "",
+        FirstName: firstName,
+        LastName:  lastName,
+        Email:     email,
+        Address:   address,
+    }
+
+    httpClient := &http.Client{}
+
+    profileServiceURL := "http://profile_service:8083"
+
+    requestBody, err := json.Marshal(newUser)
+    if err != nil {
+        return fmt.Errorf("Failed to marshal user data: %v", err)
+    }
+
+    log.Printf("Sending HTTP POST request to %s with payload: %s", profileServiceURL, requestBody)
+
+    resp, err := httpClient.Post(profileServiceURL, "application/json", bytes.NewBuffer(requestBody))
+    if err != nil {
+        return fmt.Errorf("HTTP POST request to profile service failed: %v", err)
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode != http.StatusOK {
+        return fmt.Errorf("HTTP POST request to profile service failed with status: %d", resp.StatusCode)
+    }
+
+    log.Println("HTTP POST request successful")
+
+    return nil
+}
+
 
 // Generate token
 func (cr *CredentialsRepo) GenerateToken(username string) (string, error) {
@@ -214,4 +266,10 @@ func (cr *CredentialsRepo) GenerateToken(username string) (string, error) {
 	}
 
 	return signedToken, nil
+}
+
+func (cr *CredentialsRepo) getCredentialsCollection() *mongo.Collection {
+	authDatabase := cr.cli.Database("authDB")
+    credentialsCollection := authDatabase.Collection("credentials")
+	return credentialsCollection
 }

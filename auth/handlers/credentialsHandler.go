@@ -54,7 +54,7 @@ func (ch *CredentialsHandler) Register(w http.ResponseWriter, r *http.Request) {
 	err := ch.repo.RegisterUser(newUser.Username, newUser.Password, newUser.FirstName, newUser.LastName,
 		newUser.Email, newUser.Address)
 	if err != nil && err.Error() == "username already exists" {
-		http.Error(w, "Username is not unique", http.StatusBadRequest)
+		http.Error(w, "Username is not unique!", http.StatusBadRequest)
 		return
 	} else if err != nil && err.Error() == "choose a more secure password" {
 		http.Error(w, "Password did not pass the security check. Pick a stronger password", http.StatusBadRequest)
