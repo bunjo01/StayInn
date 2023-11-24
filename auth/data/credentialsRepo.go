@@ -16,7 +16,7 @@ import (
 	// NoSQL: module containing Mongo api client
 	"go.mongodb.org/mongo-driver/bson"
 	// TODO "go.mongodb.org/mongo-driver/bson/primitive"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -46,6 +46,8 @@ func (e PasswordCheckError) Error() string {
 }
 
 const jwtSecret = "stayinn_secret"
+
+var secretKey = []byte("stayinn_secret")
 
 // Constructor
 func New(ctx context.Context, logger *log.Logger) (*CredentialsRepo, error) {
@@ -145,18 +147,51 @@ func (cr *CredentialsRepo) AddCredentials(username, password, email string) erro
 // Returns true if username is unique, else returns false
 func (cr *CredentialsRepo) CheckUsername(username string) bool {
 	collection := cr.getCredentialsCollection()
-    filter := bson.M{"username": username}
+	filter := bson.M{"username": username}
 
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
-    options := options.FindOne()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	options := options.FindOne()
 
-    var foundUser Credentials
-    err := collection.FindOne(ctx, filter, options).Decode(&foundUser)
+	var foundUser Credentials
+	err := collection.FindOne(ctx, filter, options).Decode(&foundUser)
 
-    return errors.Is(err, mongo.ErrNoDocuments)
+	return errors.Is(err, mongo.ErrNoDocuments)
 }
 
+func (cr *CredentialsRepo) FindUserByUsername(username string) (NewUser, error) {
+	collection := cr.getCredentialsCollection()
+	filter := bson.M{"username": username}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	options := options.FindOne()
+	var foundUser NewUser
+	err := collection.FindOne(ctx, filter, options).Decode(&foundUser)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			// User not found
+			return NewUser{}, errors.New("user not found")
+		}
+		// Other error
+		return NewUser{}, err
+	}
+
+	// Convert the found user to the NewUser type
+	newUser := NewUser{
+		ID:        foundUser.ID,
+		Username:  foundUser.Username,
+		Password:  "",
+		FirstName: foundUser.FirstName,
+		LastName:  foundUser.LastName,
+		Email:     foundUser.Email,
+		Address:   foundUser.Address,
+		Role:      foundUser.Role,
+	}
+
+	return newUser, nil
+}
 
 // Checks if password is contained in the blacklist.
 // Returns true if it passes the check, else returns false
@@ -185,7 +220,7 @@ func (cr *CredentialsRepo) CheckPassword(password string) (bool, error) {
 
 // Registers a new user to the system.
 // Saves credentials to auth service and passes rest of info to profile service
-func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName, email, address string) error {
+func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName, email, address string, role Role) error {
 	usernameOK := cr.CheckUsername(username)
 	passwordOK, err := cr.CheckPassword(strings.ToLower(password))
 	if err != nil {
@@ -202,9 +237,9 @@ func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName,
 		// pass info to profile service
 
 		// err = cr.passInfoToProfileService(username, firstName, lastName, email, address)
-        // if err != nil {
-        //     return err
-        // }
+		// if err != nil {
+		//     return err
+		// }
 
 	} else if !usernameOK {
 		return UsernameExistsError{Message: "username already exists"}
@@ -216,60 +251,69 @@ func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName,
 }
 
 func (cr *CredentialsRepo) passInfoToProfileService(username, firstName, lastName, email, address string) error {
-    newUser := NewUser{
-        Username:  username,
-        Password:  "",
-        FirstName: firstName,
-        LastName:  lastName,
-        Email:     email,
-        Address:   address,
-    }
-
-    httpClient := &http.Client{}
-
-    profileServiceURL := "http://profile_service:8083"
-
-    requestBody, err := json.Marshal(newUser)
-    if err != nil {
-        return fmt.Errorf("Failed to marshal user data: %v", err)
-    }
-
-    log.Printf("Sending HTTP POST request to %s with payload: %s", profileServiceURL, requestBody)
-
-    resp, err := httpClient.Post(profileServiceURL, "application/json", bytes.NewBuffer(requestBody))
-    if err != nil {
-        return fmt.Errorf("HTTP POST request to profile service failed: %v", err)
-    }
-    defer resp.Body.Close()
-
-    if resp.StatusCode != http.StatusOK {
-        return fmt.Errorf("HTTP POST request to profile service failed with status: %d", resp.StatusCode)
-    }
-
-    log.Println("HTTP POST request successful")
-
-    return nil
-}
-
-
-// Generate token
-func (cr *CredentialsRepo) GenerateToken(username string) (string, error) {
-	claims := jwt.MapClaims{
-		"username": username,
-		"exp":      time.Now().Add(time.Hour * 24).Unix(),
+	newUser := NewUser{
+		Username:  username,
+		Password:  "",
+		FirstName: firstName,
+		LastName:  lastName,
+		Email:     email,
+		Address:   address,
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signedToken, err := token.SignedString([]byte(jwtSecret))
+	httpClient := &http.Client{}
+
+	profileServiceURL := "http://profile_service:8083"
+
+	requestBody, err := json.Marshal(newUser)
+	if err != nil {
+		return fmt.Errorf("Failed to marshal user data: %v", err)
+	}
+
+	log.Printf("Sending HTTP POST request to %s with payload: %s", profileServiceURL, requestBody)
+
+	resp, err := httpClient.Post(profileServiceURL, "application/json", bytes.NewBuffer(requestBody))
+	if err != nil {
+		return fmt.Errorf("HTTP POST request to profile service failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("HTTP POST request to profile service failed with status: %d", resp.StatusCode)
+	}
+
+	log.Println("HTTP POST request successful")
+
+	return nil
+}
+
+// GenerateToken generates a JWT token with the specified username and role.
+func (cr *CredentialsRepo) GenerateToken(username string) (string, error) {
+	//userRole, err := cr.FindUserByUsername(username)
+	//
+	//if err != nil {
+	//	if errors.Is(err, mongo.ErrNoDocuments) {
+	//		return "", errors.New("user not found")
+	//	}
+	//	return "", err
+	//}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
+		jwt.MapClaims{
+			"username": username,
+			"role":     "HOST",
+			"exp":      time.Now().Add(time.Hour * 24).Unix(),
+		})
+
+	tokenString, err := token.SignedString(secretKey)
 	if err != nil {
 		return "", err
 	}
 
-	return signedToken, nil
+	return tokenString, nil
 }
 
 func (cr *CredentialsRepo) getCredentialsCollection() *mongo.Collection {
 	authDatabase := cr.cli.Database("authDB")
-    credentialsCollection := authDatabase.Collection("credentials")
+	credentialsCollection := authDatabase.Collection("credentials")
 	return credentialsCollection
 }

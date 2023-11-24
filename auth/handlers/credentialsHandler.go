@@ -52,7 +52,7 @@ func (ch *CredentialsHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	err := ch.repo.RegisterUser(newUser.Username, newUser.Password, newUser.FirstName, newUser.LastName,
-		newUser.Email, newUser.Address)
+		newUser.Email, newUser.Address, newUser.Role)
 	if err != nil && err.Error() == "username already exists" {
 		http.Error(w, "Username is not unique!", http.StatusBadRequest)
 		return
