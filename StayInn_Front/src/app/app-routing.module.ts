@@ -9,17 +9,19 @@ import { AddReservationComponent } from './reservations/add-resevation/add-reser
 import { ReservationsComponent } from './reservations/reservations/reservations.component';
 import { AuthGuardService } from './services/auth-guard.service';
 import { RoleGuardService } from './services/role-guard.service';
+import { UnauthorizedComponent } from './unauthorized/unauthorized.component';
 
 const routes: Routes = [
   { path: '', component: EntryComponent },
   { path: 'login', component: LoginComponent},
   { path: 'register', component: RegisterComponent},
   { path: 'addAvailablePeriod', component: AddAvailablePeriodTemplateComponent, canActivate : [RoleGuardService], data: { 
-    expectedRole: 'bunjo'
+    expectedRole: 'HOST'
   } },
-  { path: 'availablePeriods', component: AvailablePeriodsComponent},
-  { path: 'addReservation', component: AddReservationComponent},
-  { path: 'reservations', component: ReservationsComponent}
+  { path: 'availablePeriods', component: AvailablePeriodsComponent, canActivate: [AuthGuardService] },
+  { path: 'addReservation', component: AddReservationComponent, canActivate: [AuthGuardService]},
+  { path: 'reservations', component: ReservationsComponent, canActivate: [AuthGuardService]},
+  { path: 'notFound', component: UnauthorizedComponent}
 ];
 
 @NgModule({

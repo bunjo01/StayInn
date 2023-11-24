@@ -175,7 +175,7 @@ func (rr *ReservationRepo) InsertAvailablePeriodByAccommodation(availablePeriod 
 
 func (rr *ReservationRepo) InsertReservationByAvailablePeriod(reservation *ReservationByAvailablePeriod) error {
 	reservationId, _ := gocql.RandomUUID()
-	
+
 	// Convert primitive.ObjectID to string
 	idAccommodationStr := reservation.IDAccommodation.Hex()
 	idUserStr := reservation.IDUser.Hex()

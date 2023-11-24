@@ -71,15 +71,15 @@ func (ur *UserRepo) Ping() {
 // Repo methods
 
 func (ur *UserRepo) CreateProfileDetails(ctx context.Context, user *NewUser) error {
-	collection := ur.getUserCollection()
+    collection := ur.getUserCollection()
 
-	_, err := collection.InsertOne(ctx, user)
-	if err != nil {
-		ur.logger.Println(err)
-		return err
-	}
+    _, err := collection.InsertOne(ctx, user)
+    if err != nil {
+        ur.logger.Println(err)
+        return err
+    }
 
-	return nil
+    return nil
 }
 
 func (ur *UserRepo) GetAllUsers(ctx context.Context) ([]*NewUser, error) {
@@ -143,7 +143,7 @@ func (ur *UserRepo) DeleteUser(ctx context.Context, id primitive.ObjectID) error
 }
 
 func (ur *UserRepo) getUserCollection() *mongo.Collection {
-	patientDatabase := ur.cli.Database("mongoDemo")
-    patientsCollection := patientDatabase.Collection("users")
-	return patientsCollection
+	profileDatabase := ur.cli.Database("profileDB")
+    usersCollection := profileDatabase.Collection("users")
+	return usersCollection
 }

@@ -4,11 +4,9 @@ import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { User } from '../model/user';
 import { JwtHelperService } from '@auth0/angular-jwt';
-
-interface JwtPayload {
-  role: string; 
-}
-
+import { Router } from '@angular/router';
+import * as decode from 'jwt-decode';
+import { JwtPayload } from '../model/user';
 
 @Injectable({
   providedIn: 'root'
@@ -18,7 +16,8 @@ export class AuthService {
 
   constructor(
     private http: HttpClient,
-    private jwtHelper: JwtHelperService
+    private jwtHelper: JwtHelperService,
+    private router: Router
   ) { }
 
   register(body: User): Observable<User> {
@@ -29,11 +28,29 @@ export class AuthService {
     return this.http.post<any>(this.apiUrl + '/login', credentials);
   }
 
-  public isAuthenticated(): boolean {
-    // const token = localStorage.getItem('token');
-    const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOiIxNzAwOTQzMzMzIiwidXNlcm5hbWUiOiJidW5qbyJ9.2xVsKyUBl4Fr0ziu2OLTOxo07jvYSrc0_ibcNwA4pHE'
+  logout(){
+    localStorage.removeItem('token')
+    this.router.navigate(['login'])
+  }
 
-    console.log(token);
+  getToken() {
+    return localStorage.getItem('token')
+  }
+
+  getRoleFromToken(){
+    const token = localStorage.getItem('token');
+    if (token === null) {
+      this.router.navigate(['login']);
+      return false;
+    }
+
+    const tokenPayload = decode.jwtDecode(token) as JwtPayload;
+
+    return tokenPayload.role
+  }
+
+  public isAuthenticated(): boolean {
+    const token = localStorage.getItem('token');
     return !this.jwtHelper.isTokenExpired(token);
   }
 }

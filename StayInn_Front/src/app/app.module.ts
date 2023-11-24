@@ -22,6 +22,7 @@ import { environment } from 'src/environments/environment';
 import { JwtHelperService, JWT_OPTIONS } from '@auth0/angular-jwt';
 import { AuthGuardService } from './services/auth-guard.service';
 import { RoleGuardService } from './services/role-guard.service';
+import { UnauthorizedComponent } from './unauthorized/unauthorized.component';
 
 
 @NgModule({
@@ -37,6 +38,7 @@ import { RoleGuardService } from './services/role-guard.service';
     AvailablePeriodsComponent,
     AddReservationComponent,
     ReservationsComponent,
+    UnauthorizedComponent,
 
   ],
   imports: [
