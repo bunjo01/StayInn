@@ -19,6 +19,10 @@ import { AddReservationComponent } from './reservations/add-resevation/add-reser
 import { ReservationsComponent } from './reservations/reservations/reservations.component';
 import { RECAPTCHA_V3_SITE_KEY, RecaptchaV3Module } from 'ng-recaptcha';
 import { environment } from 'src/environments/environment';
+import { JwtHelperService, JWT_OPTIONS } from '@auth0/angular-jwt';
+import { AuthGuardService } from './services/auth-guard.service';
+import { RoleGuardService } from './services/role-guard.service';
+
 
 @NgModule({
   declarations: [
@@ -57,7 +61,11 @@ import { environment } from 'src/environments/environment';
       provide: RECAPTCHA_V3_SITE_KEY,
       useValue: environment.recaptcha.siteKey,
     },
-    DatePipe
+    DatePipe,
+    JwtHelperService,
+    { provide: JWT_OPTIONS, useValue: JWT_OPTIONS },
+    AuthGuardService,
+    RoleGuardService,
   ],
   bootstrap: [AppComponent]
 })
