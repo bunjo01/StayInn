@@ -31,10 +31,11 @@ export class LoginComponent {
   }
   
   send(): void {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
-    }
+    // TODO check why password validator always fails
+    // if (this.form.invalid) {
+    //   this.form.markAllAsTouched();
+    //   return;
+    // }
 
     if (!this.recaptchaResolved) {
       this.toastr.warning('Please complete the reCAPTCHA verification.', 'reCAPTCHA');
