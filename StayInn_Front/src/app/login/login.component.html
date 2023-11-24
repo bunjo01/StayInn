@@ -5,21 +5,15 @@
             <div class="form-group">
                 <label for="username">Username:</label>
                 <input type="text" id="username" name="username" formControlName="username" />
-                <small class="text-danger" *ngIf="form.get('username') && form.get('username').hasError('pattern') && form.get('username').touched">
-                    Username is required. Alphanumeric characters, underscore and dot are allowed.
-                    Min. length 3, max. length 20.
-                    Examples of invalid usernames:
-                      - _username
-                      - username.
-                      - user_.name
-                      - user..name
+                <small class="text-danger" *ngIf="form.get('username')?.hasError('pattern') && form.get('username')?.touched">
+                    Username is required
                 </small>
             </div>
             <div class="form-group">
                 <label for="password">Password:</label>
                 <input type="password" id="password" name="password" formControlName="password" />
-                <small class="text-danger" *ngIf="form.get('password') && form.get('password').hasError('pattern') && form.get('password').touched">
-                    Password is required. Minimum eight characters, at least one uppercase letter, one lowercase letter and one number
+                <small class="text-danger" *ngIf="form.get('password')?.hasError('pattern') && form.get('password')?.touched">
+                    Password is required
                 </small>
             </div>
 
