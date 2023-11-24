@@ -6,7 +6,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { EntryComponent } from './entry/entry.component';
-import { HttpClientModule } from '@angular/common/http';
+import { HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
 import { LoginComponent } from './login/login.component';
 import { RegisterComponent } from './register/register.component';
 import { HeaderComponent } from './header/header.component';
@@ -19,6 +19,7 @@ import { AddReservationComponent } from './reservations/add-resevation/add-reser
 import { ReservationsComponent } from './reservations/reservations/reservations.component';
 import { RECAPTCHA_V3_SITE_KEY, RecaptchaV3Module } from 'ng-recaptcha';
 import { environment } from 'src/environments/environment';
+import { TimestampInterceptor } from './interceptors/timestamp.interceptor';
 
 @NgModule({
   declarations: [
@@ -57,7 +58,12 @@ import { environment } from 'src/environments/environment';
       provide: RECAPTCHA_V3_SITE_KEY,
       useValue: environment.recaptcha.siteKey,
     },
-    DatePipe
+    DatePipe,
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: TimestampInterceptor,
+      multi: true,
+    },
   ],
   bootstrap: [AppComponent]
 })
