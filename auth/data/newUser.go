@@ -2,8 +2,9 @@ package data
 
 import (
 	"encoding/json"
-	"github.com/dgrijalva/jwt-go"
 	"io"
+
+	"github.com/dgrijalva/jwt-go"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
