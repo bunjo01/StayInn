@@ -472,10 +472,10 @@ func (rr *ReservationRepo) calculatePrice(price float64, pricePerGuest bool, sta
 }
 
 func (rr *ReservationRepo) convertObjectIDToUUID(objectID primitive.ObjectID) (gocql.UUID, error) {
-	// Konvertujte ObjectID u heksadecimalni string
+	// Convert ObjectID into hexadecimal string
 	hexString := objectID.Hex()
 
-	// Parsirajte heksadecimalni string u gocql.UUID
+	// Parse hexadecimal string into gocql.UUID
 	uuid, err := gocql.ParseUUID(hexString)
 	if err != nil {
 		return gocql.UUID{}, err
