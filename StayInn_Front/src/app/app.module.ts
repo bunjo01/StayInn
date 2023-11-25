@@ -20,6 +20,10 @@ import { ReservationsComponent } from './reservations/reservations/reservations.
 import { RECAPTCHA_V3_SITE_KEY, RecaptchaV3Module } from 'ng-recaptcha';
 import { environment } from 'src/environments/environment';
 import { TimestampInterceptor } from './interceptors/timestamp.interceptor';
+import { JwtHelperService, JWT_OPTIONS } from '@auth0/angular-jwt';
+import { AuthGuardService } from './services/auth-guard.service';
+import { RoleGuardService } from './services/role-guard.service';
+import { UnauthorizedComponent } from './unauthorized/unauthorized.component';
 
 @NgModule({
   declarations: [
@@ -34,6 +38,7 @@ import { TimestampInterceptor } from './interceptors/timestamp.interceptor';
     AvailablePeriodsComponent,
     AddReservationComponent,
     ReservationsComponent,
+    UnauthorizedComponent,
 
   ],
   imports: [
@@ -64,6 +69,10 @@ import { TimestampInterceptor } from './interceptors/timestamp.interceptor';
       useClass: TimestampInterceptor,
       multi: true,
     },
+    JwtHelperService,
+    { provide: JWT_OPTIONS, useValue: JWT_OPTIONS },
+    AuthGuardService,
+    RoleGuardService,
   ],
   bootstrap: [AppComponent]
 })

@@ -1,4 +1,4 @@
-<button (click)="navigateToAddReservationPeriod()">Add available period</button>
+<button *ngIf="isHost()" (click)="navigateToAddReservationPeriod()">Add available period</button>
 
 <div *ngIf="availablePeriods">
     <h2>Available Periods</h2>

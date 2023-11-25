@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { AvailablePeriodByAccommodation } from 'src/app/model/reservation';
 import { AccommodationService } from 'src/app/services/accommodation.service';
+import { AuthService } from 'src/app/services/auth.service';
 import { ReservationService } from 'src/app/services/reservation.service';
 
 @Component({
@@ -15,7 +16,8 @@ export class AvailablePeriodsComponent {
 
   constructor(private reservationService: ReservationService,
               private accommodationService: AccommodationService,
-              private router: Router) {}
+              private router: Router,
+              private authService: AuthService) {}
 
   ngOnInit(): void {
     this.getAccommodation();
@@ -48,6 +50,10 @@ export class AvailablePeriodsComponent {
     this.accommodationService.getAccommodation().subscribe((data) => {
       this.accommodation = data;
     });
+  }
+
+  isHost(){
+    return this.authService.getRoleFromToken() === 'HOST'
   }
 
 }

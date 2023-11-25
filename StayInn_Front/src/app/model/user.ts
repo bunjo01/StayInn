@@ -7,3 +7,8 @@ export interface User {
     email?: string;
     address?: string;
 }
+
+export interface JwtPayload {
+    role: string; 
+    username: string;
+  }
