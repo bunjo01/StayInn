@@ -51,6 +51,7 @@ export class RegisterComponent {
     user.lastName = this.form.value.lastName;
     user.email = this.form.value.email;
     user.address = this.form.value.address;
+    user.role = 'HOST'; // FOR TESTING ONLY, REPLACE THIS !
 
     this.authService.register(user).subscribe(
       (result) => {

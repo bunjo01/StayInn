@@ -10,13 +10,12 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
-	// NoSQL: module containing Mongo api client
-	"go.mongodb.org/mongo-driver/bson"
-	// TODO "go.mongodb.org/mongo-driver/bson/primitive"
 	"github.com/golang-jwt/jwt/v5"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -44,8 +43,6 @@ type PasswordCheckError struct {
 func (e PasswordCheckError) Error() string {
 	return e.Message
 }
-
-const jwtSecret = "stayinn_secret"
 
 var secretKey = []byte("stayinn_secret")
 
@@ -122,13 +119,14 @@ func (cr *CredentialsRepo) ValidateCredentials(username, password string) error 
 	return nil
 }
 
-func (cr *CredentialsRepo) AddCredentials(username, password, email string) error {
+func (cr *CredentialsRepo) AddCredentials(username, password, email string, role Role) error {
 	collection := cr.getCredentialsCollection()
 
 	newCredentials := Credentials{
 		Username: username,
 		Password: password,
 		Email:    email,
+		Role:     role,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -228,18 +226,18 @@ func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName,
 	}
 
 	if usernameOK && passwordOK {
-		err := cr.AddCredentials(username, password, email)
+		err := cr.AddCredentials(username, password, email, role)
 		if err != nil {
 			cr.logger.Fatal(err.Error())
 			return err
 		}
 
 		// pass info to profile service
-
-		// err = cr.passInfoToProfileService(username, firstName, lastName, email, address)
-		// if err != nil {
-		//     return err
-		// }
+		err = cr.passInfoToProfileService(username, firstName, lastName, email, address, role)
+		if err != nil {
+			cr.logger.Println(err.Error())
+			return err
+		}
 
 	} else if !usernameOK {
 		return UsernameExistsError{Message: "username already exists"}
@@ -250,34 +248,34 @@ func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName,
 	return nil
 }
 
-func (cr *CredentialsRepo) passInfoToProfileService(username, firstName, lastName, email, address string) error {
+func (cr *CredentialsRepo) passInfoToProfileService(username, firstName, lastName, email, address string, role Role) error {
 	newUser := NewUser{
 		Username:  username,
-		Password:  "",
 		FirstName: firstName,
 		LastName:  lastName,
 		Email:     email,
 		Address:   address,
+		Role:      role,
 	}
 
 	httpClient := &http.Client{}
 
-	profileServiceURL := "http://profile_service:8083"
+	profileServiceURL := os.Getenv("PROFILE_SERVICE_URI")
 
 	requestBody, err := json.Marshal(newUser)
 	if err != nil {
-		return fmt.Errorf("Failed to marshal user data: %v", err)
+		return fmt.Errorf("failed to marshal user data: %v", err)
 	}
 
 	log.Printf("Sending HTTP POST request to %s with payload: %s", profileServiceURL, requestBody)
 
-	resp, err := httpClient.Post(profileServiceURL, "application/json", bytes.NewBuffer(requestBody))
+	resp, err := httpClient.Post(profileServiceURL+"/users", "application/json", bytes.NewBuffer(requestBody))
 	if err != nil {
 		return fmt.Errorf("HTTP POST request to profile service failed: %v", err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusCreated {
 		return fmt.Errorf("HTTP POST request to profile service failed with status: %d", resp.StatusCode)
 	}
 
@@ -287,21 +285,12 @@ func (cr *CredentialsRepo) passInfoToProfileService(username, firstName, lastNam
 }
 
 // GenerateToken generates a JWT token with the specified username and role.
-func (cr *CredentialsRepo) GenerateToken(username string) (string, error) {
-	//userRole, err := cr.FindUserByUsername(username)
-	//
-	//if err != nil {
-	//	if errors.Is(err, mongo.ErrNoDocuments) {
-	//		return "", errors.New("user not found")
-	//	}
-	//	return "", err
-	//}
-
+func (cr *CredentialsRepo) GenerateToken(username string, role Role) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
 			"username": username,
-			"role":     "HOST",
-			"exp":      time.Now().Add(time.Hour * 24).Unix(),
+			"role":     role,
+			"exp":      strconv.FormatInt(time.Now().Add(time.Hour*24).Unix(), 10),
 		})
 
 	tokenString, err := token.SignedString(secretKey)

@@ -33,7 +33,7 @@ func (ch *CredentialsHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := ch.repo.GenerateToken(credentials.Username)
+	token, err := ch.repo.GenerateToken(credentials.Username, credentials.Role)
 	if err != nil {
 		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
 		return

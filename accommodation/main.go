@@ -49,6 +49,7 @@ func main() {
 
 	// CORS middleware
 	cors := gorillaHandlers.CORS(
+		gorillaHandlers.AllowedOrigins([]string{"*"}),
 		gorillaHandlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "DELETE", "OPTIONS"}),
 		gorillaHandlers.AllowedHeaders([]string{"Content-Type"}),
 	)

@@ -29,9 +29,10 @@ func seedData() {
 		Username: "testUser",
 		Password: "testPassword",
 		Email:    "test@mail.com",
+		Role:     "HOST",
 	}
 
-	if err := store.AddCredentials(tc.Username, tc.Password, tc.Email); err != nil {
+	if err := store.AddCredentials(tc.Username, tc.Password, tc.Email, tc.Role); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -74,7 +75,7 @@ func main() {
 	router.HandleFunc("/login", credentialsHandler.Login).Methods("POST")
 	router.HandleFunc("/register", credentialsHandler.Register).Methods("POST")
 
-	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"https://localhost:4200"}))
+	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 
 	//Initialize the server
 	server := http.Server{

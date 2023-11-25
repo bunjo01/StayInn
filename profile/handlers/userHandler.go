@@ -68,28 +68,28 @@ func (uh *UserHandler) GetUser(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (uh *UserHandler) CreateUser(rw http.ResponseWriter, r *http.Request) {
-    var user data.NewUser
-    if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-        http.Error(rw, "Failed to decode request body", http.StatusBadRequest)
-        return
-    }
+	var user data.NewUser
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		uh.logger.Println("Failed to decode body:", err)
+		http.Error(rw, "Failed to decode request body", http.StatusBadRequest)
+		return
+	}
 
-    user.ID = primitive.NewObjectID()
+	user.ID = primitive.NewObjectID()
 
-    // Dodajte poziv za funkciju koja prosleđuje podatke iz CredentialsRepo servisa
-    err := uh.repo.CreateProfileDetails(r.Context(), &user)
-    if err != nil {
-        uh.logger.Println("Failed to create user:", err)
-        http.Error(rw, "Failed to create user", http.StatusInternalServerError)
-        return
-    }
+	err := uh.repo.CreateProfileDetails(r.Context(), &user)
+	if err != nil {
+		uh.logger.Println("Failed to create user:", err)
+		http.Error(rw, "Failed to create user", http.StatusInternalServerError)
+		return
+	}
 
-    rw.Header().Set("Content-Type", "application/json")
-    rw.WriteHeader(http.StatusCreated)
-    if err := json.NewEncoder(rw).Encode(user); err != nil {
-        uh.logger.Println("Failed to encode user:", err)
-        http.Error(rw, "Failed to encode user", http.StatusInternalServerError)
-    }
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(rw).Encode(user); err != nil {
+		uh.logger.Println("Failed to encode user:", err)
+		http.Error(rw, "Failed to encode user", http.StatusInternalServerError)
+	}
 }
 
 func (uh *UserHandler) UpdateUser(rw http.ResponseWriter, r *http.Request) {

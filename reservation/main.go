@@ -12,6 +12,8 @@ import (
 
 	"main.go/handlers"
 
+	gorillaHandlers "github.com/gorilla/handlers"
+
 	"github.com/gocql/gocql"
 	"github.com/gorilla/mux"
 	"main.go/data"
@@ -127,10 +129,12 @@ func main() {
 	deleteReservation := router.Methods(http.MethodDelete).Subrouter()
 	deleteReservation.HandleFunc("/{periodID}/{reservationID}", reservationHandler.DeleteReservation)
 
+	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
+
 	//Initialize the server
 	server := http.Server{
 		Addr:         ":" + port,
-		Handler:      router,
+		Handler:      cors(router),
 		IdleTimeout:  120 * time.Second,
 		ReadTimeout:  1 * time.Second,
 		WriteTimeout: 1 * time.Second,
