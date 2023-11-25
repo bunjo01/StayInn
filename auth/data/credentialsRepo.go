@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type CredentialsRepo struct {
@@ -112,7 +113,9 @@ func (cr *CredentialsRepo) ValidateCredentials(username, password string) error 
 		return err
 	}
 
-	if foundUser.Password != password {
+	// checks sent password and hashed password in db
+	err = bcrypt.CompareHashAndPassword([]byte(foundUser.Password), []byte(password))
+	if err != nil {
 		return errors.New("invalid password")
 	}
 
@@ -226,9 +229,15 @@ func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName,
 	}
 
 	if usernameOK && passwordOK {
-		err := cr.AddCredentials(username, password, email, role)
+		hashedPassword, err := hashPassword(password)
 		if err != nil {
-			cr.logger.Fatal(err.Error())
+			cr.logger.Fatalf("error while hashing password: %v", err)
+			return err
+		}
+
+		err = cr.AddCredentials(username, hashedPassword, email, role)
+		if err != nil {
+			cr.logger.Fatalf("error while adding credentials to db: %v", err)
 			return err
 		}
 
@@ -248,6 +257,18 @@ func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName,
 	return nil
 }
 
+// BCrypt 12 hashing of password.
+// Returns hash and nil if successful, else returns empty string and error
+func hashPassword(password string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), 12)
+	if err != nil {
+		return "", err
+	}
+	return string(hash), nil
+}
+
+// Sends user data to profile service, for persistence in profile_db
+// Returns error if it fails
 func (cr *CredentialsRepo) passInfoToProfileService(username, firstName, lastName, email, address string, role Role) error {
 	newUser := NewUser{
 		Username:  username,
