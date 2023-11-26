@@ -8,8 +8,8 @@ import (
 	"github.com/google/uuid"
 )
 
-func SendEmail(providedEmail string, intention string) (string, error) {
-	const accountActivationPath = "https://localhost:8081/auth/activate/"
+func SendEmail(providedEmail, activationUUID, intention string) (string, error) {
+	const accountActivationPath = "https://localhost/api/auths/activate/"
 	const accountRecoveryPath = "https://localhost:4200/recover-account"
 	// Sender data
 	from := os.Getenv("MAIL_ADDRESS")
@@ -25,7 +25,6 @@ func SendEmail(providedEmail string, intention string) (string, error) {
 	smtpHost := "smtp.gmail.com"
 	smtpPort := "587"
 	address := smtpHost + ":" + smtpPort
-	activationUUID := generateActivationUUID()
 	var subject string
 	var body string
 

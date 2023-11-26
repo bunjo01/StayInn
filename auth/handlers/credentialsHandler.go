@@ -81,7 +81,8 @@ func (ch *CredentialsHandler) ActivateAccount(w http.ResponseWriter, r *http.Req
 	// Poziv funkcije za aktivaciju korisničkog naloga iz CredentialsRepo
 	err := ch.repo.ActivateUserAccount(activationUUID)
 	if err != nil {
-		http.Error(w, "Failed to activate user account", http.StatusInternalServerError)
+		ch.logger.Printf("Error during activation: %v", err)
+		http.Error(w, "Failed to activate user account", http.StatusBadRequest)
 		return
 	}
 

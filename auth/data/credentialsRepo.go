@@ -112,6 +112,10 @@ func (cr *CredentialsRepo) ValidateCredentials(username, password string) error 
 		return err
 	}
 
+	if !foundUser.IsActivated {
+		return errors.New("account not activated")
+	}
+
 	if foundUser.Password != password {
 		return errors.New("invalid password")
 	}
@@ -134,6 +138,27 @@ func (cr *CredentialsRepo) AddCredentials(username, password, email string, role
 	defer cancel()
 
 	_, err := collection.InsertOne(ctx, newCredentials)
+	if err != nil {
+		cr.logger.Fatal(err.Error())
+		return err
+	}
+
+	return nil
+}
+
+func (cr *CredentialsRepo) AddActivation(activationUUID, username string, confirmed bool) error {
+	collection := cr.getActivationCollection()
+
+	newActivation := ActivatioModel{
+		ActivationUUID: activationUUID,
+		Username:       username,
+		Confirmed:      confirmed,
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := collection.InsertOne(ctx, newActivation)
 	if err != nil {
 		cr.logger.Fatal(err.Error())
 		return err
@@ -242,6 +267,11 @@ func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName,
 			cr.logger.Println("Activation email sent successfully with UUID:", activationUUID)
 		}
 
+		err = cr.AddActivation(activationUUID, username, false)
+		if err != nil {
+			cr.logger.Println("Failed to add activation model to collection:", err)
+		}
+
 		// pass info to profile service
 		err = cr.passInfoToProfileService(username, firstName, lastName, email, address, role)
 		if err != nil {
@@ -263,7 +293,7 @@ func (cr *CredentialsRepo) SendActivationEmail(email string) (string, error) {
 	activationUUID := generateActivationUUID()
 
 	// Slanje e-maila za aktivaciju
-	_, err := SendEmail(email, "activation")
+	_, err := SendEmail(email, activationUUID, "activation")
 	if err != nil {
 		return "", err
 	}
@@ -272,12 +302,12 @@ func (cr *CredentialsRepo) SendActivationEmail(email string) (string, error) {
 }
 
 func (cr *CredentialsRepo) ActivateUserAccount(activationUUID string) error {
-	collection := cr.getCredentialsCollection()
+	collection := cr.getActivationCollection()
 	filter := bson.M{"activationUUID": activationUUID}
 
 	update := bson.M{
 		"$set": bson.M{
-			"isActivated": true,
+			"confirmed": true,
 		},
 	}
 
@@ -286,11 +316,35 @@ func (cr *CredentialsRepo) ActivateUserAccount(activationUUID string) error {
 
 	result, err := collection.UpdateOne(ctx, filter, update)
 	if err != nil {
-		return fmt.Errorf("failed to activate user account: %v", err)
+		return fmt.Errorf("failed to confirm activation account: %v", err)
+	}
+	if result.ModifiedCount == 0 {
+		return fmt.Errorf("activation with activationUUID %s not found", activationUUID)
+	}
+	var activationModel ActivatioModel
+
+	err = collection.FindOne(ctx, filter).Decode(&activationModel)
+	if err != nil {
+		return fmt.Errorf("failed to find activation model: %v", err)
+	}
+	collection = cr.getCredentialsCollection()
+
+	filter = bson.M{"username": activationModel.Username}
+	update = bson.M{
+		"$set": bson.M{
+			"isActivated": true,
+		},
 	}
 
+	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err = collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return fmt.Errorf("failed to activate user account: %v", err)
+	}
 	if result.ModifiedCount == 0 {
-		return fmt.Errorf("user account with activationUUID %s not found", activationUUID)
+		return fmt.Errorf("account with username %s not found", activationModel.Username)
 	}
 
 	return nil
@@ -353,5 +407,11 @@ func (cr *CredentialsRepo) GenerateToken(username string, role Role) (string, er
 func (cr *CredentialsRepo) getCredentialsCollection() *mongo.Collection {
 	authDatabase := cr.cli.Database("authDB")
 	credentialsCollection := authDatabase.Collection("credentials")
+	return credentialsCollection
+}
+
+func (cr *CredentialsRepo) getActivationCollection() *mongo.Collection {
+	authDatabase := cr.cli.Database("authDB")
+	credentialsCollection := authDatabase.Collection("activation")
 	return credentialsCollection
 }
