@@ -10,11 +10,13 @@ import { ReservationsComponent } from './reservations/reservations/reservations.
 import { AuthGuardService } from './services/auth-guard.service';
 import { RoleGuardService } from './services/role-guard.service';
 import { UnauthorizedComponent } from './unauthorized/unauthorized.component';
+import { ChangePasswordComponent } from './change-password/change-password.component';
 
 const routes: Routes = [
   { path: '', component: EntryComponent },
   { path: 'login', component: LoginComponent},
   { path: 'register', component: RegisterComponent},
+  { path: 'change-password', component: ChangePasswordComponent},
   { path: 'addAvailablePeriod', component: AddAvailablePeriodTemplateComponent, canActivate : [RoleGuardService], data: { 
     expectedRole: 'HOST'
   } },
