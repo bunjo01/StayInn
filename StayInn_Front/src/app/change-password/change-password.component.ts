@@ -33,7 +33,7 @@ export class ChangePasswordComponent implements OnInit{
     const currentPassword = this.changePasswordForm.value.currentPassword;
     const newPassword = this.changePasswordForm.value.newPassword;
     const newPassword1 = this.changePasswordForm.value.newPassword1;
-    const usernameUser = this.authService.getUsernameFromToken();
+    const username = this.authService.getUsernameFromToken();
     
     if (newPassword !== newPassword1) {
       this.toastr.error("New passwords do not match.", 'Error');
@@ -41,11 +41,11 @@ export class ChangePasswordComponent implements OnInit{
     }
 
     const requestBody = {
-      usernameUser: usernameUser,
+      username: username,
       currentPassword: currentPassword,
       newPassword: newPassword,
-      newPassword1: newPassword1
     }
+
 
     this.authService.changePassword(requestBody).subscribe(
       (result) => {

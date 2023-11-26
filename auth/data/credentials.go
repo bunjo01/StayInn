@@ -16,9 +16,9 @@ type Credentials struct {
 }
 
 type ChangePasswordRequest struct {
-	Username    string `json:"username"`
-	OldPassword string `json:"oldPassword"`
-	NewPassword string `json:"newPassword"`
+	Username        string `json:"username"`
+	CurrentPassword string `json:"currentPassword"`
+	NewPassword     string `json:"newPassword"`
 }
 
 func (c *Credentials) ToJSON(w io.Writer) error {

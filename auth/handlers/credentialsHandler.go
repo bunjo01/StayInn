@@ -71,26 +71,21 @@ func (ch *CredentialsHandler) Register(w http.ResponseWriter, r *http.Request) {
 func (ch *CredentialsHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	var reqBody data.ChangePasswordRequest
 
-	// Parsiranje podataka iz zahtjeva
 	err := reqBody.FromJSON(r.Body)
 	if err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-
-	// Provjera da li su svi potrebni podaci prisutni
-	if reqBody.Username == "" || reqBody.OldPassword == "" || reqBody.NewPassword == "" {
+	if reqBody.Username == "" || reqBody.CurrentPassword == "" || reqBody.NewPassword == "" {
 		http.Error(w, "Missing username, old password, or new password", http.StatusBadRequest)
 		return
 	}
 
-	// Pozivanje metode ChangePassword iz CredentialsRepo-a
-	err = ch.repo.ChangePassword(reqBody.Username, reqBody.OldPassword, reqBody.NewPassword)
+	err = ch.repo.ChangePassword(reqBody.Username, reqBody.CurrentPassword, reqBody.NewPassword)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to change password: %v", err), http.StatusBadRequest)
 		return
 	}
 
-	// Uspješno promijenjena lozinka
 	w.WriteHeader(http.StatusOK)
 }

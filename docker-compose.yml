@@ -123,7 +123,7 @@ services:
     image: cassandra
     restart: always
     ports:
-      - "9042:9042"
+      - "9043:9042"
     healthcheck:
       test: ["CMD-SHELL", "cqlsh -e 'describe cluster'"]
       interval: 15s

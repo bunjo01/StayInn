@@ -112,7 +112,8 @@ func (cr *CredentialsRepo) ValidateCredentials(username, password string) error 
 		cr.logger.Fatal(err.Error())
 		return err
 	}
-
+	cr.logger.Println(foundUser.Password)
+	cr.logger.Println(foundUser.Username)
 	// checks sent password and hashed password in db
 	err = bcrypt.CompareHashAndPassword([]byte(foundUser.Password), []byte(password))
 	if err != nil {
@@ -263,24 +264,21 @@ func (ur *CredentialsRepo) ChangePassword(username, oldPassword, newPassword str
 	filter := bson.M{"username": username}
 	var user Credentials
 
-	// Pronalazak korisnika iz baze podataka
 	err := collection.FindOne(context.Background(), filter).Decode(&user)
 	if err != nil {
 		return err
 	}
 
-	// Provera podudaranja unesene stare lozinke s lozinkom korisnika u bazi
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(oldPassword))
 	if err != nil {
 		return errors.New("old password not correct")
 	}
 
-	hashedPassword, err := hashPassword(oldPassword)
+	hashedPassword, err := hashPassword(newPassword)
 	if err != nil {
 		ur.logger.Fatalf("error while hashing password: %v", err)
 		return err
 	}
-
 	_, err = collection.UpdateOne(context.Background(), filter, bson.M{"$set": bson.M{"password": hashedPassword}})
 	if err != nil {
 		return err
