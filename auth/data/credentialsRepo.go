@@ -257,6 +257,38 @@ func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName,
 	return nil
 }
 
+// ChangePassword je metoda koja menja lozinku određenog korisnika
+func (ur *CredentialsRepo) ChangePassword(username, oldPassword, newPassword string) error {
+	collection := ur.getCredentialsCollection()
+	filter := bson.M{"username": username}
+	var user Credentials
+
+	// Pronalazak korisnika iz baze podataka
+	err := collection.FindOne(context.Background(), filter).Decode(&user)
+	if err != nil {
+		return err
+	}
+
+	// Provera podudaranja unesene stare lozinke s lozinkom korisnika u bazi
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(oldPassword))
+	if err != nil {
+		return errors.New("old password not correct")
+	}
+
+	hashedPassword, err := hashPassword(oldPassword)
+	if err != nil {
+		ur.logger.Fatalf("error while hashing password: %v", err)
+		return err
+	}
+
+	_, err = collection.UpdateOne(context.Background(), filter, bson.M{"$set": bson.M{"password": hashedPassword}})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // BCrypt 12 hashing of password.
 // Returns hash and nil if successful, else returns empty string and error
 func hashPassword(password string) (string, error) {

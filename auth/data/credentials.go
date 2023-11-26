@@ -15,12 +15,28 @@ type Credentials struct {
 	Role     Role               `bson:"role" json:"role"`
 }
 
+type ChangePasswordRequest struct {
+	Username    string `json:"username"`
+	OldPassword string `json:"oldPassword"`
+	NewPassword string `json:"newPassword"`
+}
+
 func (c *Credentials) ToJSON(w io.Writer) error {
 	e := json.NewEncoder(w)
 	return e.Encode(c)
 }
 
 func (c *Credentials) FromJSON(r io.Reader) error {
+	d := json.NewDecoder(r)
+	return d.Decode(c)
+}
+
+func (c *ChangePasswordRequest) ToJSON(w io.Writer) error {
+	e := json.NewEncoder(w)
+	return e.Encode(c)
+}
+
+func (c *ChangePasswordRequest) FromJSON(r io.Reader) error {
 	d := json.NewDecoder(r)
 	return d.Decode(c)
 }
