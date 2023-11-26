@@ -19,15 +19,12 @@ import { AddReservationComponent } from './reservations/add-resevation/add-reser
 import { ReservationsComponent } from './reservations/reservations/reservations.component';
 import { RECAPTCHA_V3_SITE_KEY, RecaptchaV3Module } from 'ng-recaptcha';
 import { environment } from 'src/environments/environment';
-<<<<<<< Updated upstream
 import { JwtHelperService, JWT_OPTIONS } from '@auth0/angular-jwt';
 import { AuthGuardService } from './services/auth-guard.service';
 import { RoleGuardService } from './services/role-guard.service';
 import { UnauthorizedComponent } from './unauthorized/unauthorized.component';
 
-=======
 import { ChangePasswordComponent } from './change-password/change-password.component';
->>>>>>> Stashed changes
 
 @NgModule({
   declarations: [
@@ -42,11 +39,8 @@ import { ChangePasswordComponent } from './change-password/change-password.compo
     AvailablePeriodsComponent,
     AddReservationComponent,
     ReservationsComponent,
-<<<<<<< Updated upstream
     UnauthorizedComponent,
-=======
     ChangePasswordComponent,
->>>>>>> Stashed changes
 
   ],
   imports: [

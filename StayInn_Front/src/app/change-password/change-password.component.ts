@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { AuthService } from '../services/auth.service';
+import { ToastrService } from 'ngx-toastr';
 
 @Component({
   selector: 'app-change-password',
@@ -15,6 +17,8 @@ export class ChangePasswordComponent implements OnInit{
   constructor(
     private formBuilder: FormBuilder,
     private router: Router,
+    private authService: AuthService,
+    private toastr: ToastrService
   ) { }
 
   ngOnInit() {
@@ -29,14 +33,29 @@ export class ChangePasswordComponent implements OnInit{
     const currentPassword = this.changePasswordForm.value.currentPassword;
     const newPassword = this.changePasswordForm.value.newPassword;
     const newPassword1 = this.changePasswordForm.value.newPassword1;
+    const usernameUser = this.authService.getUsernameFromToken();
     
-    // Provjera da li se nove lozinke podudaraju
     if (newPassword !== newPassword1) {
-      this.errorMessage = "New passwords do not match.";
+      this.toastr.error("New passwords do not match.", 'Error');
       return;
     }
 
-    // TODO: Poziv metode za promjenu lozinke u AuthService
-    
+    const requestBody = {
+      usernameUser: usernameUser,
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+      newPassword1: newPassword1
+    }
+
+    this.authService.changePassword(requestBody).subscribe(
+      (result) => {
+        this.toastr.success('Successful change password', 'Change password');
+        console.log(result);
+        this.router.navigate(['login']);
+      },
+      (error) => {
+        console.error('Error while changing password: ', error);
+      }
+    );
   }
 }
