@@ -122,7 +122,7 @@ func (cr *CredentialsRepo) ValidateCredentials(username, password string) error 
 	return nil
 }
 
-func (cr *CredentialsRepo) AddCredentials(username, password, email string, role Role) error {
+func (cr *CredentialsRepo) AddCredentials(username, password, email, role string) error {
 	collection := cr.getCredentialsCollection()
 
 	newCredentials := Credentials{
@@ -221,7 +221,7 @@ func (cr *CredentialsRepo) CheckPassword(password string) (bool, error) {
 
 // Registers a new user to the system.
 // Saves credentials to auth service and passes rest of info to profile service
-func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName, email, address string, role Role) error {
+func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName, email, address, role string) error {
 	usernameOK := cr.CheckUsername(username)
 	passwordOK, err := cr.CheckPassword(strings.ToLower(password))
 	if err != nil {
@@ -269,7 +269,7 @@ func hashPassword(password string) (string, error) {
 
 // Sends user data to profile service, for persistence in profile_db
 // Returns error if it fails
-func (cr *CredentialsRepo) passInfoToProfileService(username, firstName, lastName, email, address string, role Role) error {
+func (cr *CredentialsRepo) passInfoToProfileService(username, firstName, lastName, email, address, role string) error {
 	newUser := NewUser{
 		Username:  username,
 		FirstName: firstName,
@@ -306,7 +306,7 @@ func (cr *CredentialsRepo) passInfoToProfileService(username, firstName, lastNam
 }
 
 // GenerateToken generates a JWT token with the specified username and role.
-func (cr *CredentialsRepo) GenerateToken(username string, role Role) (string, error) {
+func (cr *CredentialsRepo) GenerateToken(username, role string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
 			"username": username,

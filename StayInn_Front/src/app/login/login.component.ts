@@ -45,8 +45,6 @@ export class LoginComponent {
     this.authService.login(this.form.value).subscribe(
       (result) => {
         this.toastr.success('Login successful', 'Login');
-        console.log(result);
-        // result = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOiIxNzAwOTQzMzMzIiwidXNlcm5hbWUiOiJidW5qbyJ9.2xVsKyUBl4Fr0ziu2OLTOxo07jvYSrc0_ibcNwA4pHE"
         localStorage.setItem('token', result.token);
         this.router.navigate(['']);
       },

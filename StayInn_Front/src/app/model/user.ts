@@ -10,6 +10,7 @@ export interface User {
 }
 
 export interface JwtPayload {
+    exp: string;
     role: string; 
     username: string;
   }

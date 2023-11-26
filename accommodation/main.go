@@ -41,23 +41,23 @@ func main() {
 	// Router init
 	router := mux.NewRouter()
 
-	createAccommodationRouter := router.Methods(http.MethodGet).Subrouter()
-	createAccommodationRouter.HandleFunc("/accommodation", accommodationsHandler.CreateAccommodation)
+	createAccommodationRouter := router.Methods(http.MethodPost).Path("/accommodation").Subrouter()
+	createAccommodationRouter.HandleFunc("", accommodationsHandler.CreateAccommodation)
 	createAccommodationRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
 
-	getAllAccommodationRouter := router.Methods(http.MethodGet).Subrouter()
-	getAllAccommodationRouter.HandleFunc("/accommodation", accommodationsHandler.GetAllAccommodations)
+	getAllAccommodationRouter := router.Methods(http.MethodGet).Path("/accommodation").Subrouter()
+	getAllAccommodationRouter.HandleFunc("", accommodationsHandler.GetAllAccommodations)
 
-	getAccommodationRouter := router.Methods(http.MethodGet).Subrouter()
-	getAccommodationRouter.HandleFunc("/accommodation/{id}", accommodationsHandler.GetAccommodation)
+	getAccommodationRouter := router.Methods(http.MethodGet).Path("/accommodation/{id}").Subrouter()
+	getAccommodationRouter.HandleFunc("", accommodationsHandler.GetAccommodation)
 
-	updateAccommodationRouter := router.Methods(http.MethodPut).Subrouter()
-	updateAccommodationRouter.HandleFunc("/accommodation/{id}", accommodationsHandler.UpdateAccommodation)
-	createAccommodationRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
+	updateAccommodationRouter := router.Methods(http.MethodPut).Path("/accommodation/{id}").Subrouter()
+	updateAccommodationRouter.HandleFunc("", accommodationsHandler.UpdateAccommodation)
+	updateAccommodationRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
 
-	deleteAccommodationRouter := router.Methods(http.MethodDelete).Subrouter()
-	deleteAccommodationRouter.HandleFunc("/accommodation/{id}", accommodationsHandler.DeleteAccommodation)
-	createAccommodationRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
+	deleteAccommodationRouter := router.Methods(http.MethodDelete).Path("/accommodation/{id}").Subrouter()
+	deleteAccommodationRouter.HandleFunc("", accommodationsHandler.DeleteAccommodation)
+	deleteAccommodationRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
 
 	// CORS middleware
 	cors := gorillaHandlers.CORS(

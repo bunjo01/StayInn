@@ -3,9 +3,10 @@ package handlers
 import (
 	"accommodation/data"
 	"encoding/json"
-	"github.com/dgrijalva/jwt-go"
 	"log"
 	"net/http"
+
+	"github.com/dgrijalva/jwt-go"
 
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson/primitive"

@@ -28,12 +28,18 @@ func (ch *CredentialsHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	dbUser, err := ch.repo.FindUserByUsername(credentials.Username)
+	if err != nil {
+		http.Error(w, "User not found with username: "+credentials.Username, http.StatusBadRequest)
+		return
+	}
+
 	if err := ch.repo.ValidateCredentials(credentials.Username, credentials.Password); err != nil {
 		http.Error(w, "Invalid username or password", http.StatusUnauthorized)
 		return
 	}
 
-	token, err := ch.repo.GenerateToken(credentials.Username, credentials.Role)
+	token, err := ch.repo.GenerateToken(credentials.Username, dbUser.Role)
 	if err != nil {
 		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
 		return

@@ -2,10 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
-	"github.com/dgrijalva/jwt-go"
 	"log"
 	"net/http"
 	"profile/data"
+
+	"github.com/dgrijalva/jwt-go"
 
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -144,6 +145,11 @@ func (uh *UserHandler) DeleteUser(rw http.ResponseWriter, r *http.Request) {
 func (uh *UserHandler) AuthorizeRoles(allowedRoles ...string) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, rr *http.Request) {
+			if rr.URL.Path == "/users" && rr.Method == http.MethodPost {
+				next.ServeHTTP(w, rr)
+				return
+			}
+
 			tokenString := uh.extractTokenFromHeader(rr)
 			if tokenString == "" {
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
