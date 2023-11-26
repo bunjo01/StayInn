@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 type KeyProduct struct{}
@@ -14,6 +16,11 @@ type CredentialsHandler struct {
 	logger *log.Logger
 	repo   *data.CredentialsRepo
 }
+
+const (
+	INTENTION_ACTIVATION = "activation"
+	errorDeletingUser    = "Error deleting user with email "
+)
 
 // Injecting the logger makes this code much more testable
 func NewCredentialsHandler(l *log.Logger, r *data.CredentialsRepo) *CredentialsHandler {
@@ -88,4 +95,20 @@ func (ch *CredentialsHandler) ChangePassword(w http.ResponseWriter, r *http.Requ
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (ch *CredentialsHandler) ActivateAccount(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	activationUUID := params["activationUUID"]
+
+	// Activating user account
+	err := ch.repo.ActivateUserAccount(activationUUID)
+	if err != nil {
+		ch.logger.Printf("Error during activation: %v", err)
+		http.Error(w, "Failed to activate user account", http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("User account successfully activated"))
 }

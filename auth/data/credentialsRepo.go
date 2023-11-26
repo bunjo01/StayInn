@@ -112,31 +112,56 @@ func (cr *CredentialsRepo) ValidateCredentials(username, password string) error 
 		cr.logger.Fatal(err.Error())
 		return err
 	}
-	cr.logger.Println(foundUser.Password)
-	cr.logger.Println(foundUser.Username)
+
 	// checks sent password and hashed password in db
 	err = bcrypt.CompareHashAndPassword([]byte(foundUser.Password), []byte(password))
 	if err != nil {
 		return errors.New("invalid password")
 	}
 
+	if !foundUser.IsActivated {
+		return errors.New("account not activated")
+	}
+
 	return nil
 }
 
-func (cr *CredentialsRepo) AddCredentials(username, password, email string, role Role) error {
+func (cr *CredentialsRepo) AddCredentials(username, password, email, role string) error {
 	collection := cr.getCredentialsCollection()
 
 	newCredentials := Credentials{
-		Username: username,
-		Password: password,
-		Email:    email,
-		Role:     role,
+		Username:    username,
+		Password:    password,
+		Email:       email,
+		Role:        role,
+		IsActivated: false,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	_, err := collection.InsertOne(ctx, newCredentials)
+	if err != nil {
+		cr.logger.Fatal(err.Error())
+		return err
+	}
+
+	return nil
+}
+
+func (cr *CredentialsRepo) AddActivation(activationUUID, username string, confirmed bool) error {
+	collection := cr.getActivationCollection()
+
+	newActivation := ActivatioModel{
+		ActivationUUID: activationUUID,
+		Username:       username,
+		Confirmed:      confirmed,
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := collection.InsertOne(ctx, newActivation)
 	if err != nil {
 		cr.logger.Fatal(err.Error())
 		return err
@@ -182,14 +207,15 @@ func (cr *CredentialsRepo) FindUserByUsername(username string) (NewUser, error) 
 
 	// Convert the found user to the NewUser type
 	newUser := NewUser{
-		ID:        foundUser.ID,
-		Username:  foundUser.Username,
-		Password:  "",
-		FirstName: foundUser.FirstName,
-		LastName:  foundUser.LastName,
-		Email:     foundUser.Email,
-		Address:   foundUser.Address,
-		Role:      foundUser.Role,
+		ID:          foundUser.ID,
+		Username:    foundUser.Username,
+		Password:    "",
+		FirstName:   foundUser.FirstName,
+		LastName:    foundUser.LastName,
+		Email:       foundUser.Email,
+		Address:     foundUser.Address,
+		Role:        foundUser.Role,
+		IsActivated: foundUser.IsActivated,
 	}
 
 	return newUser, nil
@@ -222,7 +248,7 @@ func (cr *CredentialsRepo) CheckPassword(password string) (bool, error) {
 
 // Registers a new user to the system.
 // Saves credentials to auth service and passes rest of info to profile service
-func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName, email, address string, role Role) error {
+func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName, email, address, role string) error {
 	usernameOK := cr.CheckUsername(username)
 	passwordOK, err := cr.CheckPassword(strings.ToLower(password))
 	if err != nil {
@@ -240,6 +266,19 @@ func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName,
 		if err != nil {
 			cr.logger.Fatalf("error while adding credentials to db: %v", err)
 			return err
+		}
+
+		activationUUID, err := cr.SendActivationEmail(email)
+		if err != nil {
+			cr.logger.Println("Failed to send activation email:", err)
+			// Ovdje možete obraditi grešku slanja e-maila, možda želite ponovo pokušati slati ili nešto drugo
+		} else {
+			cr.logger.Println("Activation email sent successfully with UUID:", activationUUID)
+		}
+
+		err = cr.AddActivation(activationUUID, username, false)
+		if err != nil {
+			cr.logger.Println("Failed to add activation model to collection:", err)
 		}
 
 		// pass info to profile service
@@ -283,7 +322,67 @@ func (ur *CredentialsRepo) ChangePassword(username, oldPassword, newPassword str
 	if err != nil {
 		return err
 	}
+	return nil
+}
 
+func (cr *CredentialsRepo) SendActivationEmail(email string) (string, error) {
+	// Generiranje UUID-a za aktivaciju
+	activationUUID := generateActivationUUID()
+
+	// Slanje e-maila za aktivaciju
+	_, err := SendEmail(email, activationUUID, "activation")
+	if err != nil {
+		return "", err
+	}
+
+	return activationUUID, nil
+}
+
+func (cr *CredentialsRepo) ActivateUserAccount(activationUUID string) error {
+	collection := cr.getActivationCollection()
+	filter := bson.M{"activationUUID": activationUUID}
+
+	update := bson.M{
+		"$set": bson.M{
+			"confirmed": true,
+		},
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return fmt.Errorf("failed to confirm activation account: %v", err)
+	}
+	if result.ModifiedCount == 0 {
+		return fmt.Errorf("activation with activationUUID %s not found", activationUUID)
+	}
+	var activationModel ActivatioModel
+
+	err = collection.FindOne(ctx, filter).Decode(&activationModel)
+	if err != nil {
+		return fmt.Errorf("failed to find activation model: %v", err)
+	}
+	collection = cr.getCredentialsCollection()
+
+	filter = bson.M{"username": activationModel.Username}
+	update = bson.M{
+		"$set": bson.M{
+			"isActivated": true,
+		},
+	}
+
+	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err = collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return fmt.Errorf("failed to activate user account: %v", err)
+	}
+	if result.ModifiedCount == 0 {
+		return fmt.Errorf("account with username %s not found", activationModel.Username)
+	}
 	return nil
 }
 
@@ -299,14 +398,15 @@ func hashPassword(password string) (string, error) {
 
 // Sends user data to profile service, for persistence in profile_db
 // Returns error if it fails
-func (cr *CredentialsRepo) passInfoToProfileService(username, firstName, lastName, email, address string, role Role) error {
+func (cr *CredentialsRepo) passInfoToProfileService(username, firstName, lastName, email, address, role string) error {
 	newUser := NewUser{
-		Username:  username,
-		FirstName: firstName,
-		LastName:  lastName,
-		Email:     email,
-		Address:   address,
-		Role:      role,
+		Username:    username,
+		FirstName:   firstName,
+		LastName:    lastName,
+		Email:       email,
+		Address:     address,
+		Role:        role,
+		IsActivated: false,
 	}
 
 	httpClient := &http.Client{}
@@ -336,7 +436,7 @@ func (cr *CredentialsRepo) passInfoToProfileService(username, firstName, lastNam
 }
 
 // GenerateToken generates a JWT token with the specified username and role.
-func (cr *CredentialsRepo) GenerateToken(username string, role Role) (string, error) {
+func (cr *CredentialsRepo) GenerateToken(username, role string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
 			"username": username,
@@ -355,5 +455,11 @@ func (cr *CredentialsRepo) GenerateToken(username string, role Role) (string, er
 func (cr *CredentialsRepo) getCredentialsCollection() *mongo.Collection {
 	authDatabase := cr.cli.Database("authDB")
 	credentialsCollection := authDatabase.Collection("credentials")
+	return credentialsCollection
+}
+
+func (cr *CredentialsRepo) getActivationCollection() *mongo.Collection {
+	authDatabase := cr.cli.Database("authDB")
+	credentialsCollection := authDatabase.Collection("activation")
 	return credentialsCollection
 }
