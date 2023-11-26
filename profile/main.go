@@ -53,6 +53,7 @@ func main() {
 	router.HandleFunc("/users/{id}", userHandler.GetUser).Methods("GET")
 	router.HandleFunc("/users/{id}", userHandler.UpdateUser).Methods("PUT")
 	router.HandleFunc("/users/{id}", userHandler.DeleteUser).Methods("DELETE")
+	router.Use(userHandler.AuthorizeRoles("HOST", "GUEST"))
 
 	cors := gorillaHandlers.CORS(
 		gorillaHandlers.AllowedOrigins([]string{"*"}),
