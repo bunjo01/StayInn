@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { AvailablePeriodByAccommodation } from 'src/app/model/reservation';
 import { AccommodationService } from 'src/app/services/accommodation.service';
@@ -10,7 +10,7 @@ import { ReservationService } from 'src/app/services/reservation.service';
   templateUrl: './available-periods.component.html',
   styleUrls: ['./available-periods.component.css']
 })
-export class AvailablePeriodsComponent {
+export class AvailablePeriodsComponent implements OnInit {
   availablePeriods: AvailablePeriodByAccommodation[] = [];
   accommodation: any;
 
