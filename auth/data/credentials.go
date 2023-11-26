@@ -8,11 +8,12 @@ import (
 )
 
 type Credentials struct {
-	ID       primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	Username string             `bson:"username" json:"username"`
-	Password string             `bson:"password" json:"password"`
-	Email    string             `bson:"email" json:"email"`
-	Role     Role               `bson:"role" json:"role"`
+	ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Username    string             `bson:"username" json:"username"`
+	Password    string             `bson:"password" json:"password"`
+	Email       string             `bson:"email" json:"email"`
+	Role        Role               `bson:"role" json:"role"`
+	IsActivated bool               `bson:"isActivated" json:"isActivated"`
 }
 
 func (c *Credentials) ToJSON(w io.Writer) error {

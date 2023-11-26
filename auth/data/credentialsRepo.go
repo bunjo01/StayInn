@@ -123,10 +123,11 @@ func (cr *CredentialsRepo) AddCredentials(username, password, email string, role
 	collection := cr.getCredentialsCollection()
 
 	newCredentials := Credentials{
-		Username: username,
-		Password: password,
-		Email:    email,
-		Role:     role,
+		Username:    username,
+		Password:    password,
+		Email:       email,
+		Role:        role,
+		IsActivated: false,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -178,14 +179,15 @@ func (cr *CredentialsRepo) FindUserByUsername(username string) (NewUser, error) 
 
 	// Convert the found user to the NewUser type
 	newUser := NewUser{
-		ID:        foundUser.ID,
-		Username:  foundUser.Username,
-		Password:  "",
-		FirstName: foundUser.FirstName,
-		LastName:  foundUser.LastName,
-		Email:     foundUser.Email,
-		Address:   foundUser.Address,
-		Role:      foundUser.Role,
+		ID:          foundUser.ID,
+		Username:    foundUser.Username,
+		Password:    "",
+		FirstName:   foundUser.FirstName,
+		LastName:    foundUser.LastName,
+		Email:       foundUser.Email,
+		Address:     foundUser.Address,
+		Role:        foundUser.Role,
+		IsActivated: foundUser.IsActivated,
 	}
 
 	return newUser, nil
@@ -232,6 +234,14 @@ func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName,
 			return err
 		}
 
+		activationUUID, err := cr.SendActivationEmail(email)
+		if err != nil {
+			cr.logger.Println("Failed to send activation email:", err)
+			// Ovdje možete obraditi grešku slanja e-maila, možda želite ponovo pokušati slati ili nešto drugo
+		} else {
+			cr.logger.Println("Activation email sent successfully with UUID:", activationUUID)
+		}
+
 		// pass info to profile service
 		err = cr.passInfoToProfileService(username, firstName, lastName, email, address, role)
 		if err != nil {
@@ -248,14 +258,53 @@ func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName,
 	return nil
 }
 
+func (cr *CredentialsRepo) SendActivationEmail(email string) (string, error) {
+	// Generiranje UUID-a za aktivaciju
+	activationUUID := generateActivationUUID()
+
+	// Slanje e-maila za aktivaciju
+	_, err := SendEmail(email, "activation")
+	if err != nil {
+		return "", err
+	}
+
+	return activationUUID, nil
+}
+
+func (cr *CredentialsRepo) ActivateUserAccount(activationUUID string) error {
+	collection := cr.getCredentialsCollection()
+	filter := bson.M{"activationUUID": activationUUID}
+
+	update := bson.M{
+		"$set": bson.M{
+			"isActivated": true,
+		},
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return fmt.Errorf("failed to activate user account: %v", err)
+	}
+
+	if result.ModifiedCount == 0 {
+		return fmt.Errorf("user account with activationUUID %s not found", activationUUID)
+	}
+
+	return nil
+}
+
 func (cr *CredentialsRepo) passInfoToProfileService(username, firstName, lastName, email, address string, role Role) error {
 	newUser := NewUser{
-		Username:  username,
-		FirstName: firstName,
-		LastName:  lastName,
-		Email:     email,
-		Address:   address,
-		Role:      role,
+		Username:    username,
+		FirstName:   firstName,
+		LastName:    lastName,
+		Email:       email,
+		Address:     address,
+		Role:        role,
+		IsActivated: false,
 	}
 
 	httpClient := &http.Client{}

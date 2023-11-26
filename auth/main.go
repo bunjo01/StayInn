@@ -74,6 +74,7 @@ func main() {
 
 	router.HandleFunc("/login", credentialsHandler.Login).Methods("POST")
 	router.HandleFunc("/register", credentialsHandler.Register).Methods("POST")
+	router.HandleFunc("/activate/{activationUUID}", credentialsHandler.ActivateAccount).Methods("GET")
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 

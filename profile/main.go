@@ -49,11 +49,13 @@ func main() {
 	// Router
 
 	router.HandleFunc("/users", userHandler.CreateUser).Methods("POST")
-	router.HandleFunc("/users", userHandler.GetAllUsers).Methods("GET")
+	// router.HandleFunc("/users", userHandler.GetAllUsers).Methods("GET")
 	router.HandleFunc("/users/{id}", userHandler.GetUser).Methods("GET")
 	router.HandleFunc("/users/{id}", userHandler.UpdateUser).Methods("PUT")
+	getAllUser := router.Methods(http.MethodGet).Subrouter()
+	getAllUser.HandleFunc("/users", userHandler.GetAllUsers)
 	router.HandleFunc("/users/{id}", userHandler.DeleteUser).Methods("DELETE")
-	router.Use(userHandler.AuthorizeRoles("HOST", "GUEST"))
+	// router.Use(userHandler.AuthorizeRoles("HOST", "GUEST"))
 
 	cors := gorillaHandlers.CORS(
 		gorillaHandlers.AllowedOrigins([]string{"*"}),
