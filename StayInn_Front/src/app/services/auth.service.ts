@@ -45,7 +45,7 @@ export class AuthService {
     const token = localStorage.getItem('token');
     if (token === null) {
       this.router.navigate(['login']);
-      return false;
+      return;
     }
 
     const tokenPayload = decode.jwtDecode(token) as JwtPayload;
@@ -57,7 +57,7 @@ export class AuthService {
     const token = localStorage.getItem('token');
     if (token === null) {
       this.router.navigate(['login']);
-      return false;
+      return;
     }
 
     const tokenPayload = decode.jwtDecode(token) as JwtPayload;

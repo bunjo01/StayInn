@@ -1,12 +1,21 @@
 <div class="container">
-    <div class="header-main">
-        <div class="header">
-            <h1 routerLink="">StayInn</h1>
-            <div *ngIf="isEntryPage()" class="header-buttons">
-                <button routerLink="/login">Login</button>
-                <button routerLink="/register">Register</button>
-                <button routerLink="/change-password">Change Password</button>
-            </div>
-        </div>
+  <div class="header-main">
+    <div class="header">
+      <h1 routerLink="">StayInn</h1>
+      <div class="header-buttons">
+        <ng-container *ngIf="!isUserLoggedIn(); else logoutButton">
+          <button class="btnLogin" routerLink="/login">Login</button>
+          <button class="btnRegister" routerLink="/register">Register</button>
+        </ng-container>
+        <ng-template #logoutButton>
+          <select class="dropdown-menu" (change)="handleDropdownChange($event)">
+            <option value="" disabled selected style="display: none;">Menu</option>
+            <option value="profile" class="profile-option">Profile</option>
+            <option value="logout" class="logout-option">Logout</option>
+          </select>
+        </ng-template>
+        <button routerLink="/change-password">Change Password</button>
+      </div>
     </div>
+  </div>
 </div>

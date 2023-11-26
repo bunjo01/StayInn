@@ -23,7 +23,7 @@ import { JwtHelperService, JWT_OPTIONS } from '@auth0/angular-jwt';
 import { AuthGuardService } from './services/auth-guard.service';
 import { RoleGuardService } from './services/role-guard.service';
 import { UnauthorizedComponent } from './unauthorized/unauthorized.component';
-
+import { ProfileDetailsComponent } from './profile-details/profile-details.component';
 import { ChangePasswordComponent } from './change-password/change-password.component';
 
 @NgModule({
@@ -41,6 +41,7 @@ import { ChangePasswordComponent } from './change-password/change-password.compo
     ReservationsComponent,
     UnauthorizedComponent,
     ChangePasswordComponent,
+    ProfileDetailsComponent
 
   ],
   imports: [

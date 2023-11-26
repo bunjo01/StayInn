@@ -1,0 +1,14 @@
+<div class="profile-container">
+    <h2>Profile Details</h2>
+    <div *ngIf="userProfile">
+      <p><strong>Username:</strong> {{ userProfile.username }}</p>
+      <p><strong>First Name:</strong> {{ userProfile.firstName }}</p>
+      <p><strong>Last Name:</strong> {{ userProfile.lastName }}</p>
+      <p><strong>Email:</strong> {{ userProfile.email }}</p>
+      <p><strong>Address:</strong> {{ userProfile.address }}</p>
+      <!-- Dodajte ostale podatke koje želite prikazati -->
+    </div>
+    <div *ngIf="!userProfile">
+      <p>Error loading user profile.</p>
+    </div>
+  </div>

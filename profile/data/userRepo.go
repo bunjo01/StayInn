@@ -101,11 +101,11 @@ func (ur *UserRepo) GetAllUsers(ctx context.Context) ([]*NewUser, error) {
 	return users, nil
 }
 
-func (ur *UserRepo) GetUser(ctx context.Context, id primitive.ObjectID) (*NewUser, error) {
+func (ur *UserRepo) GetUser(ctx context.Context, username string) (*NewUser, error) {
 	collection := ur.getUserCollection()
 
 	var user NewUser
-	err := collection.FindOne(ctx, bson.M{"_id": id}).Decode(&user)
+	err := collection.FindOne(ctx, bson.M{"username": username}).Decode(&user)
 	if err != nil {
 		ur.logger.Println(err)
 		return nil, err

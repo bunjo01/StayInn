@@ -42,19 +42,18 @@ func (uh *UserHandler) GetAllUsers(rw http.ResponseWriter, r *http.Request) {
 
 func (uh *UserHandler) GetUser(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	id, err := primitive.ObjectIDFromHex(vars["id"])
-	if err != nil {
-		http.Error(rw, "Invalid ID", http.StatusBadRequest)
-		return
-	}
+	username := vars["username"]
 
 	ctx := r.Context()
-	user, err := uh.repo.GetUser(ctx, id)
+	user, err := uh.repo.GetUser(ctx, username)
 	if err != nil {
 		http.Error(rw, "Failed to retrieve user", http.StatusInternalServerError)
 		return
 	}
 
+	uh.logger.Printf("User role: %v", user.Role)
+	uh.logger.Printf("User username: %v", user.Username)
+	
 	if user == nil {
 		http.NotFound(rw, r)
 		return

@@ -141,6 +141,7 @@
     transform: translate(-50%, 0%);
     width: 80%;
     height: fit-content;
+    cursor: default;
 }
 
 .text-container p {
@@ -149,6 +150,7 @@
     margin: 0;
     font-family:'Times New Roman', Times, serif;
     font-style: italic;
+    cursor: default;
 }
 
 .text-container h1 {

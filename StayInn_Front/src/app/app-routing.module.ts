@@ -11,6 +11,7 @@ import { AuthGuardService } from './services/auth-guard.service';
 import { RoleGuardService } from './services/role-guard.service';
 import { UnauthorizedComponent } from './unauthorized/unauthorized.component';
 import { ChangePasswordComponent } from './change-password/change-password.component';
+import { ProfileDetailsComponent } from './profile-details/profile-details.component';
 
 const routes: Routes = [
   { path: '', component: EntryComponent },
@@ -23,7 +24,8 @@ const routes: Routes = [
   { path: 'availablePeriods', component: AvailablePeriodsComponent, canActivate: [AuthGuardService] },
   { path: 'addReservation', component: AddReservationComponent, canActivate: [AuthGuardService]},
   { path: 'reservations', component: ReservationsComponent, canActivate: [AuthGuardService]},
-  { path: 'notFound', component: UnauthorizedComponent}
+  { path: 'notFound', component: UnauthorizedComponent},
+  { path: 'profile', component: ProfileDetailsComponent},
 ];
 
 @NgModule({
