@@ -29,10 +29,10 @@ func SendEmail(providedEmail, activationUUID, intention string) (string, error) 
 	var body string
 
 	if intention == "activation" {
-		subject = "Airbnb clone account activation"
-		body = "Follow the verification link to activate your Airbnb account: \n" + accountActivationPath + activationUUID
+		subject = "StayInn Account Activation"
+		body = "Follow the verification link to activate your StayInn account: \n" + accountActivationPath + activationUUID
 	} else if intention == "recovery" {
-		subject = "Airbnb clone password recovery"
+		subject = "StayInn Password Recovery"
 		body = "To reset your password, copy the given code & then follow the recovery link: \n" + activationUUID + "\n" + accountRecoveryPath
 	}
 	// Text
