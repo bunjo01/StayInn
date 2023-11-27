@@ -120,6 +120,7 @@ func (cr *CredentialsRepo) ValidateCredentials(username, password string) error 
 	}
 
 	if !foundUser.IsActivated {
+		cr.logger.Println("Account not activated!")
 		return errors.New("account not activated")
 	}
 
@@ -310,18 +311,29 @@ func (ur *CredentialsRepo) ChangePassword(username, oldPassword, newPassword str
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(oldPassword))
 	if err != nil {
+		ur.logger.Println("Old password not correct.")
 		return errors.New("old password not correct")
 	}
 
-	hashedPassword, err := hashPassword(newPassword)
-	if err != nil {
-		ur.logger.Fatalf("error while hashing password: %v", err)
-		return err
-	}
-	_, err = collection.UpdateOne(context.Background(), filter, bson.M{"$set": bson.M{"password": hashedPassword}})
+	passwordOK, err := ur.CheckPassword(strings.ToLower(newPassword))
 	if err != nil {
 		return err
 	}
+
+	if passwordOK {
+		hashedPassword, err := hashPassword(newPassword)
+		if err != nil {
+			ur.logger.Fatalf("error while hashing password: %v", err)
+			return err
+		}
+		_, err = collection.UpdateOne(context.Background(), filter, bson.M{"$set": bson.M{"password": hashedPassword}})
+		if err != nil {
+			return err
+		}
+	} else if !passwordOK {
+		return PasswordCheckError{Message: "choose a more secure password"}
+	}
+
 	return nil
 }
 
@@ -336,6 +348,38 @@ func (cr *CredentialsRepo) SendActivationEmail(email string) (string, error) {
 	}
 
 	return activationUUID, nil
+}
+
+func (cr *CredentialsRepo) SendRecoveryEmail(email string) (string, error) {
+	// Generiranje UUID-a za aktivaciju
+	recoveryUUID := generateActivationUUID()
+	collection := cr.getCredentialsCollection()
+	filter := bson.M{"email": email}
+	update := bson.M{
+		"$set": bson.M{
+			"recoveryUUID": recoveryUUID,
+		},
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		cr.logger.Println("Failed to insert recoveryUUID in Credentials Collection")
+		return "", err
+	}
+	if result.ModifiedCount == 0 {
+		cr.logger.Printf("user with email %s not found", email)
+		return "", err
+	}
+
+	// Slanje e-maila za aktivaciju
+	_, err = SendEmail(email, recoveryUUID, "recovery")
+	if err != nil {
+		return "", err
+	}
+
+	return recoveryUUID, nil
 }
 
 func (cr *CredentialsRepo) ActivateUserAccount(activationUUID string) error {
@@ -383,6 +427,37 @@ func (cr *CredentialsRepo) ActivateUserAccount(activationUUID string) error {
 	if result.ModifiedCount == 0 {
 		return fmt.Errorf("account with username %s not found", activationModel.Username)
 	}
+	return nil
+}
+
+func (cr *CredentialsRepo) UpdatePasswordWithRecoveryUUID(recoveryUUID, newPassword string) error {
+	hashedPassword, err := hashPassword(newPassword)
+	if err != nil {
+		cr.logger.Println("Hashovanje lozinke pri resetovanju nije uspelo")
+		return err
+	}
+
+	collection := cr.getCredentialsCollection()
+	filter := bson.M{"recoveryUUID": recoveryUUID}
+	update := bson.M{
+		"$set": bson.M{
+			"password":     hashedPassword,
+			"recoveryUUID": "", // Briše recoveryUUID nakon promene lozinke
+		},
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		cr.logger.Println("Failed to update password using recoveryUUID")
+		return err
+	}
+	if result.ModifiedCount == 0 {
+		cr.logger.Printf("No user found with recoveryUUID: %s", recoveryUUID)
+		return errors.New("no user found with recoveryUUID")
+	}
+
 	return nil
 }
 

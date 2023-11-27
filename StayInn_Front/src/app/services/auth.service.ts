@@ -32,6 +32,14 @@ export class AuthService {
     return this.http.post<any>(this.apiUrl + '/change-password', requestBody);
   }
 
+  sendRecoveryMail(requestBody: any): Observable<any> {
+    return this.http.post<any>(this.apiUrl + '/recover-password', requestBody)
+  }
+
+  resetPassword(requestBody: any): Observable<any> {
+    return this.http.post<any>(this.apiUrl + '/recovery-password', requestBody)
+  }
+
   logout(){
     localStorage.removeItem('token')
     this.router.navigate(['login'])

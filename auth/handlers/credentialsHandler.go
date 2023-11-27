@@ -112,3 +112,42 @@ func (ch *CredentialsHandler) ActivateAccount(w http.ResponseWriter, r *http.Req
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("User account successfully activated"))
 }
+
+func (ch *CredentialsHandler) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) {
+	var requestBody struct {
+		Email string `json:"email"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	recoveryUUID, err := ch.repo.SendRecoveryEmail(requestBody.Email)
+	if err != nil {
+		http.Error(w, "Failed to send recovery email", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(fmt.Sprintf("Recovery email sent successfully with UUID: %s", recoveryUUID)))
+}
+
+func (ch *CredentialsHandler) UpdatePasswordWithRecoveryUUID(w http.ResponseWriter, r *http.Request) {
+	var reqBody struct {
+		RecoveryUUID string `json:"recoveryUUID"`
+		NewPassword  string `json:"newPassword"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	err := ch.repo.UpdatePasswordWithRecoveryUUID(reqBody.RecoveryUUID, reqBody.NewPassword)
+	if err != nil {
+		http.Error(w, "Failed to update password with recoveryUUID", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}

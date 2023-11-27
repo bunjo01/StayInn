@@ -25,6 +25,8 @@ import { AuthGuardService } from './services/auth-guard.service';
 import { RoleGuardService } from './services/role-guard.service';
 import { UnauthorizedComponent } from './unauthorized/unauthorized.component';
 import { ChangePasswordComponent } from './change-password/change-password.component';
+import { ResetPasswordComponent } from './reset-password/reset-password.component';
+import { ForgetPasswordComponent } from './forget-password/forget-password.component';
 
 @NgModule({
   declarations: [
@@ -41,6 +43,8 @@ import { ChangePasswordComponent } from './change-password/change-password.compo
     ReservationsComponent,
     UnauthorizedComponent,
     ChangePasswordComponent,
+    ResetPasswordComponent,
+    ForgetPasswordComponent,
 
   ],
   imports: [

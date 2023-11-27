@@ -52,6 +52,8 @@ func main() {
 	router.HandleFunc("/register", credentialsHandler.Register).Methods("POST")
 	router.HandleFunc("/change-password", credentialsHandler.ChangePassword).Methods("POST")
 	router.HandleFunc("/activate/{activationUUID}", credentialsHandler.ActivateAccount).Methods("GET")
+	router.HandleFunc("/recover-password", credentialsHandler.SendRecoveryEmail).Methods("POST")
+	router.HandleFunc("/recovery-password", credentialsHandler.UpdatePasswordWithRecoveryUUID).Methods("POST")
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 
