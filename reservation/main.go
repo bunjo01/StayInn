@@ -134,7 +134,7 @@ func main() {
 
 	deleteReservation := router.Methods(http.MethodDelete).Subrouter()
 	deleteReservation.HandleFunc("/{periodID}/{reservationID}", reservationHandler.DeleteReservation)
-	deleteReservation.Use(reservationHandler.AuthorizeRoles("GUEST"))
+	//deleteReservation.Use(reservationHandler.AuthorizeRoles("GUEST"))
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 
