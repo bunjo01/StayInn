@@ -12,7 +12,7 @@ export class ReservationService {
   private baseUrl = environment.baseUrl + '/api/reservations';
   private dataSubject = new BehaviorSubject<AvailablePeriodByAccommodation | null>(null);
 
-  jwtToken = localStorage.getItem('jwtToken');
+  jwtToken = localStorage.getItem('token');
   headers = new HttpHeaders({
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${this.jwtToken}`

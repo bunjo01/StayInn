@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { ProfileService } from '../services/profile.service';
+import { AuthService } from '../services/auth.service';
+import { ToastrService } from 'ngx-toastr';
 
 @Component({
   selector: 'app-header',
@@ -9,7 +11,12 @@ import { ProfileService } from '../services/profile.service';
 })
 export class HeaderComponent implements OnInit {
   userProfile: any;
-  constructor(private router: Router, private profileService: ProfileService) {}
+  constructor(
+    private router: Router, 
+    private profileService: ProfileService, 
+    private authService: AuthService,
+    private toastr: ToastrService
+    ) { }
 
   ngOnInit() {
     // Učitavanje podataka o korisniku prilikom inicijalizacije komponente
@@ -37,18 +44,12 @@ export class HeaderComponent implements OnInit {
     const selectedOption = event.target.value;
 
     if (selectedOption === 'profile') {
-      // Otvorite link ka profilu
       this.router.navigate(['/profile']);
     } else if (selectedOption === 'changePassword') {
       this.router.navigate(['/change-password']);
     } else if (selectedOption === 'logout') {
-      // Izlogujte korisnika
-      this.logout();
+      this.toastr.info("Logged out");
+      this.authService.logout();
     }
-  }
-
-  logout() {
-    localStorage.removeItem('token');
-    this.router.navigate(['/']);
   }
 }

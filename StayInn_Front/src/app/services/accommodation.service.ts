@@ -11,6 +11,12 @@ export class AccommodationService {
   private apiUrl = environment.baseUrl + '/api/accommodations';
   private currentAccommodation = new BehaviorSubject<Accommodation | null>(null);
 
+  jwtToken = localStorage.getItem('token');
+  headers = new HttpHeaders({
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${this.jwtToken}`
+  });
+
   constructor(
     private http: HttpClient
   ) { }
