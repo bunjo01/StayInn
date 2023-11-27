@@ -25,4 +25,20 @@ export class ProfileService {
     // Slanje HTTP zahteva sa zaglavljem koje uključuje JWT token
     return this.http.get<User>(this.apiUrl + '/users' + "/" + username, { headers });
   }
+
+  checkUsernameAvailability(username: string): Observable<{ available: boolean }> {
+    const url = `${this.apiUrl}/users/check-username/${username}`;
+    return this.http.get<{ available: boolean }>(url);
+}
+
+  updateUser(username: string, updatedUser: User): Observable<User> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+  
+    return this.http.put<User>(`${this.apiUrl}/users/${username}`, updatedUser, { headers });
+  }
+  
 }

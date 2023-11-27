@@ -39,6 +39,8 @@ export class HeaderComponent implements OnInit {
     if (selectedOption === 'profile') {
       // Otvorite link ka profilu
       this.router.navigate(['/profile']);
+    } else if (selectedOption === 'changePassword') {
+      this.router.navigate(['/change-password']);
     } else if (selectedOption === 'logout') {
       // Izlogujte korisnika
       this.logout();

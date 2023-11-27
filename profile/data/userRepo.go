@@ -2,13 +2,13 @@ package data
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -17,6 +17,14 @@ import (
 type UserRepo struct {
 	cli    *mongo.Client
 	logger *log.Logger
+}
+
+type UsernameExistsError struct {
+	Message string
+}
+
+func (e UsernameExistsError) Error() string {
+	return e.Message
 }
 
 // Constructor
@@ -114,25 +122,52 @@ func (ur *UserRepo) GetUser(ctx context.Context, username string) (*NewUser, err
 	return &user, nil
 }
 
-func (ur *UserRepo) UpdateUser(ctx context.Context, user *NewUser) error {
-	collection := ur.getUserCollection()
+func (ur *UserRepo) CheckUsernameAvailability(ctx context.Context, username string) (bool, error) {
+    collection := ur.getUserCollection()
+    filter := bson.M{"username": username}
 
-	filter := bson.M{"_id": user.ID}
-	update := bson.M{"$set": user}
+    err := collection.FindOne(ctx, filter).Err()
 
-	_, err := collection.UpdateOne(ctx, filter, update)
-	if err != nil {
-		ur.logger.Println(err)
-		return err
-	}
-
-	return nil
+    // Ako korisničko ime ne postoji (err == mongo.ErrNoDocuments), vraćamo true, inače false
+    return errors.Is(err, mongo.ErrNoDocuments), nil
 }
 
-func (ur *UserRepo) DeleteUser(ctx context.Context, id primitive.ObjectID) error {
+func (ur *UserRepo) CheckUsernameExists(username string) bool {
+    collection := ur.getUserCollection()
+    filter := bson.M{"username": username}
+
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    err := collection.FindOne(ctx, filter).Err()
+    return err == nil
+}
+
+func (ur *UserRepo) UpdateUser(ctx context.Context, user *NewUser) error {
+    // usernameOK := ur.CheckUsernameExists(user.Username)
+    // if !usernameOK {
+    //     return UsernameExistsError{Message: "username already exists"}
+    // }
+
+    collection := ur.getUserCollection()
+
+    filter := bson.M{"username": user.Username}
+    update := bson.M{"$set": user}
+
+    _, err := collection.UpdateOne(ctx, filter, update)
+    if err != nil {
+        ur.logger.Println(err)
+        return err
+    }
+
+    return nil
+}
+
+
+func (ur *UserRepo) DeleteUser(ctx context.Context, username string) error {
 	collection := ur.getUserCollection()
 
-	filter := bson.M{"_id": id}
+	filter := bson.M{"username": username}
 	_, err := collection.DeleteOne(ctx, filter)
 	if err != nil {
 		ur.logger.Println(err)
