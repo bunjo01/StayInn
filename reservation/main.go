@@ -105,35 +105,30 @@ func main() {
 	router := mux.NewRouter()
 	router.Use(reservationHandler.MiddlewareContentTypeSet)
 
-	getAvailablePeriodsByAccommodationRouter := router.Methods(http.MethodGet).Subrouter()
-	getAvailablePeriodsByAccommodationRouter.HandleFunc("/{id}/periods", reservationHandler.GetAllAvailablePeriodsByAccommodation)
+	getAvailablePeriodsByAccommodationRouter := router.Methods(http.MethodGet).Path("/{id}/periods").Subrouter()
+	getAvailablePeriodsByAccommodationRouter.HandleFunc("", reservationHandler.GetAllAvailablePeriodsByAccommodation)
 	getAvailablePeriodsByAccommodationRouter.Use(reservationHandler.AuthorizeRoles("HOST", "GUEST"))
 
-	getReservationsByAvailablePeriodRouter := router.Methods(http.MethodGet).Subrouter()
-	getReservationsByAvailablePeriodRouter.HandleFunc("/{id}/reservations", reservationHandler.GetAllReservationByAvailablePeriod)
+	getReservationsByAvailablePeriodRouter := router.Methods(http.MethodGet).Path("/{id}/reservations").Subrouter()
+	getReservationsByAvailablePeriodRouter.HandleFunc("", reservationHandler.GetAllReservationByAvailablePeriod)
 	getReservationsByAvailablePeriodRouter.Use(reservationHandler.AuthorizeRoles("HOST", "GUEST"))
 
-	findAvailablePeriodByIdAndByAccommodationId := router.Methods(http.MethodGet).Subrouter()
-	findAvailablePeriodByIdAndByAccommodationId.HandleFunc("/{accomodationID}/{periodID}", reservationHandler.FindAvailablePeriodByIdAndByAccommodationId)
+	findAvailablePeriodByIdAndByAccommodationId := router.Methods(http.MethodGet).Path("/{accommodationID}/{periodID}").Subrouter()
+	findAvailablePeriodByIdAndByAccommodationId.HandleFunc("", reservationHandler.FindAvailablePeriodByIdAndByAccommodationId)
 	findAvailablePeriodByIdAndByAccommodationId.Use(reservationHandler.AuthorizeRoles("HOST", "GUEST"))
 
-	postAvailablePeriodsByAccommodationRouter := router.Methods(http.MethodPost).Subrouter()
-	postAvailablePeriodsByAccommodationRouter.HandleFunc("/period", reservationHandler.CreateAvailablePeriod)
+	postAvailablePeriodsByAccommodationRouter := router.Methods(http.MethodPost).Path("/period").Subrouter()
+	postAvailablePeriodsByAccommodationRouter.HandleFunc("", reservationHandler.CreateAvailablePeriod)
 	postAvailablePeriodsByAccommodationRouter.Use(reservationHandler.MiddlewareAvailablePeriodDeserialization)
 	postAvailablePeriodsByAccommodationRouter.Use(reservationHandler.AuthorizeRoles("HOST"))
 
-	postReservationRouter := router.Methods(http.MethodPost).Subrouter()
-	postReservationRouter.HandleFunc("/reservation", reservationHandler.CreateReservation)
-	postReservationRouter.Use(reservationHandler.MiddlewareReservationDeserialization)
-	postReservationRouter.Use(reservationHandler.AuthorizeRoles("GUEST"))
-
-	updateAvailablePeriodsByAccommodationRouter := router.Methods(http.MethodPatch).Subrouter()
-	updateAvailablePeriodsByAccommodationRouter.HandleFunc("/period", reservationHandler.UpdateAvailablePeriodByAccommodation)
+	updateAvailablePeriodsByAccommodationRouter := router.Methods(http.MethodPatch).Path("/period").Subrouter()
+	updateAvailablePeriodsByAccommodationRouter.HandleFunc("", reservationHandler.UpdateAvailablePeriodByAccommodation)
 	updateAvailablePeriodsByAccommodationRouter.Use(reservationHandler.MiddlewareAvailablePeriodDeserialization)
 	updateAvailablePeriodsByAccommodationRouter.Use(reservationHandler.AuthorizeRoles("HOST"))
 
-	deleteReservation := router.Methods(http.MethodDelete).Subrouter()
-	deleteReservation.HandleFunc("/{periodID}/{reservationID}", reservationHandler.DeleteReservation)
+	deleteReservation := router.Methods(http.MethodDelete).Path("/{periodID}/{reservationID}").Subrouter()
+	deleteReservation.HandleFunc("", reservationHandler.DeleteReservation)
 	deleteReservation.Use(reservationHandler.AuthorizeRoles("GUEST"))
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
