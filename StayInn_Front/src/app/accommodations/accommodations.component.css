@@ -27,8 +27,13 @@
   
   .card-title {
     margin-top: 10px;
+    margin-bottom: 10px;
     font-weight: bold;
     color: white;
+  }
+
+  .card-location {
+    margin-bottom: 10px;
   }
 
   .amenities-list {
@@ -46,5 +51,20 @@
     margin-right: 10px;
     margin-bottom: 5px;
     font-weight: 600;
+    cursor: pointer;
   }
   
+  .btnAvailablePeriods {
+    font-weight: bold;
+    margin-top: 20px;
+    background-color: rgb(0, 255, 238);
+    padding: 10px;
+    cursor: pointer;
+    border: 2px solid black;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+  }
+
+  .btnAvailablePeriods:hover {
+    background-color: rgb(0, 220, 206);
+  }
