@@ -102,7 +102,7 @@ func (cr *CredentialsRepo) ValidateCredentials(username, password string) error 
 	collection := cr.getCredentialsCollection()
 	filter := bson.M{"username": username}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	options := options.FindOne()
 
@@ -138,7 +138,7 @@ func (cr *CredentialsRepo) AddCredentials(username, password, email, role string
 		IsActivated: false,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	_, err := collection.InsertOne(ctx, newCredentials)
@@ -159,7 +159,7 @@ func (cr *CredentialsRepo) AddActivation(activationUUID, username string, confir
 		Confirmed:      confirmed,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	_, err := collection.InsertOne(ctx, newActivation)
@@ -177,7 +177,7 @@ func (cr *CredentialsRepo) CheckUsername(username string) bool {
 	collection := cr.getCredentialsCollection()
 	filter := bson.M{"username": username}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	options := options.FindOne()
 
@@ -191,7 +191,7 @@ func (cr *CredentialsRepo) FindUserByUsername(username string) (NewUser, error) 
 	collection := cr.getCredentialsCollection()
 	filter := bson.M{"username": username}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	options := options.FindOne()
@@ -360,7 +360,7 @@ func (cr *CredentialsRepo) SendRecoveryEmail(email string) (string, error) {
 			"recoveryUUID": recoveryUUID,
 		},
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	result, err := collection.UpdateOne(ctx, filter, update)
@@ -392,7 +392,7 @@ func (cr *CredentialsRepo) ActivateUserAccount(activationUUID string) error {
 		},
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	result, err := collection.UpdateOne(ctx, filter, update)
@@ -417,7 +417,7 @@ func (cr *CredentialsRepo) ActivateUserAccount(activationUUID string) error {
 		},
 	}
 
-	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	result, err = collection.UpdateOne(ctx, filter, update)
@@ -445,7 +445,7 @@ func (cr *CredentialsRepo) UpdatePasswordWithRecoveryUUID(recoveryUUID, newPassw
 			"recoveryUUID": "", // Briše recoveryUUID nakon promene lozinke
 		},
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	result, err := collection.UpdateOne(ctx, filter, update)

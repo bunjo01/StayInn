@@ -59,7 +59,7 @@ func (ur *UserRepo) Disconnect(ctx context.Context) error {
 
 // Check database connection
 func (ur *UserRepo) Ping() {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	// Check connection -> if no error, connection is established
@@ -79,15 +79,15 @@ func (ur *UserRepo) Ping() {
 // Repo methods
 
 func (ur *UserRepo) CreateProfileDetails(ctx context.Context, user *NewUser) error {
-    collection := ur.getUserCollection()
+	collection := ur.getUserCollection()
 
-    _, err := collection.InsertOne(ctx, user)
-    if err != nil {
-        ur.logger.Println(err)
-        return err
-    }
+	_, err := collection.InsertOne(ctx, user)
+	if err != nil {
+		ur.logger.Println(err)
+		return err
+	}
 
-    return nil
+	return nil
 }
 
 func (ur *UserRepo) GetAllUsers(ctx context.Context) ([]*NewUser, error) {
@@ -123,46 +123,45 @@ func (ur *UserRepo) GetUser(ctx context.Context, username string) (*NewUser, err
 }
 
 func (ur *UserRepo) CheckUsernameAvailability(ctx context.Context, username string) (bool, error) {
-    collection := ur.getUserCollection()
-    filter := bson.M{"username": username}
+	collection := ur.getUserCollection()
+	filter := bson.M{"username": username}
 
-    err := collection.FindOne(ctx, filter).Err()
+	err := collection.FindOne(ctx, filter).Err()
 
-    // Ako korisničko ime ne postoji (err == mongo.ErrNoDocuments), vraćamo true, inače false
-    return errors.Is(err, mongo.ErrNoDocuments), nil
+	// Ako korisničko ime ne postoji (err == mongo.ErrNoDocuments), vraćamo true, inače false
+	return errors.Is(err, mongo.ErrNoDocuments), nil
 }
 
 func (ur *UserRepo) CheckUsernameExists(username string) bool {
-    collection := ur.getUserCollection()
-    filter := bson.M{"username": username}
+	collection := ur.getUserCollection()
+	filter := bson.M{"username": username}
 
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-    err := collection.FindOne(ctx, filter).Err()
-    return err == nil
+	err := collection.FindOne(ctx, filter).Err()
+	return err == nil
 }
 
 func (ur *UserRepo) UpdateUser(ctx context.Context, user *NewUser) error {
-    // usernameOK := ur.CheckUsernameExists(user.Username)
-    // if !usernameOK {
-    //     return UsernameExistsError{Message: "username already exists"}
-    // }
+	// usernameOK := ur.CheckUsernameExists(user.Username)
+	// if !usernameOK {
+	//     return UsernameExistsError{Message: "username already exists"}
+	// }
 
-    collection := ur.getUserCollection()
+	collection := ur.getUserCollection()
 
-    filter := bson.M{"username": user.Username}
-    update := bson.M{"$set": user}
+	filter := bson.M{"username": user.Username}
+	update := bson.M{"$set": user}
 
-    _, err := collection.UpdateOne(ctx, filter, update)
-    if err != nil {
-        ur.logger.Println(err)
-        return err
-    }
+	_, err := collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		ur.logger.Println(err)
+		return err
+	}
 
-    return nil
+	return nil
 }
-
 
 func (ur *UserRepo) DeleteUser(ctx context.Context, username string) error {
 	collection := ur.getUserCollection()
@@ -179,6 +178,6 @@ func (ur *UserRepo) DeleteUser(ctx context.Context, username string) error {
 
 func (ur *UserRepo) getUserCollection() *mongo.Collection {
 	profileDatabase := ur.cli.Database("profileDB")
-    usersCollection := profileDatabase.Collection("users")
+	usersCollection := profileDatabase.Collection("users")
 	return usersCollection
 }
