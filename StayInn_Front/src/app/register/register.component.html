@@ -57,6 +57,18 @@
                     Address is not valid
                 </small>
             </div>
+            <label for="role">Role:</label>
+            <div>
+                <label>
+                    <input type="radio" formControlName="role" value="GUEST"> Guest
+                </label>
+                <label>
+                    <input type="radio" formControlName="role" value="HOST"> Host
+                </label>
+            </div>
+            <small class="text-danger" *ngIf="form.controls.role.touched && form.controls.role.errors?.required">
+                Role is required.
+            </small>
             <div class="form-group">
                 <button class="register-button" type="submit">Register</button>
             </div>

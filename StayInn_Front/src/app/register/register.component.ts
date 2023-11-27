@@ -31,7 +31,8 @@ export class RegisterComponent {
       firstName: [null, Validators.pattern("^(?=.{1,35}$)[A-Za-z]+(?:[' -][A-Za-z]+)*$")],
       lastName: [null, Validators.pattern("^(?=.{1,35}$)[A-Za-z]+(?:[' -][A-Za-z]+)*$")],
       email: [null, Validators.email],
-      address: [null, Validators.pattern("^[A-Za-z0-9](?!.*['\.\-\s\,]$)[A-Za-z0-9'\.\-\s\,]{0,68}[A-Za-z0-9]$")]
+      address: [null, Validators.pattern("^[A-Za-z0-9](?!.*['\.\-\s\,]$)[A-Za-z0-9'\.\-\s\,]{0,68}[A-Za-z0-9]$")],
+      role: ['', Validators.required]
     });
   }
 
@@ -51,7 +52,7 @@ export class RegisterComponent {
     user.lastName = this.form.value.lastName;
     user.email = this.form.value.email;
     user.address = this.form.value.address;
-    user.role = 'HOST'; // FOR TESTING ONLY, REPLACE THIS !
+    user.role = this.form.value.role;
 
     this.authService.register(user).subscribe(
       (result) => {
