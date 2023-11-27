@@ -56,4 +56,8 @@ export class AvailablePeriodsComponent implements OnInit {
     return this.authService.getRoleFromToken() === 'HOST'
   }
 
+  isGuest(){
+    return this.authService.getRoleFromToken() === 'GUEST'
+  }
+
 }

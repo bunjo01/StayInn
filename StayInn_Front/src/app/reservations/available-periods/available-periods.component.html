@@ -9,7 +9,7 @@
         <strong>Price:</strong> {{ period.Price }} RSD<br>
         <strong>Price Per Guest:</strong> {{ period.PricePerGuest ? 'Yes' : 'No' }}<br>
  
-        <button (click)="navigateToAddReservation(period)">Add Reservation</button>
+        <button *ngIf="isGuest()" (click)="navigateToAddReservation(period)">Add Reservation</button>
         <button (click)="navigateToReservations(period)">View reservations for period</button>
         <br><br>
       </li>
