@@ -1,6 +1,7 @@
-<button *ngIf="isHost()" (click)="navigateToAddReservationPeriod()">Add available period</button>
+<button class="btnStyle" *ngIf="isHost()" (click)="navigateToAddReservationPeriod()">Add available period</button>
 
-<div *ngIf="availablePeriods">
+<div class="card-container">
+  <div *ngIf="availablePeriods" class="card">
     <h2>Available Periods</h2>
     <ul>
       <li *ngFor="let period of availablePeriods">
@@ -8,11 +9,10 @@
         <strong>End Date:</strong> {{ period.EndDate | date: 'dd. MMMM y.' }}<br>
         <strong>Price:</strong> {{ period.Price }} RSD<br>
         <strong>Price Per Guest:</strong> {{ period.PricePerGuest ? 'Yes' : 'No' }}<br>
- 
-        <button *ngIf="isGuest()" (click)="navigateToAddReservation(period)">Add Reservation</button>
-        <button (click)="navigateToReservations(period)">View reservations for period</button>
+        <button class="btnStyle" *ngIf="isGuest()" (click)="navigateToAddReservation(period)">Add Reservation</button>
+        <button class="btnStyle" (click)="navigateToReservations(period)">View reservations for period</button>
         <br><br>
       </li>
     </ul>
   </div>
-  
+</div>

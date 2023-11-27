@@ -1,28 +1,24 @@
-<div>
+<div class="card-container">
+  <div class="card">
     <h2>Add Reservation</h2>
-    <!-- <div>
-      <strong>Start Date:</strong> {{ availablePeriod.StartDate }}<br>
-      <strong>End Date:</strong> {{ availablePeriod.EndDate }}<br>
-      <strong>Price:</strong> {{ availablePeriod.Price }}<br>
-      <strong>Price Per Guest:</strong> {{ availablePeriod.PricePerGuest ? 'Yes' : 'No' }}<br>
-    </div> -->
     <form (ngSubmit)="submitForm()" #reservationForm="ngForm">
       <div class="form-group">
         <label for="startDate">Start Date:</label>
         <input type="date" id="startDate" name="startDate" [(ngModel)]="formData.StartDate" required>
       </div>
-    
+      
       <div class="form-group">
         <label for="endDate">End Date:</label>
         <input type="date" id="endDate" name="endDate" [(ngModel)]="formData.EndDate" required>
       </div>
-    
+      
       <div class="form-group">
         <label for="guestNumber">Number of guests:</label>
         <input type="number" id="guestNumber" name="guestNumber" [(ngModel)]="formData.GuestNumber" required>
       </div>
-    
+      
       <button type="submit" [disabled]="reservationForm.invalid">Submit</button>
     </form>
   </div>
+</div>
   
