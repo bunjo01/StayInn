@@ -7,11 +7,9 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type Role string
-
 const (
-	Host  Role = "HOST"
-	Guest Role = "GUEST"
+	Host  string = "HOST"
+	Guest string = "GUEST"
 )
 
 type NewUser struct {
@@ -21,7 +19,7 @@ type NewUser struct {
 	LastName  string             `bson:"lastName" json:"lastName"`
 	Email     string             `bson:"email" json:"email"`
 	Address   string             `bson:"address" json:"address"`
-	Role      Role               `bson:"role" json:"role"`
+	Role      string             `bson:"role" json:"role"`
 }
 
 func (nu *NewUser) ToJSON(w io.Writer) error {

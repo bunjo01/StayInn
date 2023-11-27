@@ -28,6 +28,10 @@ export class AuthService {
     return this.http.post<any>(this.apiUrl + '/login', credentials);
   }
 
+  changePassword(requestBody: any): Observable<any> {
+    return this.http.post<any>(this.apiUrl + '/change-password', requestBody);
+  }
+
   logout(){
     localStorage.removeItem('token')
     this.router.navigate(['login'])
@@ -41,12 +45,24 @@ export class AuthService {
     const token = localStorage.getItem('token');
     if (token === null) {
       this.router.navigate(['login']);
-      return false;
+      return;
     }
 
     const tokenPayload = decode.jwtDecode(token) as JwtPayload;
 
     return tokenPayload.role
+  }
+
+  getUsernameFromToken(){
+    const token = localStorage.getItem('token');
+    if (token === null) {
+      this.router.navigate(['login']);
+      return;
+    }
+
+    const tokenPayload = decode.jwtDecode(token) as JwtPayload;
+
+    return tokenPayload.username
   }
 
   public isAuthenticated(): boolean {

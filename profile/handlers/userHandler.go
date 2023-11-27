@@ -46,19 +46,18 @@ func (uh *UserHandler) GetAllUsers(rw http.ResponseWriter, r *http.Request) {
 
 func (uh *UserHandler) GetUser(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	id, err := primitive.ObjectIDFromHex(vars["id"])
-	if err != nil {
-		http.Error(rw, "Invalid ID", http.StatusBadRequest)
-		return
-	}
+	username := vars["username"]
 
 	ctx := r.Context()
-	user, err := uh.repo.GetUser(ctx, id)
+	user, err := uh.repo.GetUser(ctx, username)
 	if err != nil {
 		http.Error(rw, "Failed to retrieve user", http.StatusInternalServerError)
 		return
 	}
 
+	uh.logger.Printf("User role: %v", user.Role)
+	uh.logger.Printf("User username: %v", user.Username)
+	
 	if user == nil {
 		http.NotFound(rw, r)
 		return
@@ -96,13 +95,34 @@ func (uh *UserHandler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (uh *UserHandler) CheckUsernameAvailability(w http.ResponseWriter, r *http.Request) {
+    vars := mux.Vars(r)
+    username := vars["username"]
+
+    available, err := uh.repo.CheckUsernameAvailability(r.Context(), username)
+    if err != nil {
+        uh.logger.Println("Error checking username availability:", err)
+        http.Error(w, "Failed to check username availability", http.StatusInternalServerError)
+        return
+    }
+
+    response := struct {
+        Available bool `json:"available"`
+    }{
+        Available: available,
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    if err := json.NewEncoder(w).Encode(response); err != nil {
+        uh.logger.Println("Failed to encode JSON response:", err)
+        http.Error(w, "Failed to encode JSON response", http.StatusInternalServerError)
+    }
+}
+
+
 func (uh *UserHandler) UpdateUser(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	id, err := primitive.ObjectIDFromHex(vars["id"])
-	if err != nil {
-		http.Error(rw, "Invalid ID", http.StatusBadRequest)
-		return
-	}
+	username := vars["username"]
 
 	var updatedUser data.NewUser
 	if err := json.NewDecoder(r.Body).Decode(&updatedUser); err != nil {
@@ -110,7 +130,12 @@ func (uh *UserHandler) UpdateUser(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updatedUser.ID = id
+	// if !uh.repo.CheckUsernameExists(username) {
+	// 	http.Error(rw, "Username does not exist", http.StatusNotFound)
+	// 	return
+	// }
+
+	updatedUser.Username = username
 	if err := uh.repo.UpdateUser(r.Context(), &updatedUser); err != nil {
 		uh.logger.Println("Failed to update user:", err)
 		http.Error(rw, "Failed to update user", http.StatusInternalServerError)
@@ -127,13 +152,9 @@ func (uh *UserHandler) UpdateUser(rw http.ResponseWriter, r *http.Request) {
 
 func (uh *UserHandler) DeleteUser(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	id, err := primitive.ObjectIDFromHex(vars["id"])
-	if err != nil {
-		http.Error(rw, "Invalid ID", http.StatusBadRequest)
-		return
-	}
+	username := vars["username"]
 
-	if err := uh.repo.DeleteUser(r.Context(), id); err != nil {
+	if err := uh.repo.DeleteUser(r.Context(), username); err != nil {
 		uh.logger.Println("Failed to delete user:", err)
 		http.Error(rw, "Failed to delete user", http.StatusInternalServerError)
 		return
