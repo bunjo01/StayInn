@@ -3,8 +3,11 @@ package handlers
 import (
 	"auth/data"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 type KeyProduct struct{}
@@ -13,6 +16,11 @@ type CredentialsHandler struct {
 	logger *log.Logger
 	repo   *data.CredentialsRepo
 }
+
+const (
+	INTENTION_ACTIVATION = "activation"
+	errorDeletingUser    = "Error deleting user with email "
+)
 
 // Injecting the logger makes this code much more testable
 func NewCredentialsHandler(l *log.Logger, r *data.CredentialsRepo) *CredentialsHandler {
@@ -67,6 +75,83 @@ func (ch *CredentialsHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	} else if err != nil {
 		http.Error(w, "Failed to register new user", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (ch *CredentialsHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
+	var reqBody data.ChangePasswordRequest
+
+	err := reqBody.FromJSON(r.Body)
+	if err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	if reqBody.Username == "" || reqBody.CurrentPassword == "" || reqBody.NewPassword == "" {
+		http.Error(w, "Missing username, old password, or new password", http.StatusBadRequest)
+		return
+	}
+
+	err = ch.repo.ChangePassword(reqBody.Username, reqBody.CurrentPassword, reqBody.NewPassword)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to change password: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (ch *CredentialsHandler) ActivateAccount(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	activationUUID := params["activationUUID"]
+
+	// Activating user account
+	err := ch.repo.ActivateUserAccount(activationUUID)
+	if err != nil {
+		ch.logger.Printf("Error during activation: %v", err)
+		http.Error(w, "Failed to activate user account", http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("User account successfully activated"))
+}
+
+func (ch *CredentialsHandler) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) {
+	var requestBody struct {
+		Email string `json:"email"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	recoveryUUID, err := ch.repo.SendRecoveryEmail(requestBody.Email)
+	if err != nil {
+		http.Error(w, "Failed to send recovery email", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(fmt.Sprintf("Recovery email sent successfully with UUID: %s", recoveryUUID)))
+}
+
+func (ch *CredentialsHandler) UpdatePasswordWithRecoveryUUID(w http.ResponseWriter, r *http.Request) {
+	var reqBody struct {
+		RecoveryUUID string `json:"recoveryUUID"`
+		NewPassword  string `json:"newPassword"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	err := ch.repo.UpdatePasswordWithRecoveryUUID(reqBody.RecoveryUUID, reqBody.NewPassword)
+	if err != nil {
+		http.Error(w, "Failed to update password with recoveryUUID", http.StatusInternalServerError)
 		return
 	}
 

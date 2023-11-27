@@ -1,15 +1,15 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { AuthService } from '../services/auth.service';
 import { ToastrService } from 'ngx-toastr';
+import { AuthService } from '../services/auth.service';
 
 @Component({
-  selector: 'app-change-password',
-  templateUrl: './change-password.component.html',
-  styleUrls: ['./change-password.component.css']
+  selector: 'app-reset-password',
+  templateUrl: './reset-password.component.html',
+  styleUrls: ['./reset-password.component.css']
 })
-export class ChangePasswordComponent implements OnInit{
+export class ResetPasswordComponent {
   changePasswordForm!: FormGroup;
   errorMessage!: string;
   
@@ -23,17 +23,16 @@ export class ChangePasswordComponent implements OnInit{
 
   ngOnInit() {
     this.changePasswordForm = this.formBuilder.group({
-      currentPassword: [null, Validators.required],
       newPassword: [null, Validators.pattern('^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$')],
-      newPassword1: [null, Validators.pattern('^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$')]
+      newPassword1: [null, Validators.pattern('^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$')],
+      recoverUUID: [null, Validators.required],
     });
   }
 
   onSubmit() {
-    const currentPassword = this.changePasswordForm.value.currentPassword;
     const newPassword = this.changePasswordForm.value.newPassword;
     const newPassword1 = this.changePasswordForm.value.newPassword1;
-    const username = this.authService.getUsernameFromToken();
+    const recoveryUUID = this.changePasswordForm.value.recoverUUID;
     
     if (newPassword !== newPassword1) {
       this.changePasswordForm.setErrors({ 'passwordMismatch': true });
@@ -48,20 +47,19 @@ export class ChangePasswordComponent implements OnInit{
     }
 
     const requestBody = {
-      username: username,
-      currentPassword: currentPassword,
       newPassword: newPassword,
+      recoveryUUID: recoveryUUID,
     }
 
 
-    this.authService.changePassword(requestBody).subscribe(
+    // TODO: Pozvati service za reset lozinke
+    this.authService.resetPassword(requestBody).subscribe(
       (result) => {
         this.toastr.success('Successful change password', 'Change password');
-        console.log(result);
         this.router.navigate(['login']);
       },
       (error) => {
-        console.error('Error while changing password: ', error);
+        console.error('Error while sending mail: ', error);
       }
     );
   }

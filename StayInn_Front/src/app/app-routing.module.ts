@@ -12,12 +12,16 @@ import { RoleGuardService } from './services/role-guard.service';
 import { UnauthorizedComponent } from './unauthorized/unauthorized.component';
 import { ChangePasswordComponent } from './change-password/change-password.component';
 import { ProfileDetailsComponent } from './profile-details/profile-details.component';
+import { ForgetPasswordComponent } from './forget-password/forget-password.component';
+import { ResetPasswordComponent } from './reset-password/reset-password.component';
 
 const routes: Routes = [
   { path: '', component: EntryComponent },
   { path: 'login', component: LoginComponent},
   { path: 'register', component: RegisterComponent},
   { path: 'change-password', component: ChangePasswordComponent},
+  { path: 'forget-password', component: ForgetPasswordComponent},
+  { path: 'recover-account', component: ResetPasswordComponent},
   { path: 'addAvailablePeriod', component: AddAvailablePeriodTemplateComponent, canActivate : [RoleGuardService], data: { 
     expectedRole: 'HOST'
   } },

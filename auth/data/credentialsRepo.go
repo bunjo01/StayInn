@@ -119,6 +119,11 @@ func (cr *CredentialsRepo) ValidateCredentials(username, password string) error 
 		return errors.New("invalid password")
 	}
 
+	if !foundUser.IsActivated {
+		cr.logger.Println("Account not activated!")
+		return errors.New("account not activated")
+	}
+
 	return nil
 }
 
@@ -126,16 +131,38 @@ func (cr *CredentialsRepo) AddCredentials(username, password, email, role string
 	collection := cr.getCredentialsCollection()
 
 	newCredentials := Credentials{
-		Username: username,
-		Password: password,
-		Email:    email,
-		Role:     role,
+		Username:    username,
+		Password:    password,
+		Email:       email,
+		Role:        role,
+		IsActivated: false,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	_, err := collection.InsertOne(ctx, newCredentials)
+	if err != nil {
+		cr.logger.Fatal(err.Error())
+		return err
+	}
+
+	return nil
+}
+
+func (cr *CredentialsRepo) AddActivation(activationUUID, username string, confirmed bool) error {
+	collection := cr.getActivationCollection()
+
+	newActivation := ActivatioModel{
+		ActivationUUID: activationUUID,
+		Username:       username,
+		Confirmed:      confirmed,
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := collection.InsertOne(ctx, newActivation)
 	if err != nil {
 		cr.logger.Fatal(err.Error())
 		return err
@@ -181,14 +208,15 @@ func (cr *CredentialsRepo) FindUserByUsername(username string) (NewUser, error) 
 
 	// Convert the found user to the NewUser type
 	newUser := NewUser{
-		ID:        foundUser.ID,
-		Username:  foundUser.Username,
-		Password:  "",
-		FirstName: foundUser.FirstName,
-		LastName:  foundUser.LastName,
-		Email:     foundUser.Email,
-		Address:   foundUser.Address,
-		Role:      foundUser.Role,
+		ID:          foundUser.ID,
+		Username:    foundUser.Username,
+		Password:    "",
+		FirstName:   foundUser.FirstName,
+		LastName:    foundUser.LastName,
+		Email:       foundUser.Email,
+		Address:     foundUser.Address,
+		Role:        foundUser.Role,
+		IsActivated: foundUser.IsActivated,
 	}
 
 	return newUser, nil
@@ -241,6 +269,19 @@ func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName,
 			return err
 		}
 
+		activationUUID, err := cr.SendActivationEmail(email)
+		if err != nil {
+			cr.logger.Println("Failed to send activation email:", err)
+			// Ovdje možete obraditi grešku slanja e-maila, možda želite ponovo pokušati slati ili nešto drugo
+		} else {
+			cr.logger.Println("Activation email sent successfully with UUID:", activationUUID)
+		}
+
+		err = cr.AddActivation(activationUUID, username, false)
+		if err != nil {
+			cr.logger.Println("Failed to add activation model to collection:", err)
+		}
+
 		// pass info to profile service
 		err = cr.passInfoToProfileService(username, firstName, lastName, email, address, role)
 		if err != nil {
@@ -252,6 +293,169 @@ func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName,
 		return UsernameExistsError{Message: "username already exists"}
 	} else if !passwordOK {
 		return PasswordCheckError{Message: "choose a more secure password"}
+	}
+
+	return nil
+}
+
+// ChangePassword je metoda koja menja lozinku određenog korisnika
+func (ur *CredentialsRepo) ChangePassword(username, oldPassword, newPassword string) error {
+	collection := ur.getCredentialsCollection()
+	filter := bson.M{"username": username}
+	var user Credentials
+
+	err := collection.FindOne(context.Background(), filter).Decode(&user)
+	if err != nil {
+		return err
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(oldPassword))
+	if err != nil {
+		ur.logger.Println("Old password not correct.")
+		return errors.New("old password not correct")
+	}
+
+	passwordOK, err := ur.CheckPassword(strings.ToLower(newPassword))
+	if err != nil {
+		return err
+	}
+
+	if passwordOK {
+		hashedPassword, err := hashPassword(newPassword)
+		if err != nil {
+			ur.logger.Fatalf("error while hashing password: %v", err)
+			return err
+		}
+		_, err = collection.UpdateOne(context.Background(), filter, bson.M{"$set": bson.M{"password": hashedPassword}})
+		if err != nil {
+			return err
+		}
+	} else if !passwordOK {
+		return PasswordCheckError{Message: "choose a more secure password"}
+	}
+
+	return nil
+}
+
+func (cr *CredentialsRepo) SendActivationEmail(email string) (string, error) {
+	// Generiranje UUID-a za aktivaciju
+	activationUUID := generateActivationUUID()
+
+	// Slanje e-maila za aktivaciju
+	_, err := SendEmail(email, activationUUID, "activation")
+	if err != nil {
+		return "", err
+	}
+
+	return activationUUID, nil
+}
+
+func (cr *CredentialsRepo) SendRecoveryEmail(email string) (string, error) {
+	// Generiranje UUID-a za aktivaciju
+	recoveryUUID := generateActivationUUID()
+	collection := cr.getCredentialsCollection()
+	filter := bson.M{"email": email}
+	update := bson.M{
+		"$set": bson.M{
+			"recoveryUUID": recoveryUUID,
+		},
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		cr.logger.Println("Failed to insert recoveryUUID in Credentials Collection")
+		return "", err
+	}
+	if result.ModifiedCount == 0 {
+		cr.logger.Printf("user with email %s not found", email)
+		return "", err
+	}
+
+	// Slanje e-maila za aktivaciju
+	_, err = SendEmail(email, recoveryUUID, "recovery")
+	if err != nil {
+		return "", err
+	}
+
+	return recoveryUUID, nil
+}
+
+func (cr *CredentialsRepo) ActivateUserAccount(activationUUID string) error {
+	collection := cr.getActivationCollection()
+	filter := bson.M{"activationUUID": activationUUID}
+
+	update := bson.M{
+		"$set": bson.M{
+			"confirmed": true,
+		},
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return fmt.Errorf("failed to confirm activation account: %v", err)
+	}
+	if result.ModifiedCount == 0 {
+		return fmt.Errorf("activation with activationUUID %s not found", activationUUID)
+	}
+	var activationModel ActivatioModel
+
+	err = collection.FindOne(ctx, filter).Decode(&activationModel)
+	if err != nil {
+		return fmt.Errorf("failed to find activation model: %v", err)
+	}
+	collection = cr.getCredentialsCollection()
+
+	filter = bson.M{"username": activationModel.Username}
+	update = bson.M{
+		"$set": bson.M{
+			"isActivated": true,
+		},
+	}
+
+	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err = collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return fmt.Errorf("failed to activate user account: %v", err)
+	}
+	if result.ModifiedCount == 0 {
+		return fmt.Errorf("account with username %s not found", activationModel.Username)
+	}
+	return nil
+}
+
+func (cr *CredentialsRepo) UpdatePasswordWithRecoveryUUID(recoveryUUID, newPassword string) error {
+	hashedPassword, err := hashPassword(newPassword)
+	if err != nil {
+		cr.logger.Println("Hashovanje lozinke pri resetovanju nije uspelo")
+		return err
+	}
+
+	collection := cr.getCredentialsCollection()
+	filter := bson.M{"recoveryUUID": recoveryUUID}
+	update := bson.M{
+		"$set": bson.M{
+			"password":     hashedPassword,
+			"recoveryUUID": "", // Briše recoveryUUID nakon promene lozinke
+		},
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		cr.logger.Println("Failed to update password using recoveryUUID")
+		return err
+	}
+	if result.ModifiedCount == 0 {
+		cr.logger.Printf("No user found with recoveryUUID: %s", recoveryUUID)
+		return errors.New("no user found with recoveryUUID")
 	}
 
 	return nil
@@ -271,12 +475,13 @@ func hashPassword(password string) (string, error) {
 // Returns error if it fails
 func (cr *CredentialsRepo) passInfoToProfileService(username, firstName, lastName, email, address, role string) error {
 	newUser := NewUser{
-		Username:  username,
-		FirstName: firstName,
-		LastName:  lastName,
-		Email:     email,
-		Address:   address,
-		Role:      role,
+		Username:    username,
+		FirstName:   firstName,
+		LastName:    lastName,
+		Email:       email,
+		Address:     address,
+		Role:        role,
+		IsActivated: false,
 	}
 
 	httpClient := &http.Client{}
@@ -325,5 +530,11 @@ func (cr *CredentialsRepo) GenerateToken(username, role string) (string, error) 
 func (cr *CredentialsRepo) getCredentialsCollection() *mongo.Collection {
 	authDatabase := cr.cli.Database("authDB")
 	credentialsCollection := authDatabase.Collection("credentials")
+	return credentialsCollection
+}
+
+func (cr *CredentialsRepo) getActivationCollection() *mongo.Collection {
+	authDatabase := cr.cli.Database("authDB")
+	credentialsCollection := authDatabase.Collection("activation")
 	return credentialsCollection
 }
