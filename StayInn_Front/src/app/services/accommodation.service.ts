@@ -32,4 +32,8 @@ export class AccommodationService {
   getAccommodation() {
     return this.currentAccommodation.asObservable();
   }
+
+  createAccommodation(accommodation: Accommodation): Observable<Accommodation> {
+    return this.http.post<Accommodation>(this.apiUrl + '/accommodation', accommodation, { headers: this.headers });
+  }
 }
