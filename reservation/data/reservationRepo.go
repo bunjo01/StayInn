@@ -175,18 +175,18 @@ func (rr *ReservationRepo) InsertAvailablePeriodByAccommodation(availablePeriod 
 
 func (rr *ReservationRepo) InsertReservationByAvailablePeriod(reservation *ReservationByAvailablePeriod) error {
 	reservationId, _ := gocql.RandomUUID()
+	//
+	//// Convert primitive.ObjectID to string
+	//idAccommodationStr := reservation.IDAccommodation.Hex()
+	//idUserStr := reservation.IDUser.Hex()
 
-	// Convert primitive.ObjectID to string
-	idAccommodationStr := reservation.IDAccommodation.Hex()
-	idUserStr := reservation.IDUser.Hex()
-
-	err := rr.session.Query(
-		`INSERT INTO reservations_by_available_period (id, id_accommodation, id_available_period, id_user, start_date, end_date, guest_number, price) 
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		reservationId, idAccommodationStr, reservation.IDAvailablePeriod, idUserStr,
-		reservation.StartDate, reservation.EndDate, reservation.GuestNumber, reservation.Price).Exec()
+	//err := rr.session.Query(
+	//	`INSERT INTO reservations_by_available_period (id, id_accommodation, id_available_period, id_user, start_date, end_date, guest_number, price)
+	//	VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+	//	reservationId, idAccommodationStr, reservation.IDAvailablePeriod, idUserStr,
+	//	reservation.StartDate, reservation.EndDate, reservation.GuestNumber, reservation.Price).Exec()
 	// Provera da li je rezervacija unutar odgovarajućeg opsega slobodnog perioda
-	availablePeriod, err := rr.FindAvailablePeriodById(reservation.IDAvailablePeriod.String(), reservation.IDAccommodation.String())
+	availablePeriod, err := rr.FindAvailablePeriodById(reservation.IDAvailablePeriod.String(), reservation.IDAccommodation.Hex())
 	if err != nil {
 		rr.logger.Println("Greška pri dobijanju slobodnog perioda:", err)
 		rr.logger.Println(availablePeriod.ToJSON(log.Writer()))
@@ -197,29 +197,31 @@ func (rr *ReservationRepo) InsertReservationByAvailablePeriod(reservation *Reser
 		return errors.New("rezervacija nije unutar odgovarajućeg opsega slobodnog perioda")
 	}
 
-	existingReservations, err := rr.FindAllReservationsByAvailablePeriod(availablePeriod.ID.String())
-	if err != nil {
-		rr.logger.Println("Greska pri dobijanju postojecih rezervacija:", err)
-		return err
-	}
+	//TODO : need fix
+	//existingReservations, err := rr.FindAllReservationsByAvailablePeriod(availablePeriod.ID.String())
+	//if err != nil {
+	//	rr.logger.Println("Greska pri dobijanju postojecih rezervacija:", err)
+	//	return err
+	//}
 
-	for _, existingReservation := range existingReservations {
-		if (reservation.StartDate.Before(existingReservation.EndDate) || reservation.StartDate.Equal(existingReservation.EndDate)) &&
-			(reservation.EndDate.After(existingReservation.StartDate) || reservation.EndDate.Equal(existingReservation.StartDate)) {
-			rr.logger.Println("Nova rezervacija se preklapa sa postojecom rezervacijom.")
-			return errors.New("nova rezervacija se preklapa sa postojecom rezervacijom")
-		}
-
-	}
+	//for _, existingReservation := range existingReservations {
+	//	if (reservation.StartDate.Before(existingReservation.EndDate) || reservation.StartDate.Equal(existingReservation.EndDate)) &&
+	//		(reservation.EndDate.After(existingReservation.StartDate) || reservation.EndDate.Equal(existingReservation.StartDate)) {
+	//		rr.logger.Println("Nova rezervacija se preklapa sa postojecom rezervacijom.")
+	//		return errors.New("nova rezervacija se preklapa sa postojecom rezervacijom")
+	//	}
+	//
+	//}
 
 	calculatedPrice := rr.calculatePrice(availablePeriod.Price, availablePeriod.PricePerGuest, reservation.StartDate, reservation.EndDate, int16(reservation.GuestNumber))
 	err = rr.session.Query(
 		`INSERT INTO reservations_by_available_period 
 		(id, id_accommodation, id_available_period, id_user, start_date, end_date, guest_number, price) 
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		reservation.ID, reservation.IDAccommodation, reservation.IDAvailablePeriod, reservation.IDUser,
+		reservationId, reservation.IDAccommodation.Hex(), reservation.IDAvailablePeriod, reservation.IDUser.Hex(),
 		reservation.StartDate, reservation.EndDate, reservation.GuestNumber, calculatedPrice).Exec()
 	if err != nil {
+		fmt.Println("223")
 		rr.logger.Println(err)
 		return err
 	}
@@ -325,17 +327,26 @@ func (rr *ReservationRepo) FindAvailablePeriodsById(id, accommodationId string) 
 
 func (rr *ReservationRepo) FindAvailablePeriodById(id, accommodationID string) (*AvailablePeriodByAccommodation, error) {
 	query := `SELECT id, id_accommodation, start_date, end_date, price, price_per_guest 
-              FROM available_periods_by_accommodation 
-              WHERE id = ? AND id_accommodation = ? LIMIT 1`
+          FROM available_periods_by_accommodation 
+          WHERE id = ? AND id_accommodation = ? LIMIT 1`
 
-	var period AvailablePeriodByAccommodation
-	err := rr.session.Query(query, id, accommodationID).Consistency(gocql.One).Scan(
-		&period.ID, &period.IDAccommodation, &period.StartDate, &period.EndDate, &period.Price, &period.PricePerGuest,
+	var (
+		idAccommodationStr string
+		period             AvailablePeriodByAccommodation
 	)
+
+	err := rr.session.Query(query, id, accommodationID).Consistency(gocql.One).Scan(
+		&period.ID, &idAccommodationStr, &period.StartDate, &period.EndDate, &period.Price, &period.PricePerGuest,
+	)
+
 	if err != nil {
 		rr.logger.Println(err)
 		return nil, err
 	}
+
+	// Convert string to primitive.ObjectID
+	period.IDAccommodation, _ = primitive.ObjectIDFromHex(idAccommodationStr)
+
 	return &period, nil
 }
 
@@ -472,10 +483,10 @@ func (rr *ReservationRepo) calculatePrice(price float64, pricePerGuest bool, sta
 }
 
 func (rr *ReservationRepo) convertObjectIDToUUID(objectID primitive.ObjectID) (gocql.UUID, error) {
-	// Konvertujte ObjectID u heksadecimalni string
+	// Convert ObjectID into hexadecimal string
 	hexString := objectID.Hex()
 
-	// Parsirajte heksadecimalni string u gocql.UUID
+	// Parse hexadecimal string into gocql.UUID
 	uuid, err := gocql.ParseUUID(hexString)
 	if err != nil {
 		return gocql.UUID{}, err

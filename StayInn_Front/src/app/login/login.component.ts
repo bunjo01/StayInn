@@ -25,32 +25,39 @@ export class LoginComponent {
     private toastr: ToastrService
   ) {
     this.form = this.fb.group({
-      username: ['', Validators.pattern('^(?=.{3,20}$)(?![_.])(?!.*[_.]{2})[a-zA-Z0-9._]+(?<![_.])$')],
-      password: ['', Validators.pattern('^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$')],
+      username: ['', Validators.required],
+      password: ['', Validators.required],
     });
   }
   
   send(): void {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
-    }
+    const usernameRegex: RegExp = /^(?=.{3,20}$)(?![_.])(?!.*[_.]{2})[a-zA-Z0-9._]+(?<![_.])$/;
+    const passwordRegex: RegExp = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
 
     if (!this.recaptchaResolved) {
       this.toastr.warning('Please complete the reCAPTCHA verification.', 'reCAPTCHA');
       return;
     }
 
+    if (!usernameRegex.test(this.form.value.username)) {
+      this.toastr.warning('Input for username is not valid', 'Invalid username');
+      return;
+    }
+
+    if (!passwordRegex.test(this.form.value.password)) {
+      this.toastr.warning('Input for password is not valid', 'Invalid password');
+      return;
+    }
+
     this.authService.login(this.form.value).subscribe(
       (result) => {
         this.toastr.success('Login successful', 'Login');
-        console.log(result);
-        localStorage.setItem('token', result);
+        localStorage.setItem('token', result.token);
         this.router.navigate(['']);
       },
       (error) => {
         console.error('Error during login: ', error);
-        this.toastr.error('Login failed. Please check your credentials.', 'Failed login');
+        this.toastr.error('Login failed. Please check your credentials or activate your account.', 'Failed login');
       }
     );
   }

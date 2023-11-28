@@ -14,30 +14,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func seedData() {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	store, err := data.New(ctx, log.New(os.Stdout, "[data] ", log.LstdFlags))
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer store.Disconnect(ctx)
-
-	// Test data
-	tc := data.Credentials{
-		Username: "testUser",
-		Password: "testPassword",
-		Email:    "test@mail.com",
-	}
-
-	if err := store.AddCredentials(tc.Username, tc.Password, tc.Email); err != nil {
-		log.Fatal(err)
-	}
-}
-
 func main() {
-	// seedData()
 	//Reading from environment, if not set we will default it to 8080.
 	//This allows flexibility in different environments (for eg. when running multiple docker api's and want to override the default port)
 	port := os.Getenv("PORT")
@@ -73,16 +50,20 @@ func main() {
 
 	router.HandleFunc("/login", credentialsHandler.Login).Methods("POST")
 	router.HandleFunc("/register", credentialsHandler.Register).Methods("POST")
+	router.HandleFunc("/change-password", credentialsHandler.ChangePassword).Methods("POST")
+	router.HandleFunc("/activate/{activationUUID}", credentialsHandler.ActivateAccount).Methods("GET")
+	router.HandleFunc("/recover-password", credentialsHandler.SendRecoveryEmail).Methods("POST")
+	router.HandleFunc("/recovery-password", credentialsHandler.UpdatePasswordWithRecoveryUUID).Methods("POST")
 
-	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"https://localhost:4200"}))
+	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 
 	//Initialize the server
 	server := http.Server{
 		Addr:         ":" + port,
 		Handler:      cors(router),
 		IdleTimeout:  120 * time.Second,
-		ReadTimeout:  1 * time.Second,
-		WriteTimeout: 1 * time.Second,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
 	}
 
 	logger.Println("Server listening on port", port)

@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/dgrijalva/jwt-go"
+
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -14,6 +16,8 @@ type AccommodationHandler struct {
 	logger *log.Logger
 	repo   *data.AccommodationRepository
 }
+
+var secretKey = []byte("stayinn_secret")
 
 func NewAccommodationsHandler(logger *log.Logger, repo *data.AccommodationRepository) *AccommodationHandler {
 	return &AccommodationHandler{logger: logger, repo: repo}
@@ -129,4 +133,50 @@ func (ah *AccommodationHandler) DeleteAccommodation(rw http.ResponseWriter, r *h
 	}
 
 	rw.WriteHeader(http.StatusNoContent)
+}
+
+func (ah *AccommodationHandler) AuthorizeRoles(allowedRoles ...string) mux.MiddlewareFunc {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, rr *http.Request) {
+			tokenString := ah.extractTokenFromHeader(rr)
+			if tokenString == "" {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+
+			claims := jwt.MapClaims{}
+			token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+				return secretKey, nil
+			})
+
+			if err != nil || !token.Valid {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+
+			_, ok1 := claims["username"].(string)
+			role, ok2 := claims["role"].(string)
+			if !ok1 || !ok2 {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+
+			for _, allowedRole := range allowedRoles {
+				if allowedRole == role {
+					next.ServeHTTP(w, rr)
+					return
+				}
+			}
+
+			http.Error(w, "Forbidden", http.StatusForbidden)
+		})
+	}
+}
+
+func (ah *AccommodationHandler) extractTokenFromHeader(rr *http.Request) string {
+	token := rr.Header.Get("Authorization")
+	if token != "" {
+		return token[len("Bearer "):]
+	}
+	return ""
 }

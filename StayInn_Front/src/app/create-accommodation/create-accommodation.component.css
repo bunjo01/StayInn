@@ -1,0 +1,55 @@
+.container {
+    width: 30%;
+    margin: 20px auto;
+  }
+  
+  label {
+    display: block;
+    margin-top: 10px;
+    font-weight: bold;
+  }
+  
+  input {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+  }
+  
+  .btnCreateAccommodation {
+    margin-top: 10px;
+    background-color: rgb(0, 255, 238);
+    font-weight: bold;
+    padding: 10px;
+    cursor: pointer;
+    border: 2px solid black;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+  }
+  
+  .btnCreateAccommodation:hover {
+    background-color: rgb(0, 220, 206);
+  }
+
+  .amenityBox {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    justify-content: left;
+  }
+  
+  .amenityBox label {
+    width: 120px;
+    margin: 0;
+  }
+
+  .amenityBox input {
+    width: fit-content;
+    margin-right: 10px;
+    margin-bottom: 5px;
+  }
+
+  #amenityTitle {
+    margin-bottom: 10px;
+  }

@@ -43,8 +43,7 @@
     margin: 10px;
 }
 
-.header-buttons button {
-    background-color: #007BFF;
+.btnLogin, .btnRegister, .btnLogout {
     color: #fff;
     padding: 10px 20px;
     border: none;
@@ -54,6 +53,51 @@
     transition: background-color 0.3s;
 }
 
-.header-buttons button:hover {
+.btnRegister {
+    background-color: #007BFF;
+}
+
+.btnRegister:hover {
     background-color: #0056b3;
 }
+
+.btnLogin {
+    background-color: green;
+}
+
+.btnLogin:hover {
+    background-color: rgb(0, 105, 0);
+}
+
+.btnLogout {
+    background-color: rgb(186, 1, 1);
+}
+
+.btnLogout:hover {
+    background-color: rgb(123, 0, 0);
+}
+
+.dropdown-menu {
+    background-color: #333;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+  }
+  
+  .dropdown-menu:hover {
+    background-color: #555;
+  }
+  
+  .dropdown-menu option {
+    background-color: #333;
+    color: #fff;
+    padding: 10px;
+  }
+  
+  .dropdown-menu option:hover {
+    background-color: #555;
+  }
+  

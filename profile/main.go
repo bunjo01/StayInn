@@ -50,11 +50,14 @@ func main() {
 
 	router.HandleFunc("/users", userHandler.CreateUser).Methods("POST")
 	router.HandleFunc("/users", userHandler.GetAllUsers).Methods("GET")
-	router.HandleFunc("/users/{id}", userHandler.GetUser).Methods("GET")
-	router.HandleFunc("/users/{id}", userHandler.UpdateUser).Methods("PUT")
-	router.HandleFunc("/users/{id}", userHandler.DeleteUser).Methods("DELETE")
+	router.HandleFunc("/users/{username}", userHandler.GetUser).Methods("GET")
+	router.HandleFunc("/api/users/check-username/{username}", userHandler.CheckUsernameAvailability).Methods("GET")
+	router.HandleFunc("/users/{username}", userHandler.UpdateUser).Methods("PUT")
+	router.HandleFunc("/users/{username}", userHandler.DeleteUser).Methods("DELETE")
+	router.Use(userHandler.AuthorizeRoles("HOST", "GUEST"))
 
 	cors := gorillaHandlers.CORS(
+		gorillaHandlers.AllowedOrigins([]string{"*"}),
 		gorillaHandlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "DELETE", "OPTIONS"}),
 		gorillaHandlers.AllowedHeaders([]string{"Content-Type"}),
 	)
@@ -64,8 +67,8 @@ func main() {
 		Addr:         ":" + port,
 		Handler:      cors(router),
 		IdleTimeout:  120 * time.Second,
-		ReadTimeout:  1 * time.Second,
-		WriteTimeout: 1 * time.Second,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
 	}
 
 	logger.Println("Server listening on port", port)
