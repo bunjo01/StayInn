@@ -12,6 +12,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -23,8 +24,10 @@ import (
 )
 
 type CredentialsRepo struct {
-	cli    *mongo.Client
-	logger *log.Logger
+	cli       *mongo.Client
+	logger    *log.Logger
+	blacklist map[string]struct{}
+	once      sync.Once
 }
 
 // Custom errors for better handling
@@ -61,10 +64,16 @@ func New(ctx context.Context, logger *log.Logger) (*CredentialsRepo, error) {
 		return nil, err
 	}
 
-	return &CredentialsRepo{
+	cr := &CredentialsRepo{
 		cli:    client,
 		logger: logger,
-	}, nil
+	}
+
+	cr.once.Do(func() {
+		cr.loadBlacklist()
+	})
+
+	return cr, nil
 }
 
 // Disconnect
@@ -222,29 +231,41 @@ func (cr *CredentialsRepo) FindUserByUsername(username string) (NewUser, error) 
 	return newUser, nil
 }
 
-// Checks if password is contained in the blacklist.
-// Returns true if it passes the check, else returns false
+// CheckPassword checks if the given password is contained in the blacklist.
+// Returns true if it passes the check, else returns false.
 func (cr *CredentialsRepo) CheckPassword(password string) (bool, error) {
-	file, err := os.Open("security/blacklist.txt")
+	_, found := cr.blacklist[password]
+	return !found, nil
+}
+
+// Loading blacklist into map for faster lookup
+func (cr *CredentialsRepo) loadBlacklist() {
+	blacklistFile := "security/blacklist.txt"
+	if _, err := os.Stat(blacklistFile); os.IsNotExist(err) {
+		log.Printf("Blacklist file not found: %v", err)
+		return
+	}
+
+	file, err := os.Open(blacklistFile)
 	if err != nil {
-		log.Printf("error while opening blacklist.txt: %v", err)
-		return false, err
+		log.Printf("Error while opening blacklist file: %v", err)
+		return
 	}
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
+	blacklistMap := make(map[string]struct{})
+
 	for scanner.Scan() {
-		if strings.TrimSpace(scanner.Text()) == password {
-			return false, nil
-		}
+		blacklistMap[strings.TrimSpace(scanner.Text())] = struct{}{}
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Printf("error while scanning blacklist.txt: %v", err)
-		return false, err
+		log.Printf("Error while scanning blacklist file: %v", err)
+		return
 	}
 
-	return true, nil
+	cr.blacklist = blacklistMap
 }
 
 // Registers a new user to the system.
