@@ -14,6 +14,7 @@ import { ChangePasswordComponent } from './change-password/change-password.compo
 import { ProfileDetailsComponent } from './profile-details/profile-details.component';
 import { ForgetPasswordComponent } from './forget-password/forget-password.component';
 import { ResetPasswordComponent } from './reset-password/reset-password.component';
+import { CreateAccommodationComponent } from './create-accommodation/create-accommodation.component';
 
 const routes: Routes = [
   { path: '', component: EntryComponent },
@@ -30,6 +31,8 @@ const routes: Routes = [
   { path: 'reservations', component: ReservationsComponent, canActivate: [AuthGuardService]},
   { path: 'notFound', component: UnauthorizedComponent},
   { path: 'profile', component: ProfileDetailsComponent},
+  { path: 'create-accommodation', component: CreateAccommodationComponent, canActivate : [RoleGuardService], data: { 
+    expectedRole: 'HOST' }}
 ];
 
 @NgModule({

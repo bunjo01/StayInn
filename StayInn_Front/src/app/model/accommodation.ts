@@ -1,7 +1,7 @@
 export interface Accommodation {
-    id: string;
+    id?: string;
     name?: string;
-    location: string;
+    location?: string;
     amenities?: AmenityEnum[];
     minGuests?: number;
     maxGuests?: number;

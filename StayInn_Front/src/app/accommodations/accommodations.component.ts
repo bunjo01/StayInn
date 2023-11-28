@@ -9,12 +9,17 @@ import { Router } from '@angular/router';
 })
 export class AccommodationsComponent implements OnInit {
   accommodations: Accommodation[] = [];
+  showCreateAccommodationForm: boolean = false;
 
   constructor(private accommodationService: AccommodationService,
               private router: Router) {}
 
   ngOnInit(): void {
     this.loadAccommodations();
+  }
+
+  toggleCreateAccommodationForm(): void {
+    this.showCreateAccommodationForm = true;
   }
 
   loadAccommodations() {

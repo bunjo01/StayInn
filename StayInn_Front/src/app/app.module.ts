@@ -28,6 +28,7 @@ import { ProfileDetailsComponent } from './profile-details/profile-details.compo
 import { ChangePasswordComponent } from './change-password/change-password.component';
 import { ResetPasswordComponent } from './reset-password/reset-password.component';
 import { ForgetPasswordComponent } from './forget-password/forget-password.component';
+import { CreateAccommodationComponent } from './create-accommodation/create-accommodation.component';
 
 @NgModule({
   declarations: [
@@ -47,6 +48,7 @@ import { ForgetPasswordComponent } from './forget-password/forget-password.compo
     ProfileDetailsComponent,
     ResetPasswordComponent,
     ForgetPasswordComponent,
+    CreateAccommodationComponent,
   ],
   imports: [
     BrowserModule,
