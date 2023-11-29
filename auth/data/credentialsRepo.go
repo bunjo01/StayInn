@@ -162,9 +162,12 @@ func (cr *CredentialsRepo) AddCredentials(username, password, email, role string
 func (cr *CredentialsRepo) AddActivation(activationUUID, username string, confirmed bool) error {
 	collection := cr.getActivationCollection()
 
+	currentTime := time.Now()
+
 	newActivation := ActivatioModel{
 		ActivationUUID: activationUUID,
 		Username:       username,
+		Time:           currentTime,
 		Confirmed:      confirmed,
 	}
 
@@ -429,6 +432,14 @@ func (cr *CredentialsRepo) ActivateUserAccount(activationUUID string) error {
 	if err != nil {
 		return fmt.Errorf("failed to find activation model: %v", err)
 	}
+
+	currentTime := time.Now()
+	timeDifference := currentTime.Sub(activationModel.Time)
+
+	if timeDifference.Minutes() > 1 {
+		return fmt.Errorf("link for activation has expired")
+	}
+
 	collection = cr.getCredentialsCollection()
 
 	filter = bson.M{"username": activationModel.Username}

@@ -43,6 +43,10 @@ func (ch *CredentialsHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := ch.repo.ValidateCredentials(credentials.Username, credentials.Password); err != nil {
+		if err.Error() == "account not activated" {
+			http.Error(w, "Account not activated", http.StatusForbidden)
+			return
+		}
 		http.Error(w, "Invalid username or password", http.StatusUnauthorized)
 		return
 	}
@@ -110,7 +114,11 @@ func (ch *CredentialsHandler) ActivateAccount(w http.ResponseWriter, r *http.Req
 	// Activating user account
 	err := ch.repo.ActivateUserAccount(activationUUID)
 	if err != nil {
-		ch.logger.Printf("Error during activation: %v", err)
+		if err.Error() == "link for activation has expired" {
+			ch.logger.Printf("Error during activation: %v", err)
+			http.Error(w, "Link for activation has expired", http.StatusGone)
+			return
+		}
 		http.Error(w, "Failed to activate user account", http.StatusBadRequest)
 		return
 	}
