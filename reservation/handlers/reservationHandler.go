@@ -130,6 +130,7 @@ func (r *ReservationHandler) DeleteReservation(rw http.ResponseWriter, h *http.R
 	err := r.repo.DeleteReservationByIdAndAvailablePeriodID(reservationID, periodID)
 	if err != nil {
 		r.logger.Println("Database exception: ", err)
+		rw.WriteHeader(http.StatusNotFound)
 	}
 
 	rw.WriteHeader(http.StatusAccepted)
