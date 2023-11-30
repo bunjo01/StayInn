@@ -46,6 +46,11 @@ export class AvailablePeriodsComponent implements OnInit {
     this.router.navigate(['/addAvailablePeriod']);
   }
 
+  navigateToEditAvailablePeriod(period: AvailablePeriodByAccommodation): void {
+    this.reservationService.sendAvailablePeriod(period)
+    this.router.navigate(['/editAvailablePeriod']);
+  }
+
   getAccommodation(): void {
     this.accommodationService.getAccommodation().subscribe((data) => {
       this.accommodation = data;

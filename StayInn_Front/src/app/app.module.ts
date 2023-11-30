@@ -29,6 +29,7 @@ import { ChangePasswordComponent } from './change-password/change-password.compo
 import { ResetPasswordComponent } from './reset-password/reset-password.component';
 import { ForgetPasswordComponent } from './forget-password/forget-password.component';
 import { CreateAccommodationComponent } from './create-accommodation/create-accommodation.component';
+import { EditPeriodTemplateComponent } from './reservations/edit-period-template/edit-period-template.component';
 
 @NgModule({
   declarations: [
@@ -49,6 +50,7 @@ import { CreateAccommodationComponent } from './create-accommodation/create-acco
     ResetPasswordComponent,
     ForgetPasswordComponent,
     CreateAccommodationComponent,
+    EditPeriodTemplateComponent,
   ],
   imports: [
     BrowserModule,

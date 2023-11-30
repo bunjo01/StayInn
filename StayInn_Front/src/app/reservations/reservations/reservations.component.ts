@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
+import { ToastrService } from 'ngx-toastr';
 import { ReservationByAvailablePeriod } from 'src/app/model/reservation';
 import { ReservationService } from 'src/app/services/reservation.service';
 
@@ -13,7 +14,8 @@ export class ReservationsComponent {
   availablePeriod: any;
 
   constructor(private reservationService: ReservationService,
-              private router: Router) {}
+              private router: Router,
+              private toastr: ToastrService) {}
 
   ngOnInit(): void {
     this.getAvailablePeriod();
@@ -24,6 +26,25 @@ export class ReservationsComponent {
     error => {
       console.error('Error fething reservations: ', error)
     })
+  }
+
+  deleteReservation(reservation: ReservationByAvailablePeriod) {
+    this.reservationService.deleteReservation(reservation.IDAvailablePeriod, reservation.ID).subscribe(
+      (result) => {
+        // Uspesno brisanje
+        this.toastr.success('Reservation deleted successfully!', 'Success');
+        this.refreshPage();
+      },
+      (error) => {
+        // Greška prilikom brisanja
+        this.toastr.error('Failed to delete reservation!', 'Error');
+        console.error('Error deleting reservation: ', error);
+      }
+    );
+  }
+
+  refreshPage(){
+    location.reload();
   }
 
   navigateToAddReservation(): void {

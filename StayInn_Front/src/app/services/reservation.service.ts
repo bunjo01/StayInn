@@ -45,6 +45,18 @@ export class ReservationService {
     return this.http.post(this.baseUrl + '/reservation', JSON.stringify(reservationData), { headers: this.headers });
   }
 
+  updateAvailablePeriod(periodData: AvailablePeriodByAccommodation): Observable<any> {
+
+    periodData.StartDate = this.formatDate(periodData.StartDate);
+    periodData.EndDate = this.formatDate(periodData.EndDate);
+
+    return this.http.patch(this.baseUrl + '/period', JSON.stringify(periodData), { headers: this.headers });
+  }
+
+  deleteReservation(idPeriod: string , idReservations : string){
+    return this.http.delete(this.baseUrl + `/${idPeriod}/${idReservations}`, {headers : this.headers});
+  }
+
   sendAvailablePeriod(data: AvailablePeriodByAccommodation) {
     this.dataSubject.next(data);
   }

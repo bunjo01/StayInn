@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"log"
 	"net/http"
@@ -130,6 +131,7 @@ func (r *ReservationHandler) DeleteReservation(rw http.ResponseWriter, h *http.R
 	err := r.repo.DeleteReservationByIdAndAvailablePeriodID(reservationID, periodID)
 	if err != nil {
 		r.logger.Println("Database exception: ", err)
+		rw.WriteHeader(http.StatusNotFound)
 	}
 
 	rw.WriteHeader(http.StatusAccepted)
@@ -200,6 +202,8 @@ func (r *ReservationHandler) AuthorizeRoles(allowedRoles ...string) mux.Middlewa
 			}
 
 			for _, allowedRole := range allowedRoles {
+				fmt.Println("allowed role : ", allowedRole)
+				fmt.Println("JWT role : ", role)
 				if allowedRole == role {
 					next.ServeHTTP(w, rr)
 					return
