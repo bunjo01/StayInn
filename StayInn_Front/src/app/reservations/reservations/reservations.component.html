@@ -1,17 +1,23 @@
 <!-- <button (click)="navigateToAddReservationPeriod()">Add available period</button> -->
 
 <div class="card-container">
-  <div *ngIf="reservations" class="card">
-    <h2>Reserved dates</h2>
-    <ul>
-      <li *ngFor="let reservation of reservations">
-        <strong>Start Date:</strong> {{ reservation.StartDate | date: 'dd. MMMM y.' }}<br>
-        <strong>End Date:</strong> {{ reservation.EndDate | date: 'dd. MMMM y.' }}<br>
-        <strong>Guest number:</strong> {{ reservation.GuestNumber }}<br>
-        <strong>Price :</strong> {{ reservation.Price }}<br>
-        <br><br>
-        <button (click)="deleteReservation(reservation)">Delete reservation</button>
-      </li>
-    </ul>
+  <div class="card">
+    <ng-container *ngIf="reservations && reservations.length > 0; else noReservations">
+      <h2>Reserved dates</h2>
+      <ul>
+        <li *ngFor="let reservation of reservations">
+          <strong>Start Date:</strong> {{ reservation.StartDate | date: 'dd. MMMM y.' }}<br>
+          <strong>End Date:</strong> {{ reservation.EndDate | date: 'dd. MMMM y.' }}<br>
+          <strong>Guest number:</strong> {{ reservation.GuestNumber }}<br>
+          <strong>Price :</strong> {{ reservation.Price }}<br>
+          <br><br>
+          <button (click)="deleteReservation(reservation)">Delete reservation</button>
+        </li>
+      </ul>
+    </ng-container>
+    <ng-template #noReservations>
+      <h3>No reservations for this period</h3>
+    </ng-template>
   </div>
 </div>
+

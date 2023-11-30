@@ -38,6 +38,9 @@ export class EditPeriodTemplateComponent {
   getAvailablePeriod(): void {
     this.reservationService.getAvailablePeriod().subscribe((data) => {
       this.currentAvailablePeriod = data;
+      this.currentAvailablePeriod.StartDate = new Date(this.currentAvailablePeriod.StartDate).toISOString().split('T')[0];
+      this.currentAvailablePeriod.EndDate = new Date(this.currentAvailablePeriod.EndDate).toISOString().split('T')[0];
+      this.formData = { ...this.currentAvailablePeriod };
     })
   }
 
