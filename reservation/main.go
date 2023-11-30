@@ -124,8 +124,8 @@ func main() {
 
 	postReservationRouter := router.Methods(http.MethodPost).Path("/reservation").Subrouter()
 	postReservationRouter.HandleFunc("", reservationHandler.CreateReservation)
-	postReservationRouter.Use(reservationHandler.MiddlewareReservationDeserialization)
 	postReservationRouter.Use(reservationHandler.AuthorizeRoles("GUEST"))
+	postReservationRouter.Use(reservationHandler.MiddlewareReservationDeserialization)
 
 	updateAvailablePeriodsByAccommodationRouter := router.Methods(http.MethodPatch).Path("/period").Subrouter()
 	updateAvailablePeriodsByAccommodationRouter.HandleFunc("", reservationHandler.UpdateAvailablePeriodByAccommodation)

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"log"
 	"net/http"
@@ -201,6 +202,8 @@ func (r *ReservationHandler) AuthorizeRoles(allowedRoles ...string) mux.Middlewa
 			}
 
 			for _, allowedRole := range allowedRoles {
+				fmt.Println("allowed role : ", allowedRole)
+				fmt.Println("JWT role : ", role)
 				if allowedRole == role {
 					next.ServeHTTP(w, rr)
 					return

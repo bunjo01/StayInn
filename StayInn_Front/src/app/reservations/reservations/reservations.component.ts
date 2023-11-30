@@ -26,6 +26,11 @@ export class ReservationsComponent {
     })
   }
 
+  deleteReservation(reservation: ReservationByAvailablePeriod) {
+    this.reservationService.deleteReservation(reservation.IDAvailablePeriod, reservation.ID).subscribe((result) => {})
+    this.router.navigate(['/reservations'])
+  }
+
   navigateToAddReservation(): void {
     this.router.navigate(['/addReservation']);
   }
