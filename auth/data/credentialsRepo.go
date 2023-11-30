@@ -394,7 +394,7 @@ func (cr *CredentialsRepo) SendRecoveryEmail(email string) (string, error) {
 	}
 	if result.ModifiedCount == 0 {
 		cr.logger.Printf("user with email %s not found", email)
-		return "", err
+		return "", errors.New("user with the given email was not found")
 	}
 
 	// Slanje e-maila za aktivaciju

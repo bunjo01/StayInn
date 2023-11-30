@@ -139,7 +139,7 @@ func (ch *CredentialsHandler) SendRecoveryEmail(w http.ResponseWriter, r *http.R
 
 	recoveryUUID, err := ch.repo.SendRecoveryEmail(requestBody.Email)
 	if err != nil {
-		http.Error(w, "Failed to send recovery email", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Failed to send recovery mail: %v", err), http.StatusBadRequest)
 		return
 	}
 

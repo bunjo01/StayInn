@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { ToastrService } from 'ngx-toastr';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'app-change-password',
@@ -62,6 +63,14 @@ export class ChangePasswordComponent implements OnInit{
       },
       (error) => {
         console.error('Error while changing password: ', error);
+        if (error instanceof HttpErrorResponse) {
+          // Prikazivanje statusnog koda i poruke greške kroz ToastrService
+          const errorMessage = `${error.error}`;
+          this.toastr.error(errorMessage, 'Change Password Error');
+        } else {
+          // Ukoliko greška nije HTTP greška, prikazuje se generička poruka
+          this.toastr.error('An unexpected error occurred', 'Change Password Error');
+        }
       }
     );
   }
