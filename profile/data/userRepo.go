@@ -1,10 +1,14 @@
 package data
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
+
+	"net/http"
 	"os"
 	"time"
 
@@ -128,39 +132,76 @@ func (ur *UserRepo) CheckUsernameAvailability(ctx context.Context, username stri
 
 	err := collection.FindOne(ctx, filter).Err()
 
-	// Ako korisničko ime ne postoji (err == mongo.ErrNoDocuments), vraćamo true, inače false
 	return errors.Is(err, mongo.ErrNoDocuments), nil
 }
 
-func (ur *UserRepo) CheckUsernameExists(username string) bool {
-	collection := ur.getUserCollection()
-	filter := bson.M{"username": username}
+func (ur *UserRepo) UpdateUser(ctx context.Context, user *NewUser) error {
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+	usernameAvailable, err := ur.CheckUsernameAvailability(ctx, user.Username)
+    if err != nil {
+        ur.logger.Println("Error checking username availability:", err)
+        return err
+    }
 
-	err := collection.FindOne(ctx, filter).Err()
-	return err == nil
+    if !usernameAvailable {
+        return fmt.Errorf("Username %s is already taken", user.Username)
+    }
+
+    collection := ur.getUserCollection()
+
+    filter := bson.M{"_id": user.ID}
+    update := bson.M{"$set": user}
+
+    _, err = collection.UpdateOne(ctx, filter, update)
+    if err != nil {
+        ur.logger.Println("Error updating user in profile service:", err)
+        return err
+    }
+
+    ur.logger.Printf("User updated in profile service")
+
+    err = ur.passUsernameToAuthService(user.Email, user.Username)
+    if err != nil {
+        ur.logger.Println("Error passing username to auth service:", err)
+        return err
+    }
+
+    return nil
 }
 
-func (ur *UserRepo) UpdateUser(ctx context.Context, user *NewUser) error {
-	// usernameOK := ur.CheckUsernameExists(user.Username)
-	// if !usernameOK {
-	//     return UsernameExistsError{Message: "username already exists"}
-	// }
+func (ur *UserRepo) passUsernameToAuthService(email, username string) error {
+    credentialsServiceURL := os.Getenv("AUTH_SERVICE_URI")
 
-	collection := ur.getUserCollection()
+    reqBody := map[string]string{"username": username}
+    requestBody, err := json.Marshal(reqBody)
+    if err != nil {
+        ur.logger.Println("Error marshaling request body:", err)
+        return err
+    }
 
-	filter := bson.M{"username": user.Username}
-	update := bson.M{"$set": user}
+    req, err := http.NewRequest("PUT", credentialsServiceURL+ "/update-username" + "/" + email + "/" + username, bytes.NewBuffer(requestBody))
+    if err != nil {
+        ur.logger.Println("Error creating HTTP PUT request:", err)
+        return fmt.Errorf("failed to create HTTP PUT request: %v", err)
+    }
 
-	_, err := collection.UpdateOne(ctx, filter, update)
-	if err != nil {
-		ur.logger.Println(err)
-		return err
-	}
+    req.Header.Set("Content-Type", "application/json")
 
-	return nil
+    resp, err := http.DefaultClient.Do(req)
+    if err != nil {
+        ur.logger.Println("Error making HTTP PUT request to auth service:", err)
+        return fmt.Errorf("HTTP PUT request to credentials service failed: %v", err)
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode != http.StatusOK {
+        ur.logger.Printf("HTTP PUT request to auth service failed with status: %d\n", resp.StatusCode)
+        return fmt.Errorf("HTTP PUT request to credentials service failed with status: %d", resp.StatusCode)
+    }
+
+    ur.logger.Println("HTTP PUT request to auth service successful")
+
+    return nil
 }
 
 func (ur *UserRepo) DeleteUser(ctx context.Context, username string) error {

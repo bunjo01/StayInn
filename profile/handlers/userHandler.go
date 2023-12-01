@@ -121,34 +121,56 @@ func (uh *UserHandler) CheckUsernameAvailability(w http.ResponseWriter, r *http.
 
 
 func (uh *UserHandler) UpdateUser(rw http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	username := vars["username"]
+    vars := mux.Vars(r)
+    userID := vars["id"]
 
-	var updatedUser data.NewUser
-	if err := json.NewDecoder(r.Body).Decode(&updatedUser); err != nil {
-		http.Error(rw, "Failed to decode request body", http.StatusBadRequest)
-		return
-	}
+    // Pretvorite userID u primitive.ObjectID
+    objectID, err := primitive.ObjectIDFromHex(userID)
+    if err != nil {
+        http.Error(rw, "Invalid user ID", http.StatusBadRequest)
+        return
+    }
 
-	// if !uh.repo.CheckUsernameExists(username) {
-	// 	http.Error(rw, "Username does not exist", http.StatusNotFound)
-	// 	return
-	// }
+    var updatedUser data.NewUser
+    if err := json.NewDecoder(r.Body).Decode(&updatedUser); err != nil {
+        http.Error(rw, "Failed to decode request body", http.StatusBadRequest)
+        return
+    }
 
-	updatedUser.Username = username
-	if err := uh.repo.UpdateUser(r.Context(), &updatedUser); err != nil {
-		uh.logger.Println("Failed to update user:", err)
-		http.Error(rw, "Failed to update user", http.StatusInternalServerError)
-		return
-	}
+    // Postavite ID u objekat koji šaljete za ažuriranje
+    updatedUser.ID = objectID
 
-	rw.Header().Set("Content-Type", "application/json")
-	rw.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(rw).Encode(updatedUser); err != nil {
-		uh.logger.Println("Failed to encode updated user:", err)
-		http.Error(rw, "Failed to encode updated user", http.StatusInternalServerError)
-	}
+    if err := uh.repo.UpdateUser(r.Context(), &updatedUser); err != nil {
+        uh.logger.Println("Failed to update user:", err)
+        http.Error(rw, "Failed to update user", http.StatusInternalServerError)
+        return
+    }
+
+    rw.Header().Set("Content-Type", "application/json")
+    rw.WriteHeader(http.StatusOK)
+    if err := json.NewEncoder(rw).Encode(updatedUser); err != nil {
+        uh.logger.Println("Failed to encode updated user:", err)
+        http.Error(rw, "Failed to encode updated user", http.StatusInternalServerError)
+    }
 }
+
+// func (uh *UserHandler) ChangeUsername(rw http.ResponseWriter, r *http.Request) {
+//     var changeRequest data.ChangeUsernameRequest
+
+//     if err := json.NewDecoder(r.Body).Decode(&changeRequest); err != nil {
+//         http.Error(rw, "Invalid request body", http.StatusBadRequest)
+//         return
+//     }
+
+//     // Pozovite funkciju za promenu username-a u profil servisu
+//     if err := uh.repo.ChangeUsername(r.Context(), changeRequest); err != nil {
+//         http.Error(rw, fmt.Sprintf("Failed to change username: %v", err), http.StatusInternalServerError)
+//         return
+//     }
+
+//     rw.WriteHeader(http.StatusOK)
+// }
+
 
 func (uh *UserHandler) DeleteUser(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)

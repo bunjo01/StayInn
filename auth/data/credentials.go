@@ -32,6 +32,11 @@ type ChangePasswordRequest struct {
 	NewPassword     string `json:"newPassword"`
 }
 
+type ChangeUsernameRequest struct {
+	Username string `json:"username"`
+	NewUsername string `json:"newUsername"`
+}
+
 func (c *Credentials) ToJSON(w io.Writer) error {
 	e := json.NewEncoder(w)
 	return e.Encode(c)

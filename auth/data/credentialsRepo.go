@@ -234,6 +234,44 @@ func (cr *CredentialsRepo) FindUserByUsername(username string) (NewUser, error) 
 	return newUser, nil
 }
 
+func (cr *CredentialsRepo) GetAllCredentials(ctx context.Context) ([]Credentials, error) {
+    collection := cr.getCredentialsCollection()
+
+    cursor, err := collection.Find(ctx, bson.M{})
+    if err != nil {
+        cr.logger.Println(err)
+        return nil, err
+    }
+    defer cursor.Close(ctx)
+
+    var credentialsList []Credentials
+
+	if err := cursor.All(ctx, &credentialsList); err != nil {
+		cr.logger.Println(err)
+		return nil, err
+	}
+
+    return credentialsList, nil
+}
+
+func (cr *CredentialsRepo) ChangeUsername(ctx context.Context, email, username string) error {
+    collection := cr.getCredentialsCollection()
+
+    // Pronađi korisnika po email-u
+    filter := bson.M{"email": email}
+
+    // Postavi novi username
+    update := bson.M{"$set": bson.M{"username": username}}
+
+    _, err := collection.UpdateOne(ctx, filter, update)
+    if err != nil {
+        cr.logger.Println(err)
+        return err
+    }
+
+    return nil
+}
+
 // CheckPassword checks if the given password is contained in the blacklist.
 // Returns true if it passes the check, else returns false.
 func (cr *CredentialsRepo) CheckPassword(password string) (bool, error) {

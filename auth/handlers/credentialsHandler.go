@@ -62,6 +62,39 @@ func (ch *CredentialsHandler) Login(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"token": token})
 }
 
+func (ch *CredentialsHandler) GetAllUsers(rw http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	users, err := ch.repo.GetAllCredentials(ctx)
+	if err != nil {
+		http.Error(rw, "Failed to retrieve users", http.StatusInternalServerError)
+		return
+	}
+
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(rw).Encode(users); err != nil {
+		http.Error(rw, "Failed to encode users", http.StatusInternalServerError)
+	}
+}
+
+func (ch *CredentialsHandler) UpdateUsername(w http.ResponseWriter, r *http.Request) {
+    // Uzmi email iz putanje
+    vars := mux.Vars(r)
+    email := vars["email"]
+	username := vars["username"]
+
+    // Ažuriraj username korisnika sa datim email-om
+    if err := ch.repo.ChangeUsername(r.Context(), email, username); err != nil {
+        http.Error(w, fmt.Sprintf("Failed to change username: %v", err), http.StatusInternalServerError)
+        return
+    }
+
+    w.WriteHeader(http.StatusOK)
+}
+
+
+
 // Handler method for registration
 func (ch *CredentialsHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var newUser data.NewUser
