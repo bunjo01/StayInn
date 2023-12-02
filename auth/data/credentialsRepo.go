@@ -235,41 +235,39 @@ func (cr *CredentialsRepo) FindUserByUsername(username string) (NewUser, error) 
 }
 
 func (cr *CredentialsRepo) GetAllCredentials(ctx context.Context) ([]Credentials, error) {
-    collection := cr.getCredentialsCollection()
+	collection := cr.getCredentialsCollection()
 
-    cursor, err := collection.Find(ctx, bson.M{})
-    if err != nil {
-        cr.logger.Println(err)
-        return nil, err
-    }
-    defer cursor.Close(ctx)
+	cursor, err := collection.Find(ctx, bson.M{})
+	if err != nil {
+		cr.logger.Println(err)
+		return nil, err
+	}
+	defer cursor.Close(ctx)
 
-    var credentialsList []Credentials
+	var credentialsList []Credentials
 
 	if err := cursor.All(ctx, &credentialsList); err != nil {
 		cr.logger.Println(err)
 		return nil, err
 	}
 
-    return credentialsList, nil
+	return credentialsList, nil
 }
 
 func (cr *CredentialsRepo) ChangeUsername(ctx context.Context, email, username string) error {
-    collection := cr.getCredentialsCollection()
+	collection := cr.getCredentialsCollection()
 
-    // Pronađi korisnika po email-u
-    filter := bson.M{"email": email}
+	filter := bson.M{"email": email}
 
-    // Postavi novi username
-    update := bson.M{"$set": bson.M{"username": username}}
+	update := bson.M{"$set": bson.M{"username": username}}
 
-    _, err := collection.UpdateOne(ctx, filter, update)
-    if err != nil {
-        cr.logger.Println(err)
-        return err
-    }
+	_, err := collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		cr.logger.Println(err)
+		return err
+	}
 
-    return nil
+	return nil
 }
 
 // CheckPassword checks if the given password is contained in the blacklist.
@@ -334,7 +332,6 @@ func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName,
 		activationUUID, err := cr.SendActivationEmail(email)
 		if err != nil {
 			cr.logger.Println("Failed to send activation email:", err)
-			// Ovdje možete obraditi grešku slanja e-maila, možda želite ponovo pokušati slati ili nešto drugo
 		} else {
 			cr.logger.Println("Activation email sent successfully with UUID:", activationUUID)
 		}
@@ -344,12 +341,12 @@ func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName,
 			cr.logger.Println("Failed to add activation model to collection:", err)
 		}
 
-		// pass info to profile service
-		err = cr.passInfoToProfileService(username, firstName, lastName, email, address, role)
-		if err != nil {
-			cr.logger.Println(err.Error())
-			return err
-		}
+		// pass info to profile service asynchronously
+		go func() {
+			if err := cr.passInfoToProfileService(username, firstName, lastName, email, address, role); err != nil {
+				cr.logger.Println(err.Error())
+			}
+		}()
 
 	} else if !usernameOK {
 		return UsernameExistsError{Message: "username already exists"}
@@ -413,7 +410,6 @@ func (cr *CredentialsRepo) SendActivationEmail(email string) (string, error) {
 }
 
 func (cr *CredentialsRepo) SendRecoveryEmail(email string) (string, error) {
-	// Generiranje UUID-a za aktivaciju
 	recoveryUUID := generateActivationUUID()
 	collection := cr.getCredentialsCollection()
 	filter := bson.M{"email": email}
@@ -435,7 +431,6 @@ func (cr *CredentialsRepo) SendRecoveryEmail(email string) (string, error) {
 		return "", errors.New("user with the given email was not found")
 	}
 
-	// Slanje e-maila za aktivaciju
 	_, err = SendEmail(email, recoveryUUID, "recovery")
 	if err != nil {
 		return "", err
@@ -512,7 +507,7 @@ func (cr *CredentialsRepo) UpdatePasswordWithRecoveryUUID(recoveryUUID, newPassw
 	update := bson.M{
 		"$set": bson.M{
 			"password":     hashedPassword,
-			"recoveryUUID": "", // Briše recoveryUUID nakon promene lozinke
+			"recoveryUUID": "", // Delete recoveryUUID after password change
 		},
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
