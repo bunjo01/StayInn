@@ -27,7 +27,7 @@ func main() {
 	defer cancel()
 
 	//Initialize the logger we are going to use, with prefix and datetime for every log
-	logger := log.New(os.Stdout, "[profile-api] ", log.LstdFlags)
+	logger := log.New(os.Stdout, "[profile-service] ", log.LstdFlags)
 	storeLogger := log.New(os.Stdout, "[profile-store] ", log.LstdFlags)
 
 	// NoSQL: Initialize Profile Repository store

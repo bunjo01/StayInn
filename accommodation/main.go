@@ -25,7 +25,7 @@ func main() {
 	defer cancel()
 
 	// Logger initialization
-	logger := log.New(os.Stdout, "[accommodation-api] ", log.LstdFlags)
+	logger := log.New(os.Stdout, "[accommodation-service] ", log.LstdFlags)
 	storeLogger := log.New(os.Stdout, "[accommodation-store] ", log.LstdFlags)
 
 	// Initializing repo for accommodations

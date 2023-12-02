@@ -27,10 +27,10 @@ func main() {
 	defer cancel()
 
 	//Initialize the logger we are going to use, with prefix and datetime for every log
-	logger := log.New(os.Stdout, "[product-api] ", log.LstdFlags)
-	storeLogger := log.New(os.Stdout, "[patient-store] ", log.LstdFlags)
+	logger := log.New(os.Stdout, "[auth-service] ", log.LstdFlags)
+	storeLogger := log.New(os.Stdout, "[auth-store] ", log.LstdFlags)
 
-	// NoSQL: Initialize Product Repository store
+	// NoSQL: Initialize Auth Repository store
 	store, err := data.New(timeoutContext, storeLogger)
 	if err != nil {
 		logger.Fatal(err)

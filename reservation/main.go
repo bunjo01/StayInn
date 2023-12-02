@@ -32,7 +32,7 @@ func main() {
 	defer cancel()
 
 	//Initialize the logger we are going to use, with prefix and datetime for every log
-	logger := log.New(os.Stdout, "[reservation-api] ", log.LstdFlags)
+	logger := log.New(os.Stdout, "[reservation-service] ", log.LstdFlags)
 	storeLogger := log.New(os.Stdout, "[reservation-store] ", log.LstdFlags)
 
 	// Initializing Cassandra DB
