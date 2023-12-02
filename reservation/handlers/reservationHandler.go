@@ -3,9 +3,10 @@ package handlers
 import (
 	"context"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
 	"log"
 	"net/http"
+
+	"github.com/dgrijalva/jwt-go"
 
 	"github.com/gorilla/mux"
 	"main.go/data"
@@ -94,7 +95,7 @@ func (r *ReservationHandler) CreateAvailablePeriod(rw http.ResponseWriter, h *ht
 	err := r.repo.InsertAvailablePeriodByAccommodation(availablePeriod)
 	if err != nil {
 		r.logger.Print("Database exception: ", err)
-		rw.WriteHeader(http.StatusBadRequest)
+		http.Error(rw, fmt.Sprintf("Failed to create available period: %v", err), http.StatusBadRequest)
 		return
 	}
 	rw.WriteHeader(http.StatusCreated)
@@ -106,7 +107,7 @@ func (r *ReservationHandler) CreateReservation(rw http.ResponseWriter, h *http.R
 	err := r.repo.InsertReservationByAvailablePeriod(reservation)
 	if err != nil {
 		r.logger.Print("Database exception: ", err)
-		rw.WriteHeader(http.StatusConflict)
+		http.Error(rw, fmt.Sprintf("Failed to create reservation: %v", err), http.StatusBadRequest)
 		return
 	}
 	rw.WriteHeader(http.StatusCreated)

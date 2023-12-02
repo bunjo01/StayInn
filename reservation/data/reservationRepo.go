@@ -196,7 +196,6 @@ func (rr *ReservationRepo) InsertReservationByAvailablePeriod(reservation *Reser
 		return errors.New("reservation is not within the appropriate range of the available period")
 	}
 
-	// TODO: need fix
 	// Retrieve existing reservations for the available period
 	existingReservations, err := rr.FindAllReservationsByAvailablePeriod(availablePeriod.ID.String())
 	if err != nil {

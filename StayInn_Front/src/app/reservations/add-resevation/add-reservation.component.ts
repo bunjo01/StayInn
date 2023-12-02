@@ -1,5 +1,7 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { Toast, ToastrService } from 'ngx-toastr';
 import { AvailablePeriodByAccommodation, ReservationByAvailablePeriod } from 'src/app/model/reservation';
 import { ReservationService } from 'src/app/services/reservation.service';
 
@@ -25,7 +27,8 @@ export class AddReservationComponent implements OnInit {
 
   constructor(
     private reservationService: ReservationService,
-    private router: Router
+    private router: Router,
+    private toastr: ToastrService
   ) {}
 
   ngOnInit(): void {
@@ -60,6 +63,12 @@ export class AddReservationComponent implements OnInit {
         this.router.navigate(['/availablePeriods']);
       }, error => {
         console.error('Error creating reservation:', error);
+        if (error instanceof HttpErrorResponse) {
+          const errorMessage = `${error.error}`;
+          this.toastr.error(errorMessage, 'Create Reservation Error');
+        } else {
+          this.toastr.error('An unexpected error occurred', 'Create Reservation Error');
+        }
       });
     }
 
