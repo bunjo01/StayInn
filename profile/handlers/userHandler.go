@@ -122,14 +122,7 @@ func (uh *UserHandler) CheckUsernameAvailability(w http.ResponseWriter, r *http.
 
 func (uh *UserHandler) UpdateUser(rw http.ResponseWriter, r *http.Request) {
     vars := mux.Vars(r)
-    userID := vars["id"]
-
-    // Pretvorite userID u primitive.ObjectID
-    objectID, err := primitive.ObjectIDFromHex(userID)
-    if err != nil {
-        http.Error(rw, "Invalid user ID", http.StatusBadRequest)
-        return
-    }
+    username := vars["username"]
 
     var updatedUser data.NewUser
     if err := json.NewDecoder(r.Body).Decode(&updatedUser); err != nil {
@@ -137,10 +130,7 @@ func (uh *UserHandler) UpdateUser(rw http.ResponseWriter, r *http.Request) {
         return
     }
 
-    // Postavite ID u objekat koji šaljete za ažuriranje
-    updatedUser.ID = objectID
-
-    if err := uh.repo.UpdateUser(r.Context(), &updatedUser); err != nil {
+    if err := uh.repo.UpdateUser(r.Context(), username, &updatedUser); err != nil {
         uh.logger.Println("Failed to update user:", err)
         http.Error(rw, "Failed to update user", http.StatusInternalServerError)
         return
