@@ -4,6 +4,8 @@ import { ReservationService } from 'src/app/services/reservation.service';
 import { AvailablePeriodByAccommodation, ReservationFormData } from 'src/app/model/reservation';
 import { AccommodationService } from 'src/app/services/accommodation.service';
 import { Router } from '@angular/router';
+import { ToastrService } from 'ngx-toastr';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'app-add-available-period-template',
@@ -16,7 +18,8 @@ export class AddAvailablePeriodTemplateComponent {
 
   constructor(private reservationService: ReservationService,
               private accommodationService: AccommodationService,
-              private router: Router
+              private router: Router,
+              private toastr: ToastrService,
     ) {}
 
     ngOnInit(): void {
@@ -31,12 +34,21 @@ export class AddAvailablePeriodTemplateComponent {
 
     this.reservationService.createReservation(this.formData)
       .subscribe(response => {
-        console.log('Reservation created successfully:', response);
+        console.log('Period created successfully:', response);
+        this.toastr.success('Available period created successfully');
         this.formData = { ID: '', IDAccommodation: '', StartDate: '', EndDate: '', Price: 0, PricePerGuest: false };
+        this.router.navigateByUrl('/availablePeriods').then(() => {
+          window.location.reload();
+        });
       }, error => {
-        console.error('Error creating reservation:', error);
+        console.error('Error creating available period:', error);
+        if (error instanceof HttpErrorResponse) {
+          const errorMessage = `${error.error}`;
+          this.toastr.error(errorMessage, 'Add Period Error');
+        } else {
+          this.toastr.error('An unexpected error occurred', 'Add Period Error');
+        }
       });
-      this.router.navigate(['/availablePeriods']);
 
   }
 

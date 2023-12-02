@@ -1,6 +1,9 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
+import { ToastrService } from 'ngx-toastr';
 import { AvailablePeriodByAccommodation } from 'src/app/model/reservation';
+import { AccommodationService } from 'src/app/services/accommodation.service';
 import { ReservationService } from 'src/app/services/reservation.service';
 
 @Component({
@@ -13,7 +16,9 @@ export class EditPeriodTemplateComponent {
   formData: AvailablePeriodByAccommodation = { ID: '', IDAccommodation: '', StartDate: '', EndDate: '', Price: 0, PricePerGuest: false };
 
   constructor(private reservationService: ReservationService,
-              private router:Router){
+              private router:Router,
+              private toastr: ToastrService,
+              private accommodationService: AccommodationService){
   }
 
   ngOnInit():void {
@@ -23,16 +28,22 @@ export class EditPeriodTemplateComponent {
   submitForm() {
     this.formData.IDAccommodation = this.currentAvailablePeriod.IDAccommodation;
     this.formData.ID = this.currentAvailablePeriod.ID;
-
     this.reservationService.updateAvailablePeriod(this.formData)
       .subscribe(response => {
         console.log('Period updated successfully:', response);
         this.formData = { ID: '', IDAccommodation: '', StartDate: '', EndDate: '', Price: 0, PricePerGuest: false };
+        this.router.navigateByUrl('/').then(() => {
+          window.location.reload();
+        });
       }, error => {
         console.error('Error updating period:', error);
+        if (error instanceof HttpErrorResponse) {
+          const errorMessage = `${error.error}`;
+          this.toastr.error(errorMessage, 'Update Period Error');
+        } else {
+          this.toastr.error('An unexpected error occurred', 'Update Period Error');
+        }
       });
-      this.router.navigate(['/availablePeriods']);
-
   }
 
   getAvailablePeriod(): void {
