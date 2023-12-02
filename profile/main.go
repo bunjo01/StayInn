@@ -52,7 +52,7 @@ func main() {
 	router.HandleFunc("/users", userHandler.GetAllUsers).Methods("GET")
 	router.HandleFunc("/users/{username}", userHandler.GetUser).Methods("GET")
 	router.HandleFunc("/api/users/check-username/{username}", userHandler.CheckUsernameAvailability).Methods("GET")
-	router.HandleFunc("/users/{username}", userHandler.UpdateUser).Methods("PUT")
+	router.HandleFunc("/users/{id}", userHandler.UpdateUser).Methods("PUT")
 	router.HandleFunc("/users/{username}", userHandler.DeleteUser).Methods("DELETE")
 	router.Use(userHandler.AuthorizeRoles("HOST", "GUEST"))
 
