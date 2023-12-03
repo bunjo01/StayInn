@@ -2,13 +2,10 @@ package data
 
 import (
 	"bufio"
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -308,7 +305,7 @@ func (cr *CredentialsRepo) loadBlacklist() {
 }
 
 // Registers a new user to the system.
-// Saves credentials to auth service and passes rest of info to profile service
+// Saves credentials to auth db
 func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName, email, address, role string) error {
 	usernameOK := cr.CheckUsername(username)
 	passwordOK, err := cr.CheckPassword(strings.ToLower(password))
@@ -340,13 +337,6 @@ func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName,
 		if err != nil {
 			cr.logger.Println("Failed to add activation model to collection:", err)
 		}
-
-		// pass info to profile service asynchronously
-		go func() {
-			if err := cr.passInfoToProfileService(username, firstName, lastName, email, address, role); err != nil {
-				cr.logger.Println(err.Error())
-			}
-		}()
 
 	} else if !usernameOK {
 		return UsernameExistsError{Message: "username already exists"}
@@ -534,45 +524,6 @@ func hashPassword(password string) (string, error) {
 		return "", err
 	}
 	return string(hash), nil
-}
-
-// Sends user data to profile service, for persistence in profile_db
-// Returns error if it fails
-func (cr *CredentialsRepo) passInfoToProfileService(username, firstName, lastName, email, address, role string) error {
-	newUser := NewUser{
-		Username:    username,
-		FirstName:   firstName,
-		LastName:    lastName,
-		Email:       email,
-		Address:     address,
-		Role:        role,
-		IsActivated: false,
-	}
-
-	httpClient := &http.Client{}
-
-	profileServiceURL := os.Getenv("PROFILE_SERVICE_URI")
-
-	requestBody, err := json.Marshal(newUser)
-	if err != nil {
-		return fmt.Errorf("failed to marshal user data: %v", err)
-	}
-
-	log.Printf("Sending HTTP POST request to %s with payload: %s", profileServiceURL, requestBody)
-
-	resp, err := httpClient.Post(profileServiceURL+"/users", "application/json", bytes.NewBuffer(requestBody))
-	if err != nil {
-		return fmt.Errorf("HTTP POST request to profile service failed: %v", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusCreated {
-		return fmt.Errorf("HTTP POST request to profile service failed with status: %d", resp.StatusCode)
-	}
-
-	log.Println("HTTP POST request successful")
-
-	return nil
 }
 
 // GenerateToken generates a JWT token with the specified username and role.

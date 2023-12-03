@@ -1,11 +1,14 @@
 package handlers
 
 import (
+	"auth/clients"
 	"auth/data"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -13,8 +16,9 @@ import (
 type KeyProduct struct{}
 
 type CredentialsHandler struct {
-	logger *log.Logger
-	repo   *data.CredentialsRepo
+	logger  *log.Logger
+	repo    *data.CredentialsRepo
+	profile clients.ProfileClient
 }
 
 const (
@@ -23,8 +27,8 @@ const (
 )
 
 // Injecting the logger makes this code much more testable
-func NewCredentialsHandler(l *log.Logger, r *data.CredentialsRepo) *CredentialsHandler {
-	return &CredentialsHandler{l, r}
+func NewCredentialsHandler(l *log.Logger, r *data.CredentialsRepo, p clients.ProfileClient) *CredentialsHandler {
+	return &CredentialsHandler{l, r, p}
 }
 
 // TODO Handler methods
@@ -79,19 +83,17 @@ func (ch *CredentialsHandler) GetAllUsers(rw http.ResponseWriter, r *http.Reques
 }
 
 func (ch *CredentialsHandler) UpdateUsername(w http.ResponseWriter, r *http.Request) {
-    vars := mux.Vars(r)
-    oldUsername := vars["oldUsername"]
+	vars := mux.Vars(r)
+	oldUsername := vars["oldUsername"]
 	username := vars["username"]
 
-    if err := ch.repo.ChangeUsername(r.Context(), oldUsername, username); err != nil {
-        http.Error(w, fmt.Sprintf("Failed to change username: %v", err), http.StatusInternalServerError)
-        return
-    }
+	if err := ch.repo.ChangeUsername(r.Context(), oldUsername, username); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to change username: %v", err), http.StatusInternalServerError)
+		return
+	}
 
-    w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusOK)
 }
-
-
 
 // Handler method for registration
 func (ch *CredentialsHandler) Register(w http.ResponseWriter, r *http.Request) {
@@ -100,7 +102,17 @@ func (ch *CredentialsHandler) Register(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-	err := ch.repo.RegisterUser(newUser.Username, newUser.Password, newUser.FirstName, newUser.LastName,
+
+	ctx, cancel := context.WithTimeout(r.Context(), 5000*time.Millisecond)
+	defer cancel()
+	_, err := ch.profile.PassInfoToProfileService(ctx, newUser)
+	if err != nil {
+		ch.logger.Println(err)
+		writeResp(err, http.StatusServiceUnavailable, w)
+		return
+	}
+
+	err = ch.repo.RegisterUser(newUser.Username, newUser.Password, newUser.FirstName, newUser.LastName,
 		newUser.Email, newUser.Address, newUser.Role)
 	if err != nil && err.Error() == "username already exists" {
 		http.Error(w, "Username is not unique!", http.StatusBadRequest)
@@ -113,7 +125,7 @@ func (ch *CredentialsHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 }
 
 func (ch *CredentialsHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
