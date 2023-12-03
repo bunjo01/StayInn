@@ -88,8 +88,13 @@ export class ProfileDetailsComponent implements OnInit {
           }
         },
         (error) => {
+          if (error.status === 503) {
+            this.toastr.error('Unable to contact auth service. Please try again later',
+             'Auth service offline');
+          } else {
+            this.toastr.error('There was an error while updating your profile', 'Update failed');
+          }
           console.error('Error updating user profile: ', error);
-          this.toastr.error('Update profile failed.', 'Failed update');
         }
       );
     } else {

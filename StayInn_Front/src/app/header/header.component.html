@@ -8,11 +8,11 @@
           <button class="btnRegister" routerLink="/register">Register</button>
         </ng-container>
         <ng-template #logoutButton>
-          <select class="dropdown-menu" (change)="handleDropdownChange($event)">
+          <select #dropdownMenu class="dropdown-menu">
             <option value="" disabled selected style="display: none;">Menu</option>
-            <option value="profile" class="profile-option">Profile</option>
-            <option value="changePassword" class="change-password-option">Change Password</option>
-            <option value="logout" class="logout-option">Logout</option>
+            <option (click)="handleDropdownClick('profile')" value="profile" class="profile-option">Profile</option>
+            <option (click)="handleDropdownClick('changePassword') "value="changePassword" class="change-password-option">Change Password</option>
+            <option (click)="handleDropdownClick('logout')" value="logout" class="logout-option">Logout</option>
           </select>
         </ng-template>
         <!-- <button routerLink="/change-password">Change Password</button> -->
