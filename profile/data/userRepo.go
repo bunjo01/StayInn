@@ -135,9 +135,8 @@ func (ur *UserRepo) CheckUsernameAvailability(ctx context.Context, username stri
 	return errors.Is(err, mongo.ErrNoDocuments), nil
 }
 
-func (ur *UserRepo) UpdateUser(ctx context.Context, user *NewUser) error {
-
-	usernameAvailable, err := ur.CheckUsernameAvailability(ctx, user.Username)
+func (ur *UserRepo) UpdateUser(ctx context.Context, username string, user *NewUser) error {
+    usernameAvailable, err := ur.CheckUsernameAvailability(ctx, user.Username)
     if err != nil {
         ur.logger.Println("Error checking username availability:", err)
         return err
@@ -149,7 +148,7 @@ func (ur *UserRepo) UpdateUser(ctx context.Context, user *NewUser) error {
 
     collection := ur.getUserCollection()
 
-    filter := bson.M{"_id": user.ID}
+    filter := bson.M{"username": username}
     update := bson.M{"$set": user}
 
     _, err = collection.UpdateOne(ctx, filter, update)
@@ -160,16 +159,18 @@ func (ur *UserRepo) UpdateUser(ctx context.Context, user *NewUser) error {
 
     ur.logger.Printf("User updated in profile service")
 
-    err = ur.passUsernameToAuthService(user.Email, user.Username)
-    if err != nil {
-        ur.logger.Println("Error passing username to auth service:", err)
-        return err
+    if user.Username != username {
+        err = ur.passUsernameToAuthService(username, user.Username)
+        if err != nil {
+            ur.logger.Println("Error passing username to auth service:", err)
+            return err
+        }
     }
 
     return nil
 }
 
-func (ur *UserRepo) passUsernameToAuthService(email, username string) error {
+func (ur *UserRepo) passUsernameToAuthService(oldUsername, username string) error {
     credentialsServiceURL := os.Getenv("AUTH_SERVICE_URI")
 
     reqBody := map[string]string{"username": username}
@@ -179,7 +180,7 @@ func (ur *UserRepo) passUsernameToAuthService(email, username string) error {
         return err
     }
 
-    req, err := http.NewRequest("PUT", credentialsServiceURL+ "/update-username" + "/" + email + "/" + username, bytes.NewBuffer(requestBody))
+    req, err := http.NewRequest("PUT", credentialsServiceURL+ "/update-username" + "/" + oldUsername + "/" + username, bytes.NewBuffer(requestBody))
     if err != nil {
         ur.logger.Println("Error creating HTTP PUT request:", err)
         return fmt.Errorf("failed to create HTTP PUT request: %v", err)

@@ -254,10 +254,10 @@ func (cr *CredentialsRepo) GetAllCredentials(ctx context.Context) ([]Credentials
 	return credentialsList, nil
 }
 
-func (cr *CredentialsRepo) ChangeUsername(ctx context.Context, email, username string) error {
+func (cr *CredentialsRepo) ChangeUsername(ctx context.Context, oldUsername, username string) error {
 	collection := cr.getCredentialsCollection()
 
-	filter := bson.M{"email": email}
+	filter := bson.M{"username": oldUsername}
 
 	update := bson.M{"$set": bson.M{"username": username}}
 

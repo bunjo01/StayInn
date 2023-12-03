@@ -79,13 +79,11 @@ func (ch *CredentialsHandler) GetAllUsers(rw http.ResponseWriter, r *http.Reques
 }
 
 func (ch *CredentialsHandler) UpdateUsername(w http.ResponseWriter, r *http.Request) {
-    // Uzmi email iz putanje
     vars := mux.Vars(r)
-    email := vars["email"]
+    oldUsername := vars["oldUsername"]
 	username := vars["username"]
 
-    // Ažuriraj username korisnika sa datim email-om
-    if err := ch.repo.ChangeUsername(r.Context(), email, username); err != nil {
+    if err := ch.repo.ChangeUsername(r.Context(), oldUsername, username); err != nil {
         http.Error(w, fmt.Sprintf("Failed to change username: %v", err), http.StatusInternalServerError)
         return
     }
