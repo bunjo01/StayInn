@@ -6,14 +6,14 @@
         <label for="username">Username:</label>
         <input [(ngModel)]="userProfile.username" type="text" name="username" [formControl]="form.controls['username']">
         <small class="text-danger" *ngIf="form.get('username').hasError('required') && form.get('username').touched">
-          Username is not valid.
+          Username is required
         </small>
       </div>
       <div class="form-group">
         <label for="firstName">First Name:</label>
         <input [(ngModel)]="userProfile.firstName" type="text" name="firstName" [formControl]="form.controls['firstName']">
         <small class="text-danger" *ngIf="form.get('firstName').hasError('required') && form.get('firstName').touched">
-          First Name is required.
+          First Name is required
         </small>
       </div>
 
@@ -21,7 +21,7 @@
         <label for="lastName">Last Name:</label>
         <input [(ngModel)]="userProfile.lastName" type="text" name="lastName" [formControl]="form.controls['lastName']">
         <small class="text-danger" *ngIf="form.get('lastName').hasError('required') && form.get('lastName').touched">
-          Last Name is required.
+          Last Name is required
         </small>
       </div>
 
@@ -29,10 +29,7 @@
         <label for="email">Email:</label>
         <input [(ngModel)]="userProfile.email" type="email" name="email" [formControl]="form.controls['email']">
         <small class="text-danger" *ngIf="form.get('email').hasError('required') && form.get('email').touched">
-          Email is required.
-        </small>
-        <small class="text-danger" *ngIf="form.get('email').hasError('email') && form.get('email').touched">
-          Email is not valid.
+          Email is not valid
         </small>
       </div>
 
@@ -40,7 +37,7 @@
         <label for="address">Address:</label>
         <input [(ngModel)]="userProfile.address" type="text" name="address" [formControl]="form.controls['address']" ng-trim="false">
         <small class="text-danger" *ngIf="form.get('address').hasError('pattern') && form.get('address').touched">
-          Address is not valid.
+          Address is required
         </small>
       </div>
 

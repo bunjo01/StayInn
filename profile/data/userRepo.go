@@ -136,73 +136,73 @@ func (ur *UserRepo) CheckUsernameAvailability(ctx context.Context, username stri
 }
 
 func (ur *UserRepo) UpdateUser(ctx context.Context, username string, user *NewUser) error {
-    usernameAvailable, err := ur.CheckUsernameAvailability(ctx, user.Username)
-    if err != nil {
-        ur.logger.Println("Error checking username availability:", err)
-        return err
-    }
+	usernameAvailable, err := ur.CheckUsernameAvailability(ctx, user.Username)
+	if err != nil {
+		ur.logger.Println("Error checking username availability:", err)
+		return err
+	}
 
-    if !usernameAvailable {
-        return fmt.Errorf("Username %s is already taken", user.Username)
-    }
+	if !usernameAvailable && username != user.Username {
+		return fmt.Errorf("Username %s is already taken", user.Username)
+	}
 
-    collection := ur.getUserCollection()
+	collection := ur.getUserCollection()
 
-    filter := bson.M{"username": username}
-    update := bson.M{"$set": user}
+	filter := bson.M{"username": username}
+	update := bson.M{"$set": user}
 
-    _, err = collection.UpdateOne(ctx, filter, update)
-    if err != nil {
-        ur.logger.Println("Error updating user in profile service:", err)
-        return err
-    }
+	_, err = collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		ur.logger.Println("Error updating user in profile service:", err)
+		return err
+	}
 
-    ur.logger.Printf("User updated in profile service")
+	ur.logger.Printf("User updated in profile service")
 
-    if user.Username != username {
-        err = ur.passUsernameToAuthService(username, user.Username)
-        if err != nil {
-            ur.logger.Println("Error passing username to auth service:", err)
-            return err
-        }
-    }
+	if user.Username != username {
+		err = ur.passUsernameToAuthService(username, user.Username)
+		if err != nil {
+			ur.logger.Println("Error passing username to auth service:", err)
+			return err
+		}
+	}
 
-    return nil
+	return nil
 }
 
 func (ur *UserRepo) passUsernameToAuthService(oldUsername, username string) error {
-    credentialsServiceURL := os.Getenv("AUTH_SERVICE_URI")
+	credentialsServiceURL := os.Getenv("AUTH_SERVICE_URI")
 
-    reqBody := map[string]string{"username": username}
-    requestBody, err := json.Marshal(reqBody)
-    if err != nil {
-        ur.logger.Println("Error marshaling request body:", err)
-        return err
-    }
+	reqBody := map[string]string{"username": username}
+	requestBody, err := json.Marshal(reqBody)
+	if err != nil {
+		ur.logger.Println("Error marshaling request body:", err)
+		return err
+	}
 
-    req, err := http.NewRequest("PUT", credentialsServiceURL+ "/update-username" + "/" + oldUsername + "/" + username, bytes.NewBuffer(requestBody))
-    if err != nil {
-        ur.logger.Println("Error creating HTTP PUT request:", err)
-        return fmt.Errorf("failed to create HTTP PUT request: %v", err)
-    }
+	req, err := http.NewRequest("PUT", credentialsServiceURL+"/update-username"+"/"+oldUsername+"/"+username, bytes.NewBuffer(requestBody))
+	if err != nil {
+		ur.logger.Println("Error creating HTTP PUT request:", err)
+		return fmt.Errorf("failed to create HTTP PUT request: %v", err)
+	}
 
-    req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", "application/json")
 
-    resp, err := http.DefaultClient.Do(req)
-    if err != nil {
-        ur.logger.Println("Error making HTTP PUT request to auth service:", err)
-        return fmt.Errorf("HTTP PUT request to credentials service failed: %v", err)
-    }
-    defer resp.Body.Close()
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		ur.logger.Println("Error making HTTP PUT request to auth service:", err)
+		return fmt.Errorf("HTTP PUT request to credentials service failed: %v", err)
+	}
+	defer resp.Body.Close()
 
-    if resp.StatusCode != http.StatusOK {
-        ur.logger.Printf("HTTP PUT request to auth service failed with status: %d\n", resp.StatusCode)
-        return fmt.Errorf("HTTP PUT request to credentials service failed with status: %d", resp.StatusCode)
-    }
+	if resp.StatusCode != http.StatusOK {
+		ur.logger.Printf("HTTP PUT request to auth service failed with status: %d\n", resp.StatusCode)
+		return fmt.Errorf("HTTP PUT request to credentials service failed with status: %d", resp.StatusCode)
+	}
 
-    ur.logger.Println("HTTP PUT request to auth service successful")
+	ur.logger.Println("HTTP PUT request to auth service successful")
 
-    return nil
+	return nil
 }
 
 func (ur *UserRepo) DeleteUser(ctx context.Context, username string) error {
