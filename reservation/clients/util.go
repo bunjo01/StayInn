@@ -1,9 +1,9 @@
 package clients
 
 import (
-	"auth/domain"
 	"errors"
 	"net/url"
+	"reservation/domain"
 	"time"
 
 	"github.com/sony/gobreaker"
