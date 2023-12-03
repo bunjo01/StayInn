@@ -8,21 +8,24 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 
+	"reservation/clients"
+	"reservation/data"
+
 	"github.com/gorilla/mux"
-	"main.go/data"
 )
 
 type KeyProduct struct{}
 
 type ReservationHandler struct {
-	logger *log.Logger
-	repo   *data.ReservationRepo
+	logger       *log.Logger
+	repo         *data.ReservationRepo
+	notification clients.NotificationClient
 }
 
 var secretKey = []byte("stayinn_secret")
 
-func NewReservationHandler(l *log.Logger, r *data.ReservationRepo) *ReservationHandler {
-	return &ReservationHandler{l, r}
+func NewReservationHandler(l *log.Logger, r *data.ReservationRepo, n clients.NotificationClient) *ReservationHandler {
+	return &ReservationHandler{l, r, n}
 }
 
 func (r *ReservationHandler) GetAllAvailablePeriodsByAccommodation(rw http.ResponseWriter, h *http.Request) {

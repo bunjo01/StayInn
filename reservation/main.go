@@ -10,13 +10,16 @@ import (
 	"strconv"
 	"time"
 
-	"main.go/handlers"
+	"reservation/clients"
+	"reservation/data"
+	"reservation/domain"
+	"reservation/handlers"
 
 	gorillaHandlers "github.com/gorilla/handlers"
+	"github.com/sony/gobreaker"
 
 	"github.com/gocql/gocql"
 	"github.com/gorilla/mux"
-	"main.go/data"
 )
 
 func main() {
@@ -98,8 +101,41 @@ func main() {
 
 	defer store.CloseSession()
 
+	notificationClient := &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConns:        10,
+			MaxIdleConnsPerHost: 10,
+			MaxConnsPerHost:     10,
+		},
+	}
+
+	notificationBreaker := gobreaker.NewCircuitBreaker(
+		gobreaker.Settings{
+			Name:        "notification",
+			MaxRequests: 1,
+			Timeout:     10 * time.Second,
+			Interval:    0,
+			ReadyToTrip: func(counts gobreaker.Counts) bool {
+				return counts.ConsecutiveFailures > 2
+			},
+			OnStateChange: func(name string, from, to gobreaker.State) {
+				logger.Printf("CB '%s' changed from '%s' to '%s'\n", name, from, to)
+			},
+			IsSuccessful: func(err error) bool {
+				if err == nil {
+					return true
+				}
+				errResp, ok := err.(domain.ErrResp)
+				return ok && errResp.StatusCode >= 400 && errResp.StatusCode < 500
+			},
+		},
+	)
+
+	// TODO: Change second param accordingly after implementing methods on notification service
+	notification := clients.NewNotificationClient(notificationClient, os.Getenv("NOTIFICATION_SERVICE_URI"), notificationBreaker)
+
 	//Initialize the handler and inject said logger
-	reservationHandler := handlers.NewReservationHandler(logger, store)
+	reservationHandler := handlers.NewReservationHandler(logger, store, notification)
 
 	//Initialize the router and add a middleware for all the requests
 	router := mux.NewRouter()
