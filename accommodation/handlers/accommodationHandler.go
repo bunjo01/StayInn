@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/dgrijalva/jwt-go"
 
 	"github.com/gorilla/mux"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -24,6 +26,7 @@ func NewAccommodationsHandler(logger *log.Logger, repo *data.AccommodationReposi
 }
 
 func (ah *AccommodationHandler) GetAllAccommodations(rw http.ResponseWriter, r *http.Request) {
+	ah.logger.Printf("Usli smo u GetAllAccommodations funkciju")
 	ctx := r.Context()
 
 	accommodations, err := ah.repo.GetAllAccommodations(ctx)
@@ -180,3 +183,51 @@ func (ah *AccommodationHandler) extractTokenFromHeader(rr *http.Request) string 
 	}
 	return ""
 }
+
+func (ah *AccommodationHandler) SearchAccommodations(rw http.ResponseWriter, r *http.Request) {
+	ah.logger.Printf("Usli smo u SearchAccommodations funkciju")
+    ctx := r.Context()
+
+    // Parse query parameters
+    location := r.URL.Query().Get("location")
+    numberOfGuests := r.URL.Query().Get("numberOfGuests")
+    startDate := r.URL.Query().Get("startDate")
+    endDate := r.URL.Query().Get("endDate")
+
+	numGuests, err := strconv.Atoi(numberOfGuests)
+
+    // Create a filter based on the parsed parameters
+    filter := bson.M{}
+    if location != "" {
+        filter["location"] = location
+    }
+    
+    if numGuests > 0 {
+		filter["$and"] = bson.A{
+			bson.M{"minGuests": bson.M{"$lte": numGuests}},
+			bson.M{"maxGuests": bson.M{"$gte": numGuests}},
+		}
+	}
+
+    if startDate != "" {
+        filter["startDate"] = startDate
+    }
+
+    if endDate != "" {
+        filter["endDate"] = endDate
+    }
+
+    accommodations, err := ah.repo.GetFilteredAccommodations(ctx, filter)
+    if err != nil {
+        http.Error(rw, "Failed to retrieve accommodations", http.StatusInternalServerError)
+        return
+    }
+
+    rw.Header().Set("Content-Type", "application/json")
+    rw.WriteHeader(http.StatusOK)
+    if err := json.NewEncoder(rw).Encode(accommodations); err != nil {
+        http.Error(rw, "Failed to encode accommodations", http.StatusInternalServerError)
+    }
+}
+
+

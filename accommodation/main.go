@@ -59,6 +59,13 @@ func main() {
 	deleteAccommodationRouter.HandleFunc("", accommodationsHandler.DeleteAccommodation)
 	deleteAccommodationRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
 
+	// Search part
+
+	searchAccommodationRouter := router.Methods(http.MethodGet).Path("/search").Subrouter()
+	searchAccommodationRouter.HandleFunc("", accommodationsHandler.SearchAccommodations)
+
+
+
 	// CORS middleware
 	cors := gorillaHandlers.CORS(
 		gorillaHandlers.AllowedOrigins([]string{"*"}),
