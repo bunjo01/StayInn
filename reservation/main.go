@@ -213,6 +213,10 @@ func main() {
 	getReservationsByAvailablePeriodRouter.HandleFunc("", reservationHandler.GetAllReservationByAvailablePeriod)
 	getReservationsByAvailablePeriodRouter.Use(reservationHandler.AuthorizeRoles("HOST", "GUEST"))
 
+	findAccommodationIdsByDates := router.Methods(http.MethodPost).Path("/search").Subrouter()
+	findAccommodationIdsByDates.HandleFunc("", reservationHandler.FindAccommodationIdsByDates)
+	findAccommodationIdsByDates.Use(reservationHandler.MiddlewareDatesDeserialization)
+
 	findAvailablePeriodByIdAndByAccommodationId := router.Methods(http.MethodGet).Path("/{accommodationID}/{periodID}").Subrouter()
 	findAvailablePeriodByIdAndByAccommodationId.HandleFunc("", reservationHandler.FindAvailablePeriodByIdAndByAccommodationId)
 	findAvailablePeriodByIdAndByAccommodationId.Use(reservationHandler.AuthorizeRoles("HOST", "GUEST"))

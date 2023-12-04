@@ -3,10 +3,12 @@ package handlers
 import (
 	"accommodation/clients"
 	"accommodation/data"
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
 
@@ -187,14 +189,40 @@ func (ah *AccommodationHandler) extractTokenFromHeader(rr *http.Request) string 
 }
 
 func (ah *AccommodationHandler) SearchAccommodations(rw http.ResponseWriter, r *http.Request) {
-	ah.logger.Printf("Usli smo u SearchAccommodations funkciju")
-	ctx := r.Context()
+	ah.logger.Printf("Entering SearchAccommodations function")
 
-	// Parse query parameters
+	// Parse start and end dates
+	startDateStr := r.URL.Query().Get("startDate")
+	endDateStr := r.URL.Query().Get("endDate")
+
+	startDate, err := time.Parse("2006-01-02T15:04:05Z", startDateStr)
+	if err != nil {
+		ah.logger.Println(err)
+		http.Error(rw, "Invalid startDate format", http.StatusBadRequest)
+		return
+	}
+
+	endDate, err := time.Parse("2006-01-02T15:04:05Z", endDateStr)
+	if err != nil {
+		ah.logger.Println(err)
+		http.Error(rw, "Invalid endDate format", http.StatusBadRequest)
+		return
+	}
+
+	// Get the list of IDs from the reservation service
+	ctx, cancel := context.WithTimeout(r.Context(), 5000*time.Millisecond)
+	defer cancel()
+
+	ids, err := ah.reservation.PassDatesToReservationService(ctx, startDate, endDate)
+	if err != nil {
+		ah.logger.Println(err)
+		writeResp(err, http.StatusServiceUnavailable, rw)
+		return
+	}
+
+	// Parse other query parameters
 	location := r.URL.Query().Get("location")
 	numberOfGuests := r.URL.Query().Get("numberOfGuests")
-	startDate := r.URL.Query().Get("startDate")
-	endDate := r.URL.Query().Get("endDate")
 
 	numGuests, err := strconv.Atoi(numberOfGuests)
 	if err != nil {
@@ -203,7 +231,10 @@ func (ah *AccommodationHandler) SearchAccommodations(rw http.ResponseWriter, r *
 	}
 
 	// Create a filter based on the parsed parameters
-	filter := bson.M{}
+	filter := bson.M{
+		"_id": bson.M{"$in": ids}, // Filter by reservation service IDs
+	}
+
 	if location != "" {
 		filter["location"] = location
 	}
@@ -215,20 +246,14 @@ func (ah *AccommodationHandler) SearchAccommodations(rw http.ResponseWriter, r *
 		}
 	}
 
-	if startDate != "" {
-		filter["startDate"] = startDate
-	}
-
-	if endDate != "" {
-		filter["endDate"] = endDate
-	}
-
+	// Retrieve accommodations based on the filter
 	accommodations, err := ah.repo.GetFilteredAccommodations(ctx, filter)
 	if err != nil {
 		http.Error(rw, "Failed to retrieve accommodations", http.StatusInternalServerError)
 		return
 	}
 
+	// Return the filtered accommodations as JSON response
 	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(rw).Encode(accommodations); err != nil {
