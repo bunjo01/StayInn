@@ -20,12 +20,13 @@ type ReservationHandler struct {
 	logger       *log.Logger
 	repo         *data.ReservationRepo
 	notification clients.NotificationClient
+	profile      clients.ProfileClient
 }
 
 var secretKey = []byte("stayinn_secret")
 
-func NewReservationHandler(l *log.Logger, r *data.ReservationRepo, n clients.NotificationClient) *ReservationHandler {
-	return &ReservationHandler{l, r, n}
+func NewReservationHandler(l *log.Logger, r *data.ReservationRepo, n clients.NotificationClient, p clients.ProfileClient) *ReservationHandler {
+	return &ReservationHandler{l, r, n, p}
 }
 
 func (r *ReservationHandler) GetAllAvailablePeriodsByAccommodation(rw http.ResponseWriter, h *http.Request) {
