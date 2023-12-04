@@ -1,21 +1,28 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { AccommodationService } from 'src/app/services/accommodation.service';
 import { Accommodation, AmenityEnum } from 'src/app/model/accommodation';
 import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 @Component({
   selector: 'app-accommodations',
   templateUrl: './accommodations.component.html',
   styleUrls: ['./accommodations.component.css']
 })
-export class AccommodationsComponent implements OnInit {
+export class AccommodationsComponent implements OnInit, OnDestroy {
   accommodations: Accommodation[] = [];
   showCreateAccommodationForm: boolean = false;
+  private accommodationSubscription!: Subscription;
 
   constructor(private accommodationService: AccommodationService,
               private router: Router) {}
 
+  ngOnDestroy(): void {
+    this.accommodationSubscription.unsubscribe();
+  }
+
   ngOnInit(): void {
     this.loadAccommodations();
+    this.listenForSearchedAccommodations();
   }
 
   toggleCreateAccommodationForm(): void {
@@ -31,6 +38,18 @@ export class AccommodationsComponent implements OnInit {
         console.error('Error fetching accommodations:', error);
       }
     );
+  }
+
+  listenForSearchedAccommodations(): void {
+    this.accommodationSubscription = this.accommodationService.getSearchedAccommodations().subscribe(
+      (searchedAccommodations) => {
+        this.accommodations = searchedAccommodations;
+      },
+      (error) => {
+        console.error('Error fetching searched accommodations:', error);
+      }
+    );
+    
   }
 
   navigateToAvailablePeriods(accommodation: Accommodation): void{
