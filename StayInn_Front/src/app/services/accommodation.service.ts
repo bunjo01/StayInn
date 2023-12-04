@@ -34,9 +34,16 @@ export class AccommodationService {
     return this.currentAccommodation.asObservable();
   }
 
-  searchAccommodations(location: string, numberOfGuests: number): Observable<Accommodation[]> {
-    return this.http.get<Accommodation[]>(this.apiUrl + `/search?location=${location}&numberOfGuests=${numberOfGuests}`);
-  }
+  searchAccommodations(location: string, numberOfGuests: number, startDate: string, endDate: string): Observable<Accommodation[]> {
+    let apiUrl = this.apiUrl + `/search?location=${location}&numberOfGuests=${numberOfGuests}`;
+  
+    // Provera da li postoje vrednosti za startDate i endDate
+    if (startDate && endDate) {
+      apiUrl += `&startDate=${startDate}&endDate=${endDate}`;
+    }
+  
+    return this.http.get<Accommodation[]>(apiUrl);
+  } 
 
   sendSearchedAccommodations(accommodations: Accommodation[]): void {
     this.searchedAccommodationsSubject.next(accommodations);
