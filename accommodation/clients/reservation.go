@@ -7,9 +7,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/sony/gobreaker"
 )
@@ -35,14 +36,10 @@ func (rc ReservationClient) PassDatesToReservationService(ctx context.Context, s
 		EndDate:   endDate,
 	}
 
-	println("38")
-
 	requestBody, err := json.Marshal(dates)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal dates: %v", err)
 	}
-
-	println("45")
 
 	var timeout time.Duration
 	deadline, reqHasDeadline := ctx.Deadline()
@@ -50,24 +47,16 @@ func (rc ReservationClient) PassDatesToReservationService(ctx context.Context, s
 		timeout = time.Until(deadline)
 	}
 
-	println("53")
-
 	cbResp, err := rc.cb.Execute(func() (interface{}, error) {
 		req, err := http.NewRequestWithContext(ctx, http.MethodPost, rc.address+"/search", bytes.NewBuffer(requestBody))
 		if err != nil {
-			println("58")
 			return nil, err
 		}
 		return rc.client.Do(req)
 	})
-	println("Response ", &cbResp)
-	println("Error ", &err)
 	if err != nil {
-		println("64")
 		return nil, handleHttpReqErr(err, rc.address+"/search", http.MethodPost, timeout)
 	}
-
-	println("68")
 
 	resp := cbResp.(*http.Response)
 	if resp.StatusCode != http.StatusOK {
@@ -78,16 +67,12 @@ func (rc ReservationClient) PassDatesToReservationService(ctx context.Context, s
 		}
 	}
 
-	println("79")
-
 	// Parse the JSON response
 	var serviceResponse data.ListOfObjectIds
 	decoder := json.NewDecoder(resp.Body)
 	if err := decoder.Decode(&serviceResponse); err != nil {
 		return nil, fmt.Errorf("failed to decode JSON response: %v", err)
 	}
-
-	println("88")
 
 	return serviceResponse.ObjectIds, nil
 }

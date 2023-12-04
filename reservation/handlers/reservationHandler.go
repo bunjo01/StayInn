@@ -63,7 +63,7 @@ func (r *ReservationHandler) FindAvailablePeriodByIdAndByAccommodationId(rw http
 	}
 
 	if availablePeriod == nil {
-		r.logger.Println("Ne postoji period sa datim ID-em ili u datom smestaju")
+		r.logger.Println("No period with given ID in accommodation")
 		return
 	}
 
@@ -121,14 +121,12 @@ func (r *ReservationHandler) CreateReservation(rw http.ResponseWriter, h *http.R
 
 func (r *ReservationHandler) FindAccommodationIdsByDates(rw http.ResponseWriter, h *http.Request) {
 	dates := h.Context().Value(KeyProduct{}).(data.Dates)
-	println("DATES: ", &dates.StartDate, &dates.EndDate)
 	ids, err := r.repo.FindAccommodationIdsByDates(&dates)
 	if err != nil {
 		r.logger.Print("Database exception: ", err)
 		http.Error(rw, fmt.Sprintf("Failed to find accommodation ids: %v", err), http.StatusBadRequest)
 		return
 	}
-	r.logger.Println("IDS: ", &ids.ObjectIds)
 	err = ids.ToJSON(rw)
 	if err != nil {
 		http.Error(rw, "Unable to convert to json:", http.StatusInternalServerError)

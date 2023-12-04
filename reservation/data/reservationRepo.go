@@ -101,15 +101,11 @@ func (rr *ReservationRepo) GetReservationsByAvailablePeriod(idAvailablePeriod st
 		var reservation ReservationByAvailablePeriod
 		var idAccommodationStr, idUserStr string
 
-		fmt.Println("104")
-
 		err := scanner.Scan(&reservation.ID, &idAccommodationStr, &reservation.IDAvailablePeriod, &idUserStr, &reservation.StartDate, &reservation.EndDate, &reservation.GuestNumber, &reservation.Price)
 		if err != nil {
 			rr.logger.Println(err)
 			return nil, err
 		}
-
-		fmt.Println("112")
 
 		// Convert idAccommodationStr and idUserStr strings to primitive.ObjectID
 		idAccommodation, err := primitive.ObjectIDFromHex(idAccommodationStr)
@@ -119,16 +115,12 @@ func (rr *ReservationRepo) GetReservationsByAvailablePeriod(idAvailablePeriod st
 		}
 		reservation.IDAccommodation = idAccommodation
 
-		fmt.Println("122")
-
 		idUser, err := primitive.ObjectIDFromHex(idUserStr)
 		if err != nil {
 			rr.logger.Println(err)
 			return nil, err
 		}
 		reservation.IDUser = idUser
-
-		fmt.Println("131")
 
 		reservations = append(reservations, &reservation)
 	}
@@ -220,7 +212,6 @@ func (rr *ReservationRepo) InsertReservationByAvailablePeriod(reservation *Reser
 		reservationId, reservation.IDAccommodation.Hex(), reservation.IDAvailablePeriod, reservation.IDUser.Hex(),
 		reservation.StartDate, reservation.EndDate, reservation.GuestNumber, calculatedPrice).Exec()
 	if err != nil {
-		fmt.Println("223")
 		rr.logger.Println(err)
 		return err
 	}
