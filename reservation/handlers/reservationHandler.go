@@ -119,6 +119,24 @@ func (r *ReservationHandler) CreateReservation(rw http.ResponseWriter, h *http.R
 	rw.WriteHeader(http.StatusCreated)
 }
 
+func (r *ReservationHandler) FindAccommodationIdsByDates(rw http.ResponseWriter, h *http.Request) {
+	dates := h.Context().Value(KeyProduct{}).(data.Dates)
+	println("DATES: ", &dates.StartDate, &dates.EndDate)
+	ids, err := r.repo.FindAccommodationIdsByDates(&dates)
+	if err != nil {
+		r.logger.Print("Database exception: ", err)
+		http.Error(rw, fmt.Sprintf("Failed to find accommodation ids: %v", err), http.StatusBadRequest)
+		return
+	}
+	r.logger.Println("IDS: ", &ids.ObjectIds)
+	err = ids.ToJSON(rw)
+	if err != nil {
+		http.Error(rw, "Unable to convert to json:", http.StatusInternalServerError)
+		r.logger.Fatal("Unable to convert to json :", err)
+		return
+	}
+}
+
 func (r *ReservationHandler) UpdateAvailablePeriodByAccommodation(rw http.ResponseWriter, h *http.Request) {
 	availablePeriod := h.Context().Value(KeyProduct{}).(*data.AvailablePeriodByAccommodation)
 	err := r.repo.UpdateAvailablePeriodByAccommodation(availablePeriod)
@@ -169,6 +187,21 @@ func (r *ReservationHandler) MiddlewareReservationDeserialization(next http.Hand
 			return
 		}
 		ctx := context.WithValue(h.Context(), KeyProduct{}, reservation)
+		h = h.WithContext(ctx)
+		next.ServeHTTP(rw, h)
+	})
+}
+
+func (r *ReservationHandler) MiddlewareDatesDeserialization(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, h *http.Request) {
+		dates := data.Dates{}
+		err := dates.FromJSON(h.Body)
+		if err != nil {
+			http.Error(rw, "Unable to decode json", http.StatusBadRequest)
+			r.logger.Fatal(err)
+			return
+		}
+		ctx := context.WithValue(h.Context(), KeyProduct{}, dates)
 		h = h.WithContext(ctx)
 		next.ServeHTTP(rw, h)
 	})

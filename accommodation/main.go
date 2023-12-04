@@ -79,7 +79,7 @@ func main() {
 
 	createAccommodationRouter := router.Methods(http.MethodPost).Path("/accommodation").Subrouter()
 	createAccommodationRouter.HandleFunc("", accommodationsHandler.CreateAccommodation)
-	createAccommodationRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
+	//createAccommodationRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
 
 	getAllAccommodationRouter := router.Methods(http.MethodGet).Path("/accommodation").Subrouter()
 	getAllAccommodationRouter.HandleFunc("", accommodationsHandler.GetAllAccommodations)

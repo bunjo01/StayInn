@@ -474,6 +474,36 @@ func (rr *ReservationRepo) DeleteReservationByIdAndAvailablePeriodID(id, periodI
 	return nil
 }
 
+func (rr *ReservationRepo) FindAccommodationIdsByDates(dates *Dates) (ListOfObjectIds, error) {
+	query := `SELECT id_accommodation FROM available_periods_by_accommodation 
+          WHERE start_date <= ? AND end_date >= ? ALLOW FILTERING`
+
+	iter := rr.session.Query(query, dates.StartDate, dates.EndDate).Iter()
+	defer iter.Close()
+
+	var listOfIds ListOfObjectIds
+
+	var result string
+	for iter.Scan(&result) {
+		// Convert the result string to primitive.ObjectID
+		idAccommodation, err := primitive.ObjectIDFromHex(result)
+		if err != nil {
+			rr.logger.Println(err)
+			return ListOfObjectIds{}, err
+		}
+
+		listOfIds.ObjectIds = append(listOfIds.ObjectIds, idAccommodation)
+	}
+
+	if err := iter.Close(); err != nil {
+		rr.logger.Println(err)
+		return ListOfObjectIds{}, errors.New("error closing iterator")
+	}
+
+	return listOfIds, nil
+
+}
+
 func (rr *ReservationRepo) GetDistinctIds(idColumnName string, tableName string) ([]string, error) {
 	scanner := rr.session.Query(
 		fmt.Sprintf(`SELECT DISTINCT %s FROM %s`, idColumnName, tableName)).Iter().Scanner()
