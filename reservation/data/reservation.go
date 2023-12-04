@@ -29,6 +29,15 @@ type ReservationByAvailablePeriod struct {
 	Price             float64
 }
 
+type Dates struct {
+	StartDate time.Time `json:"startDate"`
+	EndDate   time.Time `json:"endDate"`
+}
+
+type ListOfObjectIds struct {
+	ObjectIds []primitive.ObjectID `json:"objectIds"`
+}
+
 type AvailablePeriodsByAccommodation []*AvailablePeriodByAccommodation
 type Reservations []*ReservationByAvailablePeriod
 
@@ -42,12 +51,32 @@ func (r *ReservationByAvailablePeriod) FromJSON(re io.Reader) error {
 	return d.Decode(r)
 }
 
+func (r *Dates) ToJSON(w io.Writer) error {
+	e := json.NewEncoder(w)
+	return e.Encode(r)
+}
+
+func (r *Dates) FromJSON(re io.Reader) error {
+	d := json.NewDecoder(re)
+	return d.Decode(r)
+}
+
 func (r *Reservations) ToJSON(w io.Writer) error {
 	e := json.NewEncoder(w)
 	return e.Encode(r)
 }
 
 func (r *Reservations) FromJSON(re io.Reader) error {
+	d := json.NewDecoder(re)
+	return d.Decode(r)
+}
+
+func (r *ListOfObjectIds) ToJSON(w io.Writer) error {
+	e := json.NewEncoder(w)
+	return e.Encode(r)
+}
+
+func (r *ListOfObjectIds) FromJSON(re io.Reader) error {
 	d := json.NewDecoder(re)
 	return d.Decode(r)
 }

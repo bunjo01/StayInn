@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { ProfileService } from '../services/profile.service';
 import { AuthService } from '../services/auth.service';
@@ -11,6 +11,9 @@ import { ToastrService } from 'ngx-toastr';
 })
 export class HeaderComponent implements OnInit {
   userProfile: any;
+  @ViewChild('dropdownMenu')
+  dropdownMenu!: ElementRef;
+
   constructor(
     private router: Router, 
     private profileService: ProfileService, 
@@ -18,22 +21,7 @@ export class HeaderComponent implements OnInit {
     private toastr: ToastrService
     ) { }
 
-  ngOnInit() {
-    // Učitavanje podataka o korisniku prilikom inicijalizacije komponente
-    // this.loadUserProfile();
-  }
-
-  // loadUserProfile() {
-  //   // Pozivamo servis za dobijanje podataka o korisniku
-  //   this.profileService.getUser().subscribe(
-  //     (data) => {
-  //       this.userProfile = data;
-  //     },
-  //     (error) => {
-  //       console.error('Error fetching user profile: ', error);
-  //     }
-  //   );
-  // }
+  ngOnInit() { }
 
   isUserLoggedIn() {
     const token = localStorage.getItem('token');
@@ -42,7 +30,7 @@ export class HeaderComponent implements OnInit {
 
   handleDropdownChange(event: any) {
     const selectedOption = event.target.value;
-
+    
     if (selectedOption === 'profile') {
       this.router.navigate(['/profile']);
     } else if (selectedOption === 'changePassword') {
@@ -51,5 +39,7 @@ export class HeaderComponent implements OnInit {
       this.toastr.info("Logged out");
       this.authService.logout();
     }
+    
+    this.dropdownMenu.nativeElement.value = '';
   }
 }

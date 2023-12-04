@@ -10,6 +10,7 @@ import (
 	// NoSQL: module containing Mongo api client
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+
 	// TODO "go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -135,6 +136,30 @@ func (ar *AccommodationRepository) DeleteAccommodation(ctx context.Context, id p
 	}
 
 	return nil
+}
+
+// Search part
+
+func (ar *AccommodationRepository) GetFilteredAccommodations(ctx context.Context, filters bson.M) ([]*Accommodation, error) {
+    collection := ar.getAccommodationCollection()
+
+    // Log parameters
+    ar.logger.Printf("Filter parameters: %v\n", filters)
+
+    cursor, err := collection.Find(ctx, filters)
+    if err != nil {
+        ar.logger.Println(err)
+        return nil, err
+    }
+    defer cursor.Close(ctx)
+
+    var accommodations []*Accommodation
+    if err := cursor.All(ctx, &accommodations); err != nil {
+        ar.logger.Println(err)
+        return nil, err
+    }
+
+    return accommodations, nil
 }
 
 func (ar *AccommodationRepository) getAccommodationCollection() *mongo.Collection {

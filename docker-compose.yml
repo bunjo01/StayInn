@@ -176,11 +176,51 @@ services:
     networks:
       - network
 
+  notification_service:
+    build:
+      context: ./notification/
+      dockerfile: Dockerfile
+    restart: always
+    container_name: "notification_service"
+    hostname: "notification_service"
+    ports:
+      - 8084:8084
+    environment:
+      - PORT=8084
+      - MONGO_DB_URI=${MONGO_DB_URI_NOTIFICATION}
+    depends_on:
+      notification_db:
+        condition: service_healthy
+    networks:
+      - network
+
+  notification_db:
+    hostname: "notification_db"
+    container_name: "notification_db"
+    image: mongo
+    restart: always
+    ports:
+      - "27020:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: notificationDB
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok'
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    volumes:
+      - notification_db:/data/db
+    networks:
+      - network
+
 volumes:
   accommodation_db:
   auth_db:
   cass_store:
   profile_db:
+  notification_db:
 
 networks:
   network:

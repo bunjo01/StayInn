@@ -10,13 +10,16 @@ import (
 	"strconv"
 	"time"
 
-	"main.go/handlers"
+	"reservation/clients"
+	"reservation/data"
+	"reservation/domain"
+	"reservation/handlers"
 
 	gorillaHandlers "github.com/gorilla/handlers"
+	"github.com/sony/gobreaker"
 
 	"github.com/gocql/gocql"
 	"github.com/gorilla/mux"
-	"main.go/data"
 )
 
 func main() {
@@ -32,7 +35,7 @@ func main() {
 	defer cancel()
 
 	//Initialize the logger we are going to use, with prefix and datetime for every log
-	logger := log.New(os.Stdout, "[reservation-api] ", log.LstdFlags)
+	logger := log.New(os.Stdout, "[reservation-service] ", log.LstdFlags)
 	storeLogger := log.New(os.Stdout, "[reservation-store] ", log.LstdFlags)
 
 	// Initializing Cassandra DB
@@ -98,8 +101,105 @@ func main() {
 
 	defer store.CloseSession()
 
+	notificationClient := &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConns:        10,
+			MaxIdleConnsPerHost: 10,
+			MaxConnsPerHost:     10,
+		},
+	}
+
+	profileClient := &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConns:        10,
+			MaxIdleConnsPerHost: 10,
+			MaxConnsPerHost:     10,
+		},
+	}
+
+	accommodationClient := &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConns:        10,
+			MaxIdleConnsPerHost: 10,
+			MaxConnsPerHost:     10,
+		},
+	}
+
+	notificationBreaker := gobreaker.NewCircuitBreaker(
+		gobreaker.Settings{
+			Name:        "notification",
+			MaxRequests: 1,
+			Timeout:     10 * time.Second,
+			Interval:    0,
+			ReadyToTrip: func(counts gobreaker.Counts) bool {
+				return counts.ConsecutiveFailures > 2
+			},
+			OnStateChange: func(name string, from, to gobreaker.State) {
+				logger.Printf("CB '%s' changed from '%s' to '%s'\n", name, from, to)
+			},
+			IsSuccessful: func(err error) bool {
+				if err == nil {
+					return true
+				}
+				errResp, ok := err.(domain.ErrResp)
+				return ok && errResp.StatusCode >= 400 && errResp.StatusCode < 500
+			},
+		},
+	)
+
+	profileBreaker := gobreaker.NewCircuitBreaker(
+		gobreaker.Settings{
+			Name:        "profile",
+			MaxRequests: 1,
+			Timeout:     10 * time.Second,
+			Interval:    0,
+			ReadyToTrip: func(counts gobreaker.Counts) bool {
+				return counts.ConsecutiveFailures > 2
+			},
+			OnStateChange: func(name string, from, to gobreaker.State) {
+				logger.Printf("CB '%s' changed from '%s' to '%s'\n", name, from, to)
+			},
+			IsSuccessful: func(err error) bool {
+				if err == nil {
+					return true
+				}
+				errResp, ok := err.(domain.ErrResp)
+				return ok && errResp.StatusCode >= 400 && errResp.StatusCode < 500
+			},
+		},
+	)
+
+	accommodationBreaker := gobreaker.NewCircuitBreaker(
+		gobreaker.Settings{
+			Name:        "accommodation",
+			MaxRequests: 1,
+			Timeout:     10 * time.Second,
+			Interval:    0,
+			ReadyToTrip: func(counts gobreaker.Counts) bool {
+				return counts.ConsecutiveFailures > 2
+			},
+			OnStateChange: func(name string, from, to gobreaker.State) {
+				logger.Printf("CB '%s' changed from '%s' to '%s'\n", name, from, to)
+			},
+			IsSuccessful: func(err error) bool {
+				if err == nil {
+					return true
+				}
+				errResp, ok := err.(domain.ErrResp)
+				return ok && errResp.StatusCode >= 400 && errResp.StatusCode < 500
+			},
+		},
+	)
+
+	// TODO: Change second param accordingly after implementing methods on notification service
+	notification := clients.NewNotificationClient(notificationClient, os.Getenv("NOTIFICATION_SERVICE_URI"), notificationBreaker)
+	// TODO: Change second param in methods when sending request
+	profile := clients.NewProfileClient(profileClient, os.Getenv("PROFILE_SERVICE_URI")+"/users", profileBreaker)
+	// TODO: Change second param or add it in method
+	accommodation := clients.NewAccommodationClient(accommodationClient, os.Getenv("ACCOMMODATION_SERVICE_URI"), accommodationBreaker)
+
 	//Initialize the handler and inject said logger
-	reservationHandler := handlers.NewReservationHandler(logger, store)
+	reservationHandler := handlers.NewReservationHandler(logger, store, notification, profile, accommodation)
 
 	//Initialize the router and add a middleware for all the requests
 	router := mux.NewRouter()
@@ -113,6 +213,10 @@ func main() {
 	getReservationsByAvailablePeriodRouter.HandleFunc("", reservationHandler.GetAllReservationByAvailablePeriod)
 	getReservationsByAvailablePeriodRouter.Use(reservationHandler.AuthorizeRoles("HOST", "GUEST"))
 
+	findAccommodationIdsByDates := router.Methods(http.MethodPost).Path("/search").Subrouter()
+	findAccommodationIdsByDates.HandleFunc("", reservationHandler.FindAccommodationIdsByDates)
+	findAccommodationIdsByDates.Use(reservationHandler.MiddlewareDatesDeserialization)
+
 	findAvailablePeriodByIdAndByAccommodationId := router.Methods(http.MethodGet).Path("/{accommodationID}/{periodID}").Subrouter()
 	findAvailablePeriodByIdAndByAccommodationId.HandleFunc("", reservationHandler.FindAvailablePeriodByIdAndByAccommodationId)
 	findAvailablePeriodByIdAndByAccommodationId.Use(reservationHandler.AuthorizeRoles("HOST", "GUEST"))
@@ -124,8 +228,8 @@ func main() {
 
 	postReservationRouter := router.Methods(http.MethodPost).Path("/reservation").Subrouter()
 	postReservationRouter.HandleFunc("", reservationHandler.CreateReservation)
+	postReservationRouter.Use(reservationHandler.AuthorizeRoles("GUEST"))
 	postReservationRouter.Use(reservationHandler.MiddlewareReservationDeserialization)
-	// postReservationRouter.Use(reservationHandler.AuthorizeRoles("GUEST"))
 
 	updateAvailablePeriodsByAccommodationRouter := router.Methods(http.MethodPatch).Path("/period").Subrouter()
 	updateAvailablePeriodsByAccommodationRouter.HandleFunc("", reservationHandler.UpdateAvailablePeriodByAccommodation)

@@ -1,12 +1,5 @@
 <div class="container">
     <div class="header-main">
-        <!-- <div class="header">
-            <h1>StayInn</h1>
-            <div class="header-buttons">
-                <button [routerLink]="'/login'">Login</button>
-                <button [routerLink]="'/register'">Register</button>
-            </div>
-        </div> -->
         <div class="main-content">
             <div class="image-container">
                 <img src="/assets/images/wallpaper.jpg" alt="StayInn Image">
@@ -18,28 +11,31 @@
             </div>
         </div>
     </div>
-    <div class="header-search">
-        <div class="search-input">
+    <form (submit)="onSearchSubmit()">
+        <div class="header-search">
+          <div class="search-input">
             <label for="location">Location</label>
-            <input type="text" id="location" placeholder="Where are you going?" />
-        </div>
-        <div class="search-input">
+            <input type="text" id="location" placeholder="Where are you going?" required/>
+          </div>
+          <div class="search-input">
             <label for="check-in">Check-In</label>
             <input type="date" id="check-in" />
-        </div>
-        <div class="search-input">
+          </div>
+          <div class="search-input">
             <label for="check-out">Check-Out</label>
             <input type="date" id="check-out" />
-        </div>
-        <div class="search-input">
-            <label for="adults">Adults</label>
-            <input type="number" id="adults" min="1" value="1" />
-        </div>
-        <div class="search-input">
+          </div>
+          <div class="search-input">
+            <label for="numberOfGuests">Number of guests</label>
+            <input type="number" id="numberOfGuests" min="1" value="1" required/>
+          </div>
+          <div class="search-input">
             <label class="search-label"></label>
-            <button class="search-button">Search</button>
+            <button type="submit" class="search-button">Search</button>
+          </div>
         </div>
-    </div>
+      </form>
+      
     <app-accommodations></app-accommodations>
   </div>
   

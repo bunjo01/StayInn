@@ -2,25 +2,33 @@ package handlers
 
 import (
 	"context"
-	"github.com/dgrijalva/jwt-go"
+	"fmt"
 	"log"
 	"net/http"
 
+	"github.com/dgrijalva/jwt-go"
+
+	"reservation/clients"
+	"reservation/data"
+
 	"github.com/gorilla/mux"
-	"main.go/data"
 )
 
 type KeyProduct struct{}
 
 type ReservationHandler struct {
-	logger *log.Logger
-	repo   *data.ReservationRepo
+	logger        *log.Logger
+	repo          *data.ReservationRepo
+	notification  clients.NotificationClient
+	profile       clients.ProfileClient
+	accommodation clients.AccommodationClient
 }
 
 var secretKey = []byte("stayinn_secret")
 
-func NewReservationHandler(l *log.Logger, r *data.ReservationRepo) *ReservationHandler {
-	return &ReservationHandler{l, r}
+func NewReservationHandler(l *log.Logger, r *data.ReservationRepo, n clients.NotificationClient,
+	p clients.ProfileClient, a clients.AccommodationClient) *ReservationHandler {
+	return &ReservationHandler{l, r, n, p, a}
 }
 
 func (r *ReservationHandler) GetAllAvailablePeriodsByAccommodation(rw http.ResponseWriter, h *http.Request) {
@@ -55,7 +63,7 @@ func (r *ReservationHandler) FindAvailablePeriodByIdAndByAccommodationId(rw http
 	}
 
 	if availablePeriod == nil {
-		r.logger.Println("Ne postoji period sa datim ID-em ili u datom smestaju")
+		r.logger.Println("No period with given ID in accommodation")
 		return
 	}
 
@@ -93,7 +101,7 @@ func (r *ReservationHandler) CreateAvailablePeriod(rw http.ResponseWriter, h *ht
 	err := r.repo.InsertAvailablePeriodByAccommodation(availablePeriod)
 	if err != nil {
 		r.logger.Print("Database exception: ", err)
-		rw.WriteHeader(http.StatusBadRequest)
+		http.Error(rw, fmt.Sprintf("Failed to create available period: %v", err), http.StatusBadRequest)
 		return
 	}
 	rw.WriteHeader(http.StatusCreated)
@@ -105,10 +113,26 @@ func (r *ReservationHandler) CreateReservation(rw http.ResponseWriter, h *http.R
 	err := r.repo.InsertReservationByAvailablePeriod(reservation)
 	if err != nil {
 		r.logger.Print("Database exception: ", err)
-		rw.WriteHeader(http.StatusConflict)
+		http.Error(rw, fmt.Sprintf("Failed to create reservation: %v", err), http.StatusBadRequest)
 		return
 	}
 	rw.WriteHeader(http.StatusCreated)
+}
+
+func (r *ReservationHandler) FindAccommodationIdsByDates(rw http.ResponseWriter, h *http.Request) {
+	dates := h.Context().Value(KeyProduct{}).(data.Dates)
+	ids, err := r.repo.FindAccommodationIdsByDates(&dates)
+	if err != nil {
+		r.logger.Print("Database exception: ", err)
+		http.Error(rw, fmt.Sprintf("Failed to find accommodation ids: %v", err), http.StatusBadRequest)
+		return
+	}
+	err = ids.ToJSON(rw)
+	if err != nil {
+		http.Error(rw, "Unable to convert to json:", http.StatusInternalServerError)
+		r.logger.Fatal("Unable to convert to json :", err)
+		return
+	}
 }
 
 func (r *ReservationHandler) UpdateAvailablePeriodByAccommodation(rw http.ResponseWriter, h *http.Request) {
@@ -130,6 +154,7 @@ func (r *ReservationHandler) DeleteReservation(rw http.ResponseWriter, h *http.R
 	err := r.repo.DeleteReservationByIdAndAvailablePeriodID(reservationID, periodID)
 	if err != nil {
 		r.logger.Println("Database exception: ", err)
+		rw.WriteHeader(http.StatusNotFound)
 	}
 
 	rw.WriteHeader(http.StatusAccepted)
@@ -160,6 +185,21 @@ func (r *ReservationHandler) MiddlewareReservationDeserialization(next http.Hand
 			return
 		}
 		ctx := context.WithValue(h.Context(), KeyProduct{}, reservation)
+		h = h.WithContext(ctx)
+		next.ServeHTTP(rw, h)
+	})
+}
+
+func (r *ReservationHandler) MiddlewareDatesDeserialization(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, h *http.Request) {
+		dates := data.Dates{}
+		err := dates.FromJSON(h.Body)
+		if err != nil {
+			http.Error(rw, "Unable to decode json", http.StatusBadRequest)
+			r.logger.Fatal(err)
+			return
+		}
+		ctx := context.WithValue(h.Context(), KeyProduct{}, dates)
 		h = h.WithContext(ctx)
 		next.ServeHTTP(rw, h)
 	})
@@ -200,6 +240,8 @@ func (r *ReservationHandler) AuthorizeRoles(allowedRoles ...string) mux.Middlewa
 			}
 
 			for _, allowedRole := range allowedRoles {
+				fmt.Println("allowed role : ", allowedRole)
+				fmt.Println("JWT role : ", role)
 				if allowedRole == role {
 					next.ServeHTTP(w, rr)
 					return

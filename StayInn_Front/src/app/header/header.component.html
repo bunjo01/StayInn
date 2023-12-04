@@ -8,7 +8,7 @@
           <button class="btnRegister" routerLink="/register">Register</button>
         </ng-container>
         <ng-template #logoutButton>
-          <select class="dropdown-menu" (change)="handleDropdownChange($event)">
+          <select #dropdownMenu class="dropdown-menu" (change)="handleDropdownChange($event)">
             <option value="" disabled selected style="display: none;">Menu</option>
             <option value="profile" class="profile-option">Profile</option>
             <option value="changePassword" class="change-password-option">Change Password</option>

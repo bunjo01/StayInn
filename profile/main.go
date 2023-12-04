@@ -6,12 +6,15 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"profile/clients"
 	"profile/data"
+	"profile/domain"
 	"profile/handlers"
 	"time"
 
 	gorillaHandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/sony/gobreaker"
 )
 
 func main() {
@@ -27,7 +30,7 @@ func main() {
 	defer cancel()
 
 	//Initialize the logger we are going to use, with prefix and datetime for every log
-	logger := log.New(os.Stdout, "[profile-api] ", log.LstdFlags)
+	logger := log.New(os.Stdout, "[profile-service] ", log.LstdFlags)
 	storeLogger := log.New(os.Stdout, "[profile-store] ", log.LstdFlags)
 
 	// NoSQL: Initialize Profile Repository store
@@ -40,8 +43,103 @@ func main() {
 	// NoSQL: Checking if the connection was established
 	store.Ping()
 
+	// Creating clients for other services
+	accommodationClient := &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConns:        10,
+			MaxIdleConnsPerHost: 10,
+			MaxConnsPerHost:     10,
+		},
+	}
+
+	authClient := &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConns:        10,
+			MaxIdleConnsPerHost: 10,
+			MaxConnsPerHost:     10,
+		},
+	}
+
+	reservationClient := &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConns:        10,
+			MaxIdleConnsPerHost: 10,
+			MaxConnsPerHost:     10,
+		},
+	}
+
+	accommodationBreaker := gobreaker.NewCircuitBreaker(
+		gobreaker.Settings{
+			Name:        "accommodation",
+			MaxRequests: 1,
+			Timeout:     10 * time.Second,
+			Interval:    0,
+			ReadyToTrip: func(counts gobreaker.Counts) bool {
+				return counts.ConsecutiveFailures > 2
+			},
+			OnStateChange: func(name string, from, to gobreaker.State) {
+				logger.Printf("CB '%s' changed from '%s' to '%s'\n", name, from, to)
+			},
+			IsSuccessful: func(err error) bool {
+				if err == nil {
+					return true
+				}
+				errResp, ok := err.(domain.ErrResp)
+				return ok && errResp.StatusCode >= 400 && errResp.StatusCode < 500
+			},
+		},
+	)
+
+	authBreaker := gobreaker.NewCircuitBreaker(
+		gobreaker.Settings{
+			Name:        "auth",
+			MaxRequests: 1,
+			Timeout:     10 * time.Second,
+			Interval:    0,
+			ReadyToTrip: func(counts gobreaker.Counts) bool {
+				return counts.ConsecutiveFailures > 2
+			},
+			OnStateChange: func(name string, from, to gobreaker.State) {
+				logger.Printf("CB '%s' changed from '%s' to '%s'\n", name, from, to)
+			},
+			IsSuccessful: func(err error) bool {
+				if err == nil {
+					return true
+				}
+				errResp, ok := err.(domain.ErrResp)
+				return ok && errResp.StatusCode >= 400 && errResp.StatusCode < 500
+			},
+		},
+	)
+
+	reservationBreaker := gobreaker.NewCircuitBreaker(
+		gobreaker.Settings{
+			Name:        "reservation",
+			MaxRequests: 1,
+			Timeout:     10 * time.Second,
+			Interval:    0,
+			ReadyToTrip: func(counts gobreaker.Counts) bool {
+				return counts.ConsecutiveFailures > 2
+			},
+			OnStateChange: func(name string, from, to gobreaker.State) {
+				logger.Printf("CB '%s' changed from '%s' to '%s'\n", name, from, to)
+			},
+			IsSuccessful: func(err error) bool {
+				if err == nil {
+					return true
+				}
+				errResp, ok := err.(domain.ErrResp)
+				return ok && errResp.StatusCode >= 400 && errResp.StatusCode < 500
+			},
+		},
+	)
+
+	accommodation := clients.NewAccommodationClient(accommodationClient, os.Getenv("ACCOMMODATION_SERVICE_URI"), accommodationBreaker)
+	auth := clients.NewAuthClient(authClient, os.Getenv("AUTH_SERVICE_URI"), authBreaker)
+	reservation := clients.NewReservationClient(reservationClient, os.Getenv("RESERVATION_SERVICE_URI"), reservationBreaker)
+
 	// Initialize the handler and inject said logger
-	userHandler := handlers.NewUserHandler(logger, store)
+	userHandler := handlers.NewUserHandler(logger, store, accommodation, auth, reservation)
 
 	// Initialize the router and add a middleware for all the requests
 	router := mux.NewRouter()

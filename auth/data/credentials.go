@@ -3,6 +3,7 @@ package data
 import (
 	"encoding/json"
 	"io"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -21,6 +22,7 @@ type ActivatioModel struct {
 	ID             primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	ActivationUUID string             `bson:"activationUUID" json:"activationUUID"`
 	Username       string             `bson:"username" json:"username"`
+	Time           time.Time          `bson:"time" json:"time"`
 	Confirmed      bool               `bson:"confirmed" json:"confirmed"`
 }
 
@@ -28,6 +30,11 @@ type ChangePasswordRequest struct {
 	Username        string `json:"username"`
 	CurrentPassword string `json:"currentPassword"`
 	NewPassword     string `json:"newPassword"`
+}
+
+type ChangeUsernameRequest struct {
+	Username string `json:"username"`
+	NewUsername string `json:"newUsername"`
 }
 
 func (c *Credentials) ToJSON(w io.Writer) error {

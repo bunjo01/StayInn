@@ -3,6 +3,7 @@ go 1.21.4
 use (
 	./accommodation
 	./auth
+	./notification
 	./profile
 	./reservation
 )

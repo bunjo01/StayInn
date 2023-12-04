@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+
 	"os"
 	"time"
 
@@ -128,37 +129,32 @@ func (ur *UserRepo) CheckUsernameAvailability(ctx context.Context, username stri
 
 	err := collection.FindOne(ctx, filter).Err()
 
-	// Ako korisničko ime ne postoji (err == mongo.ErrNoDocuments), vraćamo true, inače false
 	return errors.Is(err, mongo.ErrNoDocuments), nil
 }
 
-func (ur *UserRepo) CheckUsernameExists(username string) bool {
-	collection := ur.getUserCollection()
-	filter := bson.M{"username": username}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	err := collection.FindOne(ctx, filter).Err()
-	return err == nil
-}
-
-func (ur *UserRepo) UpdateUser(ctx context.Context, user *NewUser) error {
-	// usernameOK := ur.CheckUsernameExists(user.Username)
-	// if !usernameOK {
-	//     return UsernameExistsError{Message: "username already exists"}
-	// }
-
-	collection := ur.getUserCollection()
-
-	filter := bson.M{"username": user.Username}
-	update := bson.M{"$set": user}
-
-	_, err := collection.UpdateOne(ctx, filter, update)
+func (ur *UserRepo) UpdateUser(ctx context.Context, username string, user *NewUser) error {
+	usernameAvailable, err := ur.CheckUsernameAvailability(ctx, user.Username)
 	if err != nil {
-		ur.logger.Println(err)
+		ur.logger.Println("Error checking username availability:", err)
 		return err
 	}
+
+	if !usernameAvailable && username != user.Username {
+		return fmt.Errorf("username %s is already taken", user.Username)
+	}
+
+	collection := ur.getUserCollection()
+
+	filter := bson.M{"username": username}
+	update := bson.M{"$set": user}
+
+	_, err = collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		ur.logger.Println("Error updating user in profile service:", err)
+		return err
+	}
+
+	ur.logger.Printf("User updated in profile service")
 
 	return nil
 }

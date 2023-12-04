@@ -87,6 +87,17 @@ export class RegisterComponent {
         this.router.navigate(['login']);
       },
       (error) => {
+        if (error.error === ('Username is not unique!\n')) {
+          this.toastr.warning('There is already a user with that username', 'Username taken');
+        }
+        else if (error.error === ('Password did not pass the security check. Pick a stronger password\n')) {
+          this.toastr.warning('Password did not pass the security check. Pick a stronger password',
+          'Weak password');
+        }
+        else if (error.status === 503) {
+          this.toastr.warning('Unable to contact profile service. Please try again later', 
+          'Profile service offline');
+        }
         console.error('Error while registrating: ', error);
       }
     );

@@ -2,16 +2,14 @@ package data
 
 import (
 	"bufio"
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -23,8 +21,10 @@ import (
 )
 
 type CredentialsRepo struct {
-	cli    *mongo.Client
-	logger *log.Logger
+	cli       *mongo.Client
+	logger    *log.Logger
+	blacklist map[string]struct{}
+	once      sync.Once
 }
 
 // Custom errors for better handling
@@ -61,10 +61,16 @@ func New(ctx context.Context, logger *log.Logger) (*CredentialsRepo, error) {
 		return nil, err
 	}
 
-	return &CredentialsRepo{
+	cr := &CredentialsRepo{
 		cli:    client,
 		logger: logger,
-	}, nil
+	}
+
+	cr.once.Do(func() {
+		cr.loadBlacklist()
+	})
+
+	return cr, nil
 }
 
 // Disconnect
@@ -153,9 +159,12 @@ func (cr *CredentialsRepo) AddCredentials(username, password, email, role string
 func (cr *CredentialsRepo) AddActivation(activationUUID, username string, confirmed bool) error {
 	collection := cr.getActivationCollection()
 
+	currentTime := time.Now()
+
 	newActivation := ActivatioModel{
 		ActivationUUID: activationUUID,
 		Username:       username,
+		Time:           currentTime,
 		Confirmed:      confirmed,
 	}
 
@@ -222,33 +231,81 @@ func (cr *CredentialsRepo) FindUserByUsername(username string) (NewUser, error) 
 	return newUser, nil
 }
 
-// Checks if password is contained in the blacklist.
-// Returns true if it passes the check, else returns false
-func (cr *CredentialsRepo) CheckPassword(password string) (bool, error) {
-	file, err := os.Open("security/blacklist.txt")
+func (cr *CredentialsRepo) GetAllCredentials(ctx context.Context) ([]Credentials, error) {
+	collection := cr.getCredentialsCollection()
+
+	cursor, err := collection.Find(ctx, bson.M{})
 	if err != nil {
-		log.Printf("error while opening blacklist.txt: %v", err)
-		return false, err
+		cr.logger.Println(err)
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var credentialsList []Credentials
+
+	if err := cursor.All(ctx, &credentialsList); err != nil {
+		cr.logger.Println(err)
+		return nil, err
+	}
+
+	return credentialsList, nil
+}
+
+func (cr *CredentialsRepo) ChangeUsername(ctx context.Context, oldUsername, username string) error {
+	collection := cr.getCredentialsCollection()
+
+	filter := bson.M{"username": oldUsername}
+
+	update := bson.M{"$set": bson.M{"username": username}}
+
+	_, err := collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		cr.logger.Println(err)
+		return err
+	}
+
+	return nil
+}
+
+// CheckPassword checks if the given password is contained in the blacklist.
+// Returns true if it passes the check, else returns false.
+func (cr *CredentialsRepo) CheckPassword(password string) (bool, error) {
+	_, found := cr.blacklist[password]
+	return !found, nil
+}
+
+// Loading blacklist into map for faster lookup
+func (cr *CredentialsRepo) loadBlacklist() {
+	blacklistFile := "security/blacklist.txt"
+	if _, err := os.Stat(blacklistFile); os.IsNotExist(err) {
+		log.Printf("Blacklist file not found: %v", err)
+		return
+	}
+
+	file, err := os.Open(blacklistFile)
+	if err != nil {
+		log.Printf("Error while opening blacklist file: %v", err)
+		return
 	}
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
+	blacklistMap := make(map[string]struct{})
+
 	for scanner.Scan() {
-		if strings.TrimSpace(scanner.Text()) == password {
-			return false, nil
-		}
+		blacklistMap[strings.TrimSpace(scanner.Text())] = struct{}{}
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Printf("error while scanning blacklist.txt: %v", err)
-		return false, err
+		log.Printf("Error while scanning blacklist file: %v", err)
+		return
 	}
 
-	return true, nil
+	cr.blacklist = blacklistMap
 }
 
 // Registers a new user to the system.
-// Saves credentials to auth service and passes rest of info to profile service
+// Saves credentials to auth db
 func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName, email, address, role string) error {
 	usernameOK := cr.CheckUsername(username)
 	passwordOK, err := cr.CheckPassword(strings.ToLower(password))
@@ -272,7 +329,6 @@ func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName,
 		activationUUID, err := cr.SendActivationEmail(email)
 		if err != nil {
 			cr.logger.Println("Failed to send activation email:", err)
-			// Ovdje možete obraditi grešku slanja e-maila, možda želite ponovo pokušati slati ili nešto drugo
 		} else {
 			cr.logger.Println("Activation email sent successfully with UUID:", activationUUID)
 		}
@@ -280,13 +336,6 @@ func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName,
 		err = cr.AddActivation(activationUUID, username, false)
 		if err != nil {
 			cr.logger.Println("Failed to add activation model to collection:", err)
-		}
-
-		// pass info to profile service
-		err = cr.passInfoToProfileService(username, firstName, lastName, email, address, role)
-		if err != nil {
-			cr.logger.Println(err.Error())
-			return err
 		}
 
 	} else if !usernameOK {
@@ -351,7 +400,6 @@ func (cr *CredentialsRepo) SendActivationEmail(email string) (string, error) {
 }
 
 func (cr *CredentialsRepo) SendRecoveryEmail(email string) (string, error) {
-	// Generiranje UUID-a za aktivaciju
 	recoveryUUID := generateActivationUUID()
 	collection := cr.getCredentialsCollection()
 	filter := bson.M{"email": email}
@@ -370,10 +418,9 @@ func (cr *CredentialsRepo) SendRecoveryEmail(email string) (string, error) {
 	}
 	if result.ModifiedCount == 0 {
 		cr.logger.Printf("user with email %s not found", email)
-		return "", err
+		return "", errors.New("user with the given email was not found")
 	}
 
-	// Slanje e-maila za aktivaciju
 	_, err = SendEmail(email, recoveryUUID, "recovery")
 	if err != nil {
 		return "", err
@@ -408,6 +455,14 @@ func (cr *CredentialsRepo) ActivateUserAccount(activationUUID string) error {
 	if err != nil {
 		return fmt.Errorf("failed to find activation model: %v", err)
 	}
+
+	currentTime := time.Now()
+	timeDifference := currentTime.Sub(activationModel.Time)
+
+	if timeDifference.Minutes() > 1 {
+		return fmt.Errorf("link for activation has expired")
+	}
+
 	collection = cr.getCredentialsCollection()
 
 	filter = bson.M{"username": activationModel.Username}
@@ -442,7 +497,7 @@ func (cr *CredentialsRepo) UpdatePasswordWithRecoveryUUID(recoveryUUID, newPassw
 	update := bson.M{
 		"$set": bson.M{
 			"password":     hashedPassword,
-			"recoveryUUID": "", // Briše recoveryUUID nakon promene lozinke
+			"recoveryUUID": "", // Delete recoveryUUID after password change
 		},
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -469,45 +524,6 @@ func hashPassword(password string) (string, error) {
 		return "", err
 	}
 	return string(hash), nil
-}
-
-// Sends user data to profile service, for persistence in profile_db
-// Returns error if it fails
-func (cr *CredentialsRepo) passInfoToProfileService(username, firstName, lastName, email, address, role string) error {
-	newUser := NewUser{
-		Username:    username,
-		FirstName:   firstName,
-		LastName:    lastName,
-		Email:       email,
-		Address:     address,
-		Role:        role,
-		IsActivated: false,
-	}
-
-	httpClient := &http.Client{}
-
-	profileServiceURL := os.Getenv("PROFILE_SERVICE_URI")
-
-	requestBody, err := json.Marshal(newUser)
-	if err != nil {
-		return fmt.Errorf("failed to marshal user data: %v", err)
-	}
-
-	log.Printf("Sending HTTP POST request to %s with payload: %s", profileServiceURL, requestBody)
-
-	resp, err := httpClient.Post(profileServiceURL+"/users", "application/json", bytes.NewBuffer(requestBody))
-	if err != nil {
-		return fmt.Errorf("HTTP POST request to profile service failed: %v", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusCreated {
-		return fmt.Errorf("HTTP POST request to profile service failed with status: %d", resp.StatusCode)
-	}
-
-	log.Println("HTTP POST request successful")
-
-	return nil
 }
 
 // GenerateToken generates a JWT token with the specified username and role.

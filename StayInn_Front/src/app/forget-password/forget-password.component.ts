@@ -3,6 +3,7 @@ import { FormGroup, FormBuilder, Validators } from '@angular/forms';
 import { Route, Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../services/auth.service';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'app-forget-password',
@@ -44,6 +45,14 @@ export class ForgetPasswordComponent {
       },
       (error) => {
         console.error('Error while sending mail: ', error);
+        if (error instanceof HttpErrorResponse) {
+          // Prikazivanje statusnog koda i poruke greške kroz ToastrService
+          const errorMessage = `${error.error}`;
+          this.toastr.error(errorMessage, 'Send mail error');
+        } else {
+          // Ukoliko greška nije HTTP greška, prikazuje se generička poruka
+          this.toastr.error('An unexpected error occurred', 'Change Password Error');
+        }
       }
     );
   }

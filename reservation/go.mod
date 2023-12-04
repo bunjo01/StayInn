@@ -1,4 +1,4 @@
-module main.go
+module reservation
 
 go 1.21.3
 
@@ -7,6 +7,7 @@ require (
 	github.com/gocql/gocql v1.6.0
 	github.com/gorilla/handlers v1.5.2
 	github.com/gorilla/mux v1.8.0
+	github.com/sony/gobreaker v0.5.0
 	go.mongodb.org/mongo-driver v1.13.0
 )
 

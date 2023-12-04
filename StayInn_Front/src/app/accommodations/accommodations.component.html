@@ -4,11 +4,13 @@
       <img src="../../assets/images/stay-inn.jpg" alt="{{ accommodation.name }} image" class="card-image">
       <div class="card-title">{{ accommodation.name }}</div>
       <h1 class="card-location">{{accommodation.location}}</h1>
-      <ul class="amenities-list">
-        <li *ngFor="let amenity of accommodation.amenities">
-          <p>{{ getAmenityName(amenity) }}</p>
-        </li>
-      </ul>
+      <div class="amenitiesContainer">
+        <ul class="amenities-list">
+          <li *ngFor="let amenity of accommodation.amenities">
+            <p>{{ getAmenityName(amenity) }}</p>
+          </li>
+        </ul>
+      </div>
       <h3>Minimal number of guests: {{accommodation.minGuests}}</h3>
       <h3>Maximal number of guests: {{accommodation.maxGuests}}</h3>
       <button class="btnAvailablePeriods" (click)="navigateToAvailablePeriods(accommodation)">View available periods</button>

@@ -1,10 +1,13 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
+	"profile/clients"
 	"profile/data"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
 
@@ -15,15 +18,19 @@ import (
 type KeyProduct struct{}
 
 type UserHandler struct {
-	logger *log.Logger
-	repo   *data.UserRepo
+	logger        *log.Logger
+	repo          *data.UserRepo
+	accommodation clients.AccommodationClient
+	auth          clients.AuthClient
+	reservation   clients.ReservationClient
 }
 
 var secretKey = []byte("stayinn_secret")
 
 // Injecting the logger makes this code much more testable
-func NewUserHandler(l *log.Logger, r *data.UserRepo) *UserHandler {
-	return &UserHandler{l, r}
+func NewUserHandler(l *log.Logger, r *data.UserRepo, ac clients.AccommodationClient,
+	au clients.AuthClient, re clients.ReservationClient) *UserHandler {
+	return &UserHandler{l, r, ac, au, re}
 }
 
 // Handler methods
@@ -55,9 +62,6 @@ func (uh *UserHandler) GetUser(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uh.logger.Printf("User role: %v", user.Role)
-	uh.logger.Printf("User username: %v", user.Username)
-	
 	if user == nil {
 		http.NotFound(rw, r)
 		return
@@ -96,29 +100,28 @@ func (uh *UserHandler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (uh *UserHandler) CheckUsernameAvailability(w http.ResponseWriter, r *http.Request) {
-    vars := mux.Vars(r)
-    username := vars["username"]
+	vars := mux.Vars(r)
+	username := vars["username"]
 
-    available, err := uh.repo.CheckUsernameAvailability(r.Context(), username)
-    if err != nil {
-        uh.logger.Println("Error checking username availability:", err)
-        http.Error(w, "Failed to check username availability", http.StatusInternalServerError)
-        return
-    }
+	available, err := uh.repo.CheckUsernameAvailability(r.Context(), username)
+	if err != nil {
+		uh.logger.Println("Error checking username availability:", err)
+		http.Error(w, "Failed to check username availability", http.StatusInternalServerError)
+		return
+	}
 
-    response := struct {
-        Available bool `json:"available"`
-    }{
-        Available: available,
-    }
+	response := struct {
+		Available bool `json:"available"`
+	}{
+		Available: available,
+	}
 
-    w.Header().Set("Content-Type", "application/json")
-    if err := json.NewEncoder(w).Encode(response); err != nil {
-        uh.logger.Println("Failed to encode JSON response:", err)
-        http.Error(w, "Failed to encode JSON response", http.StatusInternalServerError)
-    }
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		uh.logger.Println("Failed to encode JSON response:", err)
+		http.Error(w, "Failed to encode JSON response", http.StatusInternalServerError)
+	}
 }
-
 
 func (uh *UserHandler) UpdateUser(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -130,13 +133,16 @@ func (uh *UserHandler) UpdateUser(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// if !uh.repo.CheckUsernameExists(username) {
-	// 	http.Error(rw, "Username does not exist", http.StatusNotFound)
-	// 	return
-	// }
+	ctx, cancel := context.WithTimeout(r.Context(), 5000*time.Millisecond)
+	defer cancel()
+	_, err := uh.auth.PassUsernameToAuthService(ctx, username, updatedUser.Username)
+	if err != nil {
+		uh.logger.Println(err)
+		writeResp(err, http.StatusServiceUnavailable, rw)
+		return
+	}
 
-	updatedUser.Username = username
-	if err := uh.repo.UpdateUser(r.Context(), &updatedUser); err != nil {
+	if err := uh.repo.UpdateUser(r.Context(), username, &updatedUser); err != nil {
 		uh.logger.Println("Failed to update user:", err)
 		http.Error(rw, "Failed to update user", http.StatusInternalServerError)
 		return
