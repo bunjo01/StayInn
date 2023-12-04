@@ -117,6 +117,14 @@ func main() {
 		},
 	}
 
+	accommodationClient := &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConns:        10,
+			MaxIdleConnsPerHost: 10,
+			MaxConnsPerHost:     10,
+		},
+	}
+
 	notificationBreaker := gobreaker.NewCircuitBreaker(
 		gobreaker.Settings{
 			Name:        "notification",
@@ -161,13 +169,37 @@ func main() {
 		},
 	)
 
+	accommodationBreaker := gobreaker.NewCircuitBreaker(
+		gobreaker.Settings{
+			Name:        "accommodation",
+			MaxRequests: 1,
+			Timeout:     10 * time.Second,
+			Interval:    0,
+			ReadyToTrip: func(counts gobreaker.Counts) bool {
+				return counts.ConsecutiveFailures > 2
+			},
+			OnStateChange: func(name string, from, to gobreaker.State) {
+				logger.Printf("CB '%s' changed from '%s' to '%s'\n", name, from, to)
+			},
+			IsSuccessful: func(err error) bool {
+				if err == nil {
+					return true
+				}
+				errResp, ok := err.(domain.ErrResp)
+				return ok && errResp.StatusCode >= 400 && errResp.StatusCode < 500
+			},
+		},
+	)
+
 	// TODO: Change second param accordingly after implementing methods on notification service
 	notification := clients.NewNotificationClient(notificationClient, os.Getenv("NOTIFICATION_SERVICE_URI"), notificationBreaker)
 	// TODO: Change second param in methods when sending request
 	profile := clients.NewProfileClient(profileClient, os.Getenv("PROFILE_SERVICE_URI")+"/users", profileBreaker)
+	// TODO: Change second param or add it in method
+	accommodation := clients.NewAccommodationClient(accommodationClient, os.Getenv("ACCOMMODATION_SERVICE_URI"), accommodationBreaker)
 
 	//Initialize the handler and inject said logger
-	reservationHandler := handlers.NewReservationHandler(logger, store, notification, profile)
+	reservationHandler := handlers.NewReservationHandler(logger, store, notification, profile, accommodation)
 
 	//Initialize the router and add a middleware for all the requests
 	router := mux.NewRouter()

@@ -17,16 +17,18 @@ import (
 type KeyProduct struct{}
 
 type ReservationHandler struct {
-	logger       *log.Logger
-	repo         *data.ReservationRepo
-	notification clients.NotificationClient
-	profile      clients.ProfileClient
+	logger        *log.Logger
+	repo          *data.ReservationRepo
+	notification  clients.NotificationClient
+	profile       clients.ProfileClient
+	accommodation clients.AccommodationClient
 }
 
 var secretKey = []byte("stayinn_secret")
 
-func NewReservationHandler(l *log.Logger, r *data.ReservationRepo, n clients.NotificationClient, p clients.ProfileClient) *ReservationHandler {
-	return &ReservationHandler{l, r, n, p}
+func NewReservationHandler(l *log.Logger, r *data.ReservationRepo, n clients.NotificationClient,
+	p clients.ProfileClient, a clients.AccommodationClient) *ReservationHandler {
+	return &ReservationHandler{l, r, n, p, a}
 }
 
 func (r *ReservationHandler) GetAllAvailablePeriodsByAccommodation(rw http.ResponseWriter, h *http.Request) {
