@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"accommodation/clients"
 	"accommodation/data"
 	"encoding/json"
 	"log"
@@ -15,14 +16,15 @@ import (
 )
 
 type AccommodationHandler struct {
-	logger *log.Logger
-	repo   *data.AccommodationRepository
+	logger      *log.Logger
+	repo        *data.AccommodationRepository
+	reservation clients.ReservationClient
 }
 
 var secretKey = []byte("stayinn_secret")
 
-func NewAccommodationsHandler(logger *log.Logger, repo *data.AccommodationRepository) *AccommodationHandler {
-	return &AccommodationHandler{logger: logger, repo: repo}
+func NewAccommodationsHandler(l *log.Logger, r *data.AccommodationRepository, rc clients.ReservationClient) *AccommodationHandler {
+	return &AccommodationHandler{l, r, rc}
 }
 
 func (ah *AccommodationHandler) GetAllAccommodations(rw http.ResponseWriter, r *http.Request) {
@@ -186,48 +188,50 @@ func (ah *AccommodationHandler) extractTokenFromHeader(rr *http.Request) string 
 
 func (ah *AccommodationHandler) SearchAccommodations(rw http.ResponseWriter, r *http.Request) {
 	ah.logger.Printf("Usli smo u SearchAccommodations funkciju")
-    ctx := r.Context()
+	ctx := r.Context()
 
-    // Parse query parameters
-    location := r.URL.Query().Get("location")
-    numberOfGuests := r.URL.Query().Get("numberOfGuests")
-    startDate := r.URL.Query().Get("startDate")
-    endDate := r.URL.Query().Get("endDate")
+	// Parse query parameters
+	location := r.URL.Query().Get("location")
+	numberOfGuests := r.URL.Query().Get("numberOfGuests")
+	startDate := r.URL.Query().Get("startDate")
+	endDate := r.URL.Query().Get("endDate")
 
 	numGuests, err := strconv.Atoi(numberOfGuests)
+	if err != nil {
+		http.Error(rw, "Failed to convert numberOfGuests", http.StatusInternalServerError)
+		return
+	}
 
-    // Create a filter based on the parsed parameters
-    filter := bson.M{}
-    if location != "" {
-        filter["location"] = location
-    }
-    
-    if numGuests > 0 {
+	// Create a filter based on the parsed parameters
+	filter := bson.M{}
+	if location != "" {
+		filter["location"] = location
+	}
+
+	if numGuests > 0 {
 		filter["$and"] = bson.A{
 			bson.M{"minGuests": bson.M{"$lte": numGuests}},
 			bson.M{"maxGuests": bson.M{"$gte": numGuests}},
 		}
 	}
 
-    if startDate != "" {
-        filter["startDate"] = startDate
-    }
+	if startDate != "" {
+		filter["startDate"] = startDate
+	}
 
-    if endDate != "" {
-        filter["endDate"] = endDate
-    }
+	if endDate != "" {
+		filter["endDate"] = endDate
+	}
 
-    accommodations, err := ah.repo.GetFilteredAccommodations(ctx, filter)
-    if err != nil {
-        http.Error(rw, "Failed to retrieve accommodations", http.StatusInternalServerError)
-        return
-    }
+	accommodations, err := ah.repo.GetFilteredAccommodations(ctx, filter)
+	if err != nil {
+		http.Error(rw, "Failed to retrieve accommodations", http.StatusInternalServerError)
+		return
+	}
 
-    rw.Header().Set("Content-Type", "application/json")
-    rw.WriteHeader(http.StatusOK)
-    if err := json.NewEncoder(rw).Encode(accommodations); err != nil {
-        http.Error(rw, "Failed to encode accommodations", http.StatusInternalServerError)
-    }
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(rw).Encode(accommodations); err != nil {
+		http.Error(rw, "Failed to encode accommodations", http.StatusInternalServerError)
+	}
 }
-
-
