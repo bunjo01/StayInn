@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpResponse } from '@angular/common/http';
-import { BehaviorSubject, Observable, of } from 'rxjs';
+import { BehaviorSubject, Observable, Subject, of } from 'rxjs';
 import { Accommodation } from 'src/app/model/accommodation';
 import { environment } from 'src/environments/environment';
 
@@ -10,6 +10,7 @@ import { environment } from 'src/environments/environment';
 export class AccommodationService {
   private apiUrl = environment.baseUrl + '/api/accommodations';
   private currentAccommodation = new BehaviorSubject<Accommodation | null>(null);
+  private searchedAccommodationsSubject = new Subject<Accommodation[]>();
 
   jwtToken = localStorage.getItem('token');
   headers = new HttpHeaders({
@@ -32,6 +33,18 @@ export class AccommodationService {
   getAccommodation() {
     return this.currentAccommodation.asObservable();
   }
+
+  searchAccommodations(location: string, numberOfGuests: number): Observable<Accommodation[]> {
+    return this.http.get<Accommodation[]>(this.apiUrl + `/search?location=${location}&numberOfGuests=${numberOfGuests}`);
+  }
+
+  sendSearchedAccommodations(accommodations: Accommodation[]): void {
+    this.searchedAccommodationsSubject.next(accommodations);
+  }
+
+  getSearchedAccommodations(): Observable<Accommodation[]> {
+    return this.searchedAccommodationsSubject.asObservable();
+  }  
 
   createAccommodation(accommodation: Accommodation): Observable<Accommodation> {
     return this.http.post<Accommodation>(this.apiUrl + '/accommodation', accommodation, { headers: this.headers });
