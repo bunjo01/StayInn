@@ -28,7 +28,9 @@ export class HeaderComponent implements OnInit {
     return !!token;
   }
 
-  handleDropdownClick(selectedOption: string) {
+  handleDropdownChange(event: any) {
+    const selectedOption = event.target.value;
+    
     if (selectedOption === 'profile') {
       this.router.navigate(['/profile']);
     } else if (selectedOption === 'changePassword') {
@@ -37,7 +39,7 @@ export class HeaderComponent implements OnInit {
       this.toastr.info("Logged out");
       this.authService.logout();
     }
-
+    
     this.dropdownMenu.nativeElement.value = '';
   }
 }
