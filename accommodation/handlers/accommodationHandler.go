@@ -190,6 +190,9 @@ func (ah *AccommodationHandler) extractTokenFromHeader(rr *http.Request) string 
 
 func (ah *AccommodationHandler) SearchAccommodations(rw http.ResponseWriter, r *http.Request) {
 	ah.logger.Printf("Entering SearchAccommodations function")
+	// Get the list of IDs from the reservation service
+	ctx, cancel := context.WithTimeout(r.Context(), 5000*time.Millisecond)
+	defer cancel()
 
 	// Parse start and end dates
 	startDateStr := r.URL.Query().Get("startDate")
@@ -209,10 +212,6 @@ func (ah *AccommodationHandler) SearchAccommodations(rw http.ResponseWriter, r *
 		return
 	}
 
-	// Get the list of IDs from the reservation service
-	ctx, cancel := context.WithTimeout(r.Context(), 5000*time.Millisecond)
-	defer cancel()
-
 	ids, err := ah.reservation.PassDatesToReservationService(ctx, startDate, endDate)
 	if err != nil {
 		ah.logger.Println(err)
@@ -230,10 +229,14 @@ func (ah *AccommodationHandler) SearchAccommodations(rw http.ResponseWriter, r *
 		return
 	}
 
-	// Create a filter based on the parsed parameters
-	filter := bson.M{
-		"_id": bson.M{"$in": ids}, // Filter by reservation service IDs
+	filter := make(bson.M)
+
+	if len(ids) == 0 {
+		writeResp(err, http.StatusOK, rw)
+		return
 	}
+
+	filter["_id"] = bson.M{"$in": ids}
 
 	if location != "" {
 		filter["location"] = location

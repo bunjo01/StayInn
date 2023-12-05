@@ -29,7 +29,6 @@ func NewReservationClient(client *http.Client, address string, cb *gobreaker.Cir
 	}
 }
 
-// TODO: Client methods (search/filter according to start and end date of travel)
 func (rc ReservationClient) PassDatesToReservationService(ctx context.Context, startDate, endDate time.Time) ([]primitive.ObjectID, error) {
 	dates := data.Dates{
 		StartDate: startDate,
