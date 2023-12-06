@@ -68,6 +68,44 @@ func (c AuthClient) PassUsernameToAuthService(ctx context.Context, oldUsername, 
 	return true, nil
 }
 
+func (c AuthClient) PassEmailToAuthService(ctx context.Context, oldEmail, email string) (interface{}, error) {
+	reqBody := map[string]string{"email": email}
+	requestBody, err := json.Marshal(reqBody)
+	if err != nil {
+		_ = fmt.Errorf("error marshaling request body: %s", err)
+		return nil, err
+	}
+
+	var timeout time.Duration
+	deadline, reqHasDeadline := ctx.Deadline()
+	if reqHasDeadline {
+		timeout = time.Until(deadline)
+	}
+
+	cbResp, err := c.cb.Execute(func() (interface{}, error) {
+		req, err := http.NewRequestWithContext(ctx, http.MethodPut,
+			c.address+"/update-email"+"/"+oldEmail+"/"+email, bytes.NewBuffer(requestBody))
+		if err != nil {
+			return nil, err
+		}
+		return c.client.Do(req)
+	})
+	if err != nil {
+		return nil, handleHttpReqErr(err, c.address, http.MethodPut, timeout)
+	}
+
+	resp := cbResp.(*http.Response)
+	if resp.StatusCode != http.StatusOK {
+		return nil, domain.ErrResp{
+			URL:        resp.Request.URL.String(),
+			Method:     resp.Request.Method,
+			StatusCode: resp.StatusCode,
+		}
+	}
+
+	return true, nil
+}
+
 // Delete user in auth service.
 // Returns error if it fails
 func (c AuthClient) DeleteUserInAuthService(ctx context.Context, username string) (interface{}, error) {

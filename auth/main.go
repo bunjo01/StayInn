@@ -92,6 +92,7 @@ func main() {
 	router.HandleFunc("/recovery-password", credentialsHandler.UpdatePasswordWithRecoveryUUID).Methods("POST")
 	router.HandleFunc("/getAllUsers", credentialsHandler.GetAllUsers).Methods("GET")
 	router.HandleFunc("/update-username/{oldUsername}/{username}", credentialsHandler.UpdateUsername).Methods("PUT")
+	router.HandleFunc("/update-email/{oldEmail}/{email}", credentialsHandler.UpdateEmail).Methods("PUT")
 
 	deleteUserRouter := router.Methods(http.MethodDelete).Path("/delete/{username}").Subrouter()
 	deleteUserRouter.HandleFunc("", credentialsHandler.DeleteUser)

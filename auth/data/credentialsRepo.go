@@ -7,7 +7,8 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
+
+	// "strconv"
 	"strings"
 	"sync"
 	"time"
@@ -196,6 +197,20 @@ func (cr *CredentialsRepo) CheckUsername(username string) bool {
 	return errors.Is(err, mongo.ErrNoDocuments)
 }
 
+func (cr *CredentialsRepo) CheckEmail(email string) bool {
+	collection := cr.getCredentialsCollection()
+	filter := bson.M{"email": email}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	options := options.FindOne()
+
+	var foundUser Credentials
+	err := collection.FindOne(ctx, filter, options).Decode(&foundUser)
+
+	return errors.Is(err, mongo.ErrNoDocuments)
+}
+
 func (cr *CredentialsRepo) FindUserByUsername(username string) (NewUser, error) {
 	collection := cr.getCredentialsCollection()
 	filter := bson.M{"username": username}
@@ -257,6 +272,22 @@ func (cr *CredentialsRepo) ChangeUsername(ctx context.Context, oldUsername, user
 	filter := bson.M{"username": oldUsername}
 
 	update := bson.M{"$set": bson.M{"username": username}}
+
+	_, err := collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		cr.logger.Println(err)
+		return err
+	}
+
+	return nil
+}
+
+func (cr *CredentialsRepo) ChangeEmail(ctx context.Context, oldEmail, email string) error {
+	collection := cr.getCredentialsCollection()
+
+	filter := bson.M{"email": oldEmail}
+
+	update := bson.M{"$set": bson.M{"email": email}}
 
 	_, err := collection.UpdateOne(ctx, filter, update)
 	if err != nil {
@@ -541,19 +572,21 @@ func hashPassword(password string) (string, error) {
 
 // GenerateToken generates a JWT token with the specified username and role.
 func (cr *CredentialsRepo) GenerateToken(username, role string) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
-		jwt.MapClaims{
-			"username": username,
-			"role":     role,
-			"exp":      strconv.FormatInt(time.Now().Add(time.Hour*24).Unix(), 10),
-		})
+    expirationTime := time.Now().Add(24 * time.Hour)
+    claims := jwt.MapClaims{
+        "username": username,
+        "role":     role,
+        "exp":      expirationTime.Unix(),
+    }
 
-	tokenString, err := token.SignedString(secretKey)
-	if err != nil {
-		return "", err
-	}
+    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	return tokenString, nil
+    tokenString, err := token.SignedString(secretKey)
+    if err != nil {
+        return "", err
+    }
+
+    return tokenString, nil
 }
 
 func (cr *CredentialsRepo) getCredentialsCollection() *mongo.Collection {
