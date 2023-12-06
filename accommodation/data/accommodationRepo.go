@@ -170,6 +170,27 @@ func (ar *AccommodationRepository) DeleteAccommodationsForUser(ctx context.Conte
 	return nil
 }
 
+func (ar *AccommodationRepository) FindAccommodationsByIDs(ctx context.Context, ids []primitive.ObjectID) (*[]Accommodation, error) {
+	var accommodations []Accommodation
+	if len(ids) != 0 {
+		collection := ar.getAccommodationCollection()
+		filter := bson.M{"_id": bson.M{"$in": ids}}
+
+		cur, err := collection.Find(ctx, filter)
+		if err != nil {
+			return nil, err
+		}
+		defer cur.Close(ctx)
+
+		if err := cur.All(ctx, &accommodations); err != nil {
+			return nil, err
+		}
+
+		return &accommodations, nil
+	}
+	return &accommodations, nil
+}
+
 // Search part
 
 func (ar *AccommodationRepository) GetFilteredAccommodations(ctx context.Context, filters bson.M) ([]*Accommodation, error) {

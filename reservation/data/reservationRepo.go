@@ -581,18 +581,178 @@ func (rr *ReservationRepo) DeletePeriodsForAccommodations(accIDs []primitive.Obj
 	return nil
 }
 
-func (rr *ReservationRepo) FindAccommodationIdsByDates(dates *Dates) (ListOfObjectIds, error) {
-	query := `SELECT id_accommodation FROM available_periods_by_accommodation 
-          WHERE start_date <= ? AND end_date >= ? ALLOW FILTERING`
+// **SEARCH**
 
-	iter := rr.session.Query(query, dates.StartDate, dates.EndDate).Iter()
+func (rr *ReservationRepo) FindAccommodationIdsByDates(dates *Dates) (ListOfObjectIds, error) {
+	var periodIDs []gocql.UUID
+	uniqueAccommodationIds := make(map[primitive.ObjectID]struct{})
+
+	for _, id := range dates.AccommodationIds {
+		scanner := rr.session.Query(`
+			SELECT id, id_accommodation, start_date, end_date, price, price_per_guest 
+			FROM available_periods_by_accommodation 
+			WHERE id_accommodation = ?`, id.Hex()).Iter().Scanner()
+
+		for scanner.Next() {
+			var (
+				idAccommodationStr string
+				period             AvailablePeriodByAccommodation
+			)
+
+			err := scanner.Scan(&period.ID, &idAccommodationStr, &period.StartDate, &period.EndDate, &period.Price, &period.PricePerGuest)
+
+			if err != nil {
+				rr.logger.Println(err)
+				return ListOfObjectIds{}, err
+			}
+
+			period.IDAccommodation, _ = primitive.ObjectIDFromHex(idAccommodationStr)
+
+			if (period.StartDate.Before(dates.StartDate) || period.StartDate.Equal(dates.StartDate)) &&
+				(period.EndDate.After(dates.EndDate) || period.EndDate.Equal(dates.EndDate)) {
+				periodIDs = append(periodIDs, period.ID)
+				uniqueAccommodationIds[period.IDAccommodation] = struct{}{}
+			}
+		}
+
+		if err := scanner.Err(); err != nil {
+			rr.logger.Println(err)
+			return ListOfObjectIds{}, err
+		}
+	}
+
+	var accommodationIds []primitive.ObjectID
+	for id := range uniqueAccommodationIds {
+		accommodationIds = append(accommodationIds, id)
+	}
+
+	listOfInvalidIds, err := rr.FindReservationForSearch(periodIDs, accommodationIds, dates.StartDate, dates.EndDate)
+	if err != nil {
+		rr.logger.Println(err)
+		return ListOfObjectIds{}, err
+	}
+
+	return listOfInvalidIds, nil
+}
+
+func (rr *ReservationRepo) FindReservationForSearch(periodsIds []gocql.UUID, listOfAccommodationIds []primitive.ObjectID, startDate, endDate time.Time) (ListOfObjectIds, error) {
+	idAccommodationsMap := make(map[primitive.ObjectID]Reservations)
+
+	//need fixing
+	//listOfAccommodationIds, _ := rr.FindAccommodationIdsByPeriods(periodsIds)
+
+	for _, id := range listOfAccommodationIds {
+		idAccommodationsMap[id] = Reservations{}
+	}
+
+	for _, id := range periodsIds {
+		query := `SELECT id, id_accommodation, id_available_period, id_user, start_date, 
+       end_date, guest_number, price 
+       FROM reservations_by_available_period 
+       WHERE id_available_period = ? `
+
+		var (
+			idAccommodationStr string
+			idUserStr          string
+			reservation        ReservationByAvailablePeriod
+		)
+
+		iter := rr.session.Query(query, id).Consistency(gocql.One).Iter()
+
+		for iter.Scan(
+			&reservation.ID, &idAccommodationStr, &reservation.IDAvailablePeriod, &idUserStr,
+			&reservation.StartDate, &reservation.EndDate, &reservation.GuestNumber, &reservation.Price,
+		) {
+			reservation.IDAccommodation, _ = primitive.ObjectIDFromHex(idAccommodationStr)
+			reservation.IDUser, _ = primitive.ObjectIDFromHex(idUserStr)
+
+			newReservation := ReservationByAvailablePeriod{
+				ID:                reservation.ID,
+				IDAccommodation:   reservation.IDAccommodation,
+				IDAvailablePeriod: reservation.IDAvailablePeriod,
+				IDUser:            reservation.IDUser,
+				StartDate:         reservation.StartDate,
+				EndDate:           reservation.EndDate,
+				GuestNumber:       reservation.GuestNumber,
+				Price:             reservation.Price,
+			}
+
+			idAccommodation := newReservation.IDAccommodation
+			idAccommodationsMap[idAccommodation] = append(idAccommodationsMap[idAccommodation], &newReservation)
+		}
+
+		if err := iter.Close(); err != nil {
+			rr.logger.Println(err)
+			return ListOfObjectIds{}, err
+		}
+	}
+
+	idAccommodations := ListOfObjectIds{}
+
+	for _, reservations := range idAccommodationsMap {
+		for _, reservation := range reservations {
+			if (startDate.After(reservation.StartDate) && startDate.Before(reservation.EndDate)) ||
+				(endDate.After(reservation.StartDate) && endDate.Before(reservation.EndDate)) ||
+				startDate.Equal(reservation.EndDate) || endDate.Equal(reservation.StartDate) ||
+				endDate.Equal(reservation.EndDate) || startDate.Equal(reservation.StartDate) {
+				delete(idAccommodationsMap, reservation.IDAccommodation)
+				break
+			}
+		}
+	}
+
+	for id, _ := range idAccommodationsMap {
+		idAccommodations.ObjectIds = append(idAccommodations.ObjectIds, id)
+	}
+
+	return idAccommodations, nil
+}
+
+func (rr *ReservationRepo) FindAccommodationIdsByPeriods(periodsIds []gocql.UUID) ([]primitive.ObjectID, error) {
+	var accommodationIds []primitive.ObjectID
+
+	for _, id := range periodsIds {
+		iter := rr.session.Query(`
+            SELECT id_accommodation 
+            FROM available_periods_by_accommodation 
+            WHERE id = ? ALLOW FILTERING`, id).Iter()
+
+		var idAccommodationStr string
+		for iter.Scan(&idAccommodationStr) {
+			idAccommodation, err := primitive.ObjectIDFromHex(idAccommodationStr)
+			if err != nil {
+				rr.logger.Println(err)
+				return nil, err
+			}
+
+			accommodationIds = append(accommodationIds, idAccommodation)
+		}
+
+		if err := iter.Close(); err != nil {
+			rr.logger.Println(err)
+			return nil, err
+		}
+	}
+
+	return accommodationIds, nil
+}
+
+func (rr *ReservationRepo) FindReservationIdsByStartDate(dates *Dates) (ListOfObjectIds, error) {
+	query := `
+			SELECT id_accommodation 
+			FROM reservations_by_available_period
+			WHERE start_date <= ? AND end_date <= ?
+			ALLOW FILTERING
+			`
+
+	iter := rr.session.Query(query, dates.StartDate, dates.StartDate).Iter()
+
 	defer iter.Close()
 
 	var listOfIds ListOfObjectIds
 
 	var result string
 	for iter.Scan(&result) {
-		// Convert the result string to primitive.ObjectID
 		idAccommodation, err := primitive.ObjectIDFromHex(result)
 		if err != nil {
 			rr.logger.Println(err)
@@ -608,8 +768,63 @@ func (rr *ReservationRepo) FindAccommodationIdsByDates(dates *Dates) (ListOfObje
 	}
 
 	return listOfIds, nil
-
 }
+
+func (rr *ReservationRepo) FindReservationIdsByEndDate(dates *Dates) (ListOfObjectIds, error) {
+	query := `
+			SELECT id_accommodation 
+			FROM reservations_by_available_period
+			WHERE start_date <= ? AND end_date <= ?
+			ALLOW FILTERING
+			`
+
+	iter := rr.session.Query(query, dates.EndDate, dates.EndDate).Iter()
+
+	defer iter.Close()
+
+	var listOfIds ListOfObjectIds
+
+	var result string
+	for iter.Scan(&result) {
+		idAccommodation, err := primitive.ObjectIDFromHex(result)
+		if err != nil {
+			rr.logger.Println(err)
+			return ListOfObjectIds{}, err
+		}
+
+		listOfIds.ObjectIds = append(listOfIds.ObjectIds, idAccommodation)
+	}
+
+	if err := iter.Close(); err != nil {
+		rr.logger.Println(err)
+		return ListOfObjectIds{}, errors.New("error closing iterator")
+	}
+
+	listOfReservationIds, err := rr.FindReservationIdsByStartDate(dates)
+	if err != nil {
+		rr.logger.Println(err)
+		return ListOfObjectIds{}, err
+	}
+
+	// Create a map to efficiently check if an ID exists
+	reservationIdMap := make(map[primitive.ObjectID]struct{})
+	for _, id := range listOfReservationIds.ObjectIds {
+		reservationIdMap[id] = struct{}{}
+	}
+
+	// Iterate over the existing list of IDs and add those that don't exist in the reservation map
+	for _, id := range listOfIds.ObjectIds {
+		if _, exists := reservationIdMap[id]; !exists {
+			listOfReservationIds.ObjectIds = append(listOfReservationIds.ObjectIds, id)
+		}
+	}
+
+	fmt.Println("OVERLAP IDS: ", listOfReservationIds.ObjectIds)
+
+	return listOfReservationIds, nil
+}
+
+// **END OF SEARCH**
 
 func (rr *ReservationRepo) GetDistinctIds(idColumnName string, tableName string) ([]string, error) {
 	scanner := rr.session.Query(

@@ -29,12 +29,11 @@ func NewReservationClient(client *http.Client, address string, cb *gobreaker.Cir
 	}
 }
 
-// TODO: Client methods
-
-func (rc ReservationClient) PassDatesToReservationService(ctx context.Context, startDate, endDate time.Time) ([]primitive.ObjectID, error) {
+func (rc ReservationClient) PassDatesToReservationService(ctx context.Context, accommodationIds []primitive.ObjectID, startDate, endDate time.Time) ([]primitive.ObjectID, error) {
 	dates := data.Dates{
-		StartDate: startDate,
-		EndDate:   endDate,
+		AccommodationIds: accommodationIds,
+		StartDate:        startDate,
+		EndDate:          endDate,
 	}
 
 	requestBody, err := json.Marshal(dates)
@@ -68,7 +67,6 @@ func (rc ReservationClient) PassDatesToReservationService(ctx context.Context, s
 		}
 	}
 
-	// Parse the JSON response
 	var serviceResponse data.ListOfObjectIds
 	decoder := json.NewDecoder(resp.Body)
 	if err := decoder.Decode(&serviceResponse); err != nil {
