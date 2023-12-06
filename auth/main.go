@@ -93,6 +93,10 @@ func main() {
 	router.HandleFunc("/getAllUsers", credentialsHandler.GetAllUsers).Methods("GET")
 	router.HandleFunc("/update-username/{oldUsername}/{username}", credentialsHandler.UpdateUsername).Methods("PUT")
 
+	deleteUserRouter := router.Methods(http.MethodDelete).Path("/delete/{username}").Subrouter()
+	deleteUserRouter.HandleFunc("", credentialsHandler.DeleteUser)
+	deleteUserRouter.Use(credentialsHandler.AuthorizeRoles("HOST", "GUEST"))
+
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 
 	//Initialize the server

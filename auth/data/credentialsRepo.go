@@ -516,6 +516,19 @@ func (cr *CredentialsRepo) UpdatePasswordWithRecoveryUUID(recoveryUUID, newPassw
 	return nil
 }
 
+func (cr *CredentialsRepo) DeleteUser(ctx context.Context, username string) error {
+	collection := cr.getCredentialsCollection()
+
+	filter := bson.M{"username": username}
+	_, err := collection.DeleteOne(ctx, filter)
+	if err != nil {
+		cr.logger.Println(err)
+		return err
+	}
+
+	return nil
+}
+
 // BCrypt 12 hashing of password.
 // Returns hash and nil if successful, else returns empty string and error
 func hashPassword(password string) (string, error) {

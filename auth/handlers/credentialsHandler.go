@@ -10,8 +10,11 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
 )
+
+var secretKey = []byte("stayinn_secret")
 
 type KeyProduct struct{}
 
@@ -207,4 +210,63 @@ func (ch *CredentialsHandler) UpdatePasswordWithRecoveryUUID(w http.ResponseWrit
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (ch *CredentialsHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	username := vars["username"]
+
+	if err := ch.repo.DeleteUser(r.Context(), username); err != nil {
+		ch.logger.Println("Failed to delete user: ", err)
+		http.Error(w, "Failed to delete user", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (ch *CredentialsHandler) AuthorizeRoles(allowedRoles ...string) mux.MiddlewareFunc {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, rr *http.Request) {
+			tokenString := ch.extractTokenFromHeader(rr)
+			if tokenString == "" {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+
+			claims := jwt.MapClaims{}
+			token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+				return secretKey, nil
+			})
+
+			if err != nil || !token.Valid {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+
+			_, ok1 := claims["username"].(string)
+			role, ok2 := claims["role"].(string)
+			if !ok1 || !ok2 {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+
+			for _, allowedRole := range allowedRoles {
+				if allowedRole == role {
+					next.ServeHTTP(w, rr)
+					return
+				}
+			}
+
+			http.Error(w, "Forbidden", http.StatusForbidden)
+		})
+	}
+}
+
+func (ch *CredentialsHandler) extractTokenFromHeader(rr *http.Request) string {
+	token := rr.Header.Get("Authorization")
+	if token != "" {
+		return token[len("Bearer "):]
+	}
+	return ""
 }
