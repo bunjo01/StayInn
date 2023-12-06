@@ -413,6 +413,43 @@ func (rr *ReservationRepo) FindAllReservationsByAvailablePeriod(periodId string)
 	return reservations, nil
 }
 
+func (rr *ReservationRepo) FindAllReservationsByUserID(userID string) (Reservations, error) {
+	scanner := rr.session.Query(`
+        SELECT id, id_accommodation, id_available_period, id_user, start_date, end_date, guest_number, price
+        FROM reservations_by_available_period
+        WHERE id_user = ?`, userID).Iter().Scanner()
+
+	var reservations Reservations
+	for scanner.Next() {
+		var (
+			idAccommodationStr string
+			idUserStr          string
+			reservation        ReservationByAvailablePeriod
+		)
+
+		err := scanner.Scan(&reservation.ID, &idAccommodationStr, &reservation.IDAvailablePeriod, &idUserStr,
+			&reservation.StartDate, &reservation.EndDate, &reservation.GuestNumber, &reservation.Price)
+
+		if err != nil {
+			rr.logger.Println(err)
+			return nil, err
+		}
+
+		// Convert strings to primitive.ObjectID
+		reservation.IDAccommodation, _ = primitive.ObjectIDFromHex(idAccommodationStr)
+		reservation.IDUser, _ = primitive.ObjectIDFromHex(idUserStr)
+
+		reservations = append(reservations, &reservation)
+	}
+
+	if err := scanner.Err(); err != nil {
+		rr.logger.Println(err)
+		return nil, err
+	}
+
+	return reservations, nil
+}
+
 func (rr *ReservationRepo) FindReservationByIdAndAvailablePeriod(id, periodID string) (*ReservationByAvailablePeriod, error) {
 	query := `SELECT id, id_accommodation, id_available_period, id_user, start_date, 
                end_date, guest_number, price 
@@ -462,6 +499,85 @@ func (rr *ReservationRepo) DeleteReservationByIdAndAvailablePeriodID(id, periodI
 		rr.logger.Println(err)
 		return err
 	}
+	return nil
+}
+
+func (rr *ReservationRepo) CheckAndDeleteReservationsByUserID(userID primitive.ObjectID) error {
+	reservations, err := rr.FindAllReservationsByUserID(userID.Hex())
+	if err != nil {
+		rr.logger.Println(err)
+		return err
+	}
+
+	for _, reservation := range reservations {
+		if !time.Now().After(reservation.EndDate) {
+			rr.logger.Println(err)
+			return errors.New("user has active reservations")
+		}
+	}
+
+	query := `DELETE FROM reservations_by_available_period
+              WHERE id_user = ?`
+
+	if err := rr.session.Query(query, userID.Hex()).Exec(); err != nil {
+		rr.logger.Println(err)
+		return err
+	}
+	return nil
+}
+
+func (rr *ReservationRepo) DeletePeriodsForAccommodations(accIDs []primitive.ObjectID) error {
+	var errs []error
+
+	for _, accID := range accIDs {
+		periods, err := rr.FindAvailablePeriodsByAccommodationId(accID.String())
+		if err != nil {
+			rr.logger.Println(err)
+			errs = append(errs, err)
+			continue
+		}
+
+		for _, period := range periods {
+			reservations, err := rr.FindAllReservationsByAvailablePeriod(period.ID.String())
+			if err != nil {
+				rr.logger.Println(err)
+				errs = append(errs, err)
+				continue
+			}
+
+			var reservationIDs []gocql.UUID
+			for _, reservation := range reservations {
+				if !time.Now().After(reservation.EndDate) {
+					errs = append(errs, errors.New("cannot delete period, there are active reservations"))
+					continue
+				}
+				reservationIDs = append(reservationIDs, reservation.ID)
+			}
+
+			// Batch deletion of reservations
+			if len(reservationIDs) > 0 {
+				query := `DELETE FROM reservations_by_available_period WHERE id IN ?`
+
+				if err := rr.session.Query(query, reservationIDs).Exec(); err != nil {
+					rr.logger.Println(err)
+					errs = append(errs, err)
+				}
+			}
+
+			// Delete the available period
+			query := `DELETE FROM available_periods_by_accommodation WHERE id = ?`
+
+			if err := rr.session.Query(query, period.ID).Exec(); err != nil {
+				rr.logger.Println(err)
+				errs = append(errs, err)
+			}
+		}
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("encountered %d errors: %v", len(errs), errs)
+	}
+
 	return nil
 }
 

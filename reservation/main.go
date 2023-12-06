@@ -240,6 +240,14 @@ func main() {
 	deleteReservation.HandleFunc("", reservationHandler.DeleteReservation)
 	deleteReservation.Use(reservationHandler.AuthorizeRoles("GUEST"))
 
+	deletePeriodsByAccommodationRouter := router.Methods(http.MethodPost).Path("/check-acc").Subrouter()
+	deletePeriodsByAccommodationRouter.HandleFunc("", reservationHandler.DeletePeriodsForAccommodations)
+	deletePeriodsByAccommodationRouter.Use(reservationHandler.AuthorizeRoles("HOST"))
+
+	checkReservationsByUserIdRouter := router.Methods(http.MethodDelete).Path("/user/{id}/reservations").Subrouter()
+	checkReservationsByUserIdRouter.HandleFunc("", reservationHandler.CheckAndDeleteReservationsForUser)
+	checkReservationsByUserIdRouter.Use(reservationHandler.AuthorizeRoles("GUEST"))
+
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 
 	//Initialize the server

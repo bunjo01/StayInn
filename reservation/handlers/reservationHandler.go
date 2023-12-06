@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/dgrijalva/jwt-go"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"reservation/clients"
 	"reservation/data"
@@ -144,6 +145,34 @@ func (r *ReservationHandler) UpdateAvailablePeriodByAccommodation(rw http.Respon
 		return
 	}
 	rw.WriteHeader(http.StatusCreated)
+}
+
+func (r *ReservationHandler) DeletePeriodsForAccommodations(rw http.ResponseWriter, h *http.Request) {
+	accIDs := h.Context().Value(KeyProduct{}).([]primitive.ObjectID)
+	err := r.repo.DeletePeriodsForAccommodations(accIDs)
+	if err != nil {
+		r.logger.Print("Database exception: ", err)
+		rw.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	rw.WriteHeader(http.StatusNoContent)
+}
+
+func (r *ReservationHandler) CheckAndDeleteReservationsForUser(rw http.ResponseWriter, h *http.Request) {
+	vars := mux.Vars(h)
+	userID, err := primitive.ObjectIDFromHex(vars["id"])
+	if err != nil {
+		http.Error(rw, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+
+	err = r.repo.CheckAndDeleteReservationsByUserID(userID)
+	if err != nil {
+		r.logger.Println("Database exception: ", err)
+		rw.WriteHeader(http.StatusBadRequest)
+	}
+
+	rw.WriteHeader(http.StatusNoContent)
 }
 
 func (r *ReservationHandler) DeleteReservation(rw http.ResponseWriter, h *http.Request) {
