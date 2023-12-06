@@ -56,6 +56,11 @@ export class AccommodationsComponent implements OnInit, OnDestroy {
     this.accommodationService.sendAccommodation(accommodation);
     this.router.navigate(['/availablePeriods']);
   }
+
+  navigateToAccommodationDetails(accommodation: Accommodation): void{
+    this.accommodationService.sendAccommodation(accommodation);
+    this.router.navigate(['/accommodation-details']);
+  }
   
   getAmenityName(amenity: number): string {
     return AmenityEnum[amenity];

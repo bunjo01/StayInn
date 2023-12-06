@@ -1,0 +1,24 @@
+<div *ngIf="accommodation">
+  <h1>{{ accommodation.name }}</h1>
+  <img src="../../assets/images/stay-inn.jpg" alt="{{ accommodation.name }} image" class="detail-image">
+  <p><strong>Location:</strong> {{ accommodation.location }}</p>
+  <table>
+    <tr>
+      <th>Min guests:</th>
+      <td> {{ accommodation.minGuests}} </td>
+    </tr>
+    <tr>
+      <th>Max guests:</th>
+      <td> {{ accommodation.maxGuests}} </td>
+    </tr>
+  </table>
+  <!-- <p><strong>Min Guests:</strong> {{ accommodation.minGuests }}</p>
+  <p><strong>Max Guests:</strong> {{ accommodation.maxGuests }}</p> -->
+  <p><strong>Amenities:</strong></p>
+  <ul>
+    <li *ngFor="let amenity of accommodation.amenities">
+      <img [src]="amenityIcons[amenity]" alt="{{ amenity }}" class="amenity-icon">
+      {{ getAmenityName(amenity) }}
+    </li>
+  </ul>
+</div>
