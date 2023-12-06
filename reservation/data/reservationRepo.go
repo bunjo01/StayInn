@@ -465,7 +465,8 @@ func (rr *ReservationRepo) DeleteReservationByIdAndAvailablePeriodID(id, periodI
 	return nil
 }
 
-// SEARCH
+// **SEARCH**
+
 func (rr *ReservationRepo) FindAccommodationIdsByDates(dates *Dates) (ListOfObjectIds, error) {
 	var periodIDs []gocql.UUID
 
@@ -520,7 +521,6 @@ func (rr *ReservationRepo) FindReservationForSearch(periodsIds []gocql.UUID, sta
 
 	listOfAccommodationIds, _ := rr.FindAccommodationIdsByPeriods(periodsIds)
 
-	// Initialize idAccommodationsMap with empty lists for each id
 	for _, id := range listOfAccommodationIds {
 		idAccommodationsMap[id] = Reservations{}
 	}
@@ -557,8 +557,6 @@ func (rr *ReservationRepo) FindReservationForSearch(periodsIds []gocql.UUID, sta
 				Price:             reservation.Price,
 			}
 
-			println("COUNT RESERVATIONS: ", newReservation.ID.String())
-
 			idAccommodation := newReservation.IDAccommodation
 			idAccommodationsMap[idAccommodation] = append(idAccommodationsMap[idAccommodation], &newReservation)
 		}
@@ -569,29 +567,16 @@ func (rr *ReservationRepo) FindReservationForSearch(periodsIds []gocql.UUID, sta
 		}
 	}
 
-	println("ACCOMMODATIONS IN MAPS ", idAccommodationsMap)
-
 	idAccommodations := ListOfObjectIds{}
 
 	for _, reservations := range idAccommodationsMap {
 		for _, reservation := range reservations {
-			println("1. ", startDate.String(), reservation.StartDate.String(), startDate.Before(reservation.StartDate))
-			println("2. ", startDate.String(), reservation.StartDate.String(), startDate.Equal(reservation.StartDate))
-			println("3. ", endDate.String(), reservation.EndDate.String(), endDate.After(reservation.EndDate))
-			println("4. ", endDate.String(), reservation.EndDate.String(), endDate.Equal(reservation.EndDate))
-			for _, reservation := range reservations {
-				//if (startDate.Before(reservation.EndDate) && endDate.After(reservation.StartDate)) ||
-				//	startDate.Equal(reservation.EndDate) || endDate.Equal(reservation.StartDate) {
-				//	delete(idAccommodationsMap, reservation.IDAccommodation)
-				//	break
-				//}
-				if (startDate.After(reservation.StartDate) && startDate.Before(reservation.EndDate)) ||
-					(endDate.After(reservation.StartDate) && endDate.Before(reservation.EndDate)) ||
-					startDate.Equal(reservation.EndDate) || endDate.Equal(reservation.StartDate) ||
-					endDate.Equal(reservation.EndDate) || startDate.Equal(reservation.StartDate) {
-					delete(idAccommodationsMap, reservation.IDAccommodation)
-					break
-				}
+			if (startDate.After(reservation.StartDate) && startDate.Before(reservation.EndDate)) ||
+				(endDate.After(reservation.StartDate) && endDate.Before(reservation.EndDate)) ||
+				startDate.Equal(reservation.EndDate) || endDate.Equal(reservation.StartDate) ||
+				endDate.Equal(reservation.EndDate) || startDate.Equal(reservation.StartDate) {
+				delete(idAccommodationsMap, reservation.IDAccommodation)
+				break
 			}
 		}
 	}
@@ -600,7 +585,6 @@ func (rr *ReservationRepo) FindReservationForSearch(periodsIds []gocql.UUID, sta
 		idAccommodations.ObjectIds = append(idAccommodations.ObjectIds, id)
 	}
 
-	fmt.Println("550 NOT ACCOMMODATIONS ", idAccommodations)
 	return idAccommodations, nil
 }
 
@@ -719,6 +703,8 @@ func (rr *ReservationRepo) FindReservationIdsByEndDate(dates *Dates) (ListOfObje
 
 	return listOfReservationIds, nil
 }
+
+// **END OF SEARCH**
 
 func (rr *ReservationRepo) GetDistinctIds(idColumnName string, tableName string) ([]string, error) {
 	scanner := rr.session.Query(

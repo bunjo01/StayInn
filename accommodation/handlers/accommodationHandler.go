@@ -5,7 +5,6 @@ import (
 	"accommodation/data"
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -194,24 +193,32 @@ func (ah *AccommodationHandler) SearchAccommodations(rw http.ResponseWriter, r *
 	ctx, cancel := context.WithTimeout(r.Context(), 5000*time.Millisecond)
 	defer cancel()
 
+	var accommodationIDs []primitive.ObjectID
+
 	startDateStr := r.URL.Query().Get("startDate")
 	endDateStr := r.URL.Query().Get("endDate")
 
-	startDate, err := time.Parse("2006-01-02T15:04:05Z", startDateStr)
-	if err != nil {
-		ah.logger.Println(err)
-		http.Error(rw, "Invalid startDate format", http.StatusBadRequest)
-		return
+	var startDate time.Time
+	if startDateStr != "" {
+		startDateTemp, err := time.Parse("2006-01-02T15:04:05Z", startDateStr)
+		if err != nil {
+			ah.logger.Println(err)
+			http.Error(rw, "Invalid startDate format", http.StatusBadRequest)
+			return
+		}
+		startDate = startDateTemp
 	}
 
-	endDate, err := time.Parse("2006-01-02T15:04:05Z", endDateStr)
-	if err != nil {
-		ah.logger.Println(err)
-		http.Error(rw, "Invalid endDate format", http.StatusBadRequest)
-		return
+	var endDate time.Time
+	if endDateStr != "" {
+		endDateTemp, err := time.Parse("2006-01-02T15:04:05Z", endDateStr)
+		if err != nil {
+			ah.logger.Println(err)
+			http.Error(rw, "Invalid endDate format", http.StatusBadRequest)
+			return
+		}
+		endDate = endDateTemp
 	}
-
-	println(startDate.String(), " ", endDate.String())
 
 	location := r.URL.Query().Get("location")
 	numberOfGuests := r.URL.Query().Get("numberOfGuests")
@@ -241,49 +248,45 @@ func (ah *AccommodationHandler) SearchAccommodations(rw http.ResponseWriter, r *
 		return
 	}
 
-	var accommodationIDs []primitive.ObjectID
-	for _, accommodation := range accommodations {
-		accommodationIDs = append(accommodationIDs, accommodation.ID)
-	}
-
-	fmt.Println("249, filtered accommodation ids : ", accommodationIDs)
-
-	ids, err := ah.reservation.PassDatesToReservationService(ctx, accommodationIDs, startDate, endDate)
-	if err != nil {
-		ah.logger.Println(err)
-		writeResp(err, http.StatusServiceUnavailable, rw)
+	if startDateStr == "" && endDateStr != "" {
+		http.Error(rw, "You forgot to select start date", http.StatusBadRequest)
 		return
 	}
 
-	fmt.Println("RETURN IDS, ", ids)
-
-	//var (
-	//	uniqueAccommodationIDs []primitive.ObjectID
-	//	accommodationIDSet     = make(map[primitive.ObjectID]bool)
-	//)
-	//
-	//for _, id := range accommodationIDs {
-	//	accommodationIDSet[id] = true
-	//}
-	//
-	//for _, id := range ids {
-	//	if _, exists := accommodationIDSet[id]; !exists {
-	//		uniqueAccommodationIDs = append(uniqueAccommodationIDs, id)
-	//	}
-	//}
-	//
-	//fmt.Println("UNIQUE IDS ", uniqueAccommodationIDs)
-
-	accommodationForReturn, err := ah.repo.FindAccommodationsByIDs(ctx, ids)
-	if err != nil {
-		ah.logger.Println(err)
-		writeResp(err, http.StatusServiceUnavailable, rw)
+	if endDateStr == "" && startDateStr != "" {
+		http.Error(rw, "You forgot to select end date", http.StatusBadRequest)
 		return
 	}
 
-	rw.Header().Set("Content-Type", "application/json")
-	rw.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(rw).Encode(accommodationForReturn); err != nil {
-		http.Error(rw, "Failed to encode accommodations", http.StatusInternalServerError)
+	if endDateStr != "" && startDateStr != "" {
+		for _, accommodation := range accommodations {
+			accommodationIDs = append(accommodationIDs, accommodation.ID)
+		}
+
+		ids, err := ah.reservation.PassDatesToReservationService(ctx, accommodationIDs, startDate, endDate)
+		if err != nil {
+			ah.logger.Println(err)
+			writeResp(err, http.StatusServiceUnavailable, rw)
+			return
+		}
+
+		accommodationForReturn, err := ah.repo.FindAccommodationsByIDs(ctx, ids)
+		if err != nil {
+			ah.logger.Println(err)
+			writeResp(err, http.StatusServiceUnavailable, rw)
+			return
+		}
+
+		rw.Header().Set("Content-Type", "application/json")
+		rw.WriteHeader(http.StatusOK)
+		if err := json.NewEncoder(rw).Encode(accommodationForReturn); err != nil {
+			http.Error(rw, "Failed to encode accommodations", http.StatusInternalServerError)
+		}
+	} else {
+		rw.Header().Set("Content-Type", "application/json")
+		rw.WriteHeader(http.StatusOK)
+		if err := json.NewEncoder(rw).Encode(accommodations); err != nil {
+			http.Error(rw, "Failed to encode accommodations", http.StatusInternalServerError)
+		}
 	}
 }
