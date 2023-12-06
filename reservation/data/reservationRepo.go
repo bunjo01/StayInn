@@ -469,12 +469,13 @@ func (rr *ReservationRepo) DeleteReservationByIdAndAvailablePeriodID(id, periodI
 
 func (rr *ReservationRepo) FindAccommodationIdsByDates(dates *Dates) (ListOfObjectIds, error) {
 	var periodIDs []gocql.UUID
+	uniqueAccommodationIds := make(map[primitive.ObjectID]struct{})
 
 	for _, id := range dates.AccommodationIds {
 		scanner := rr.session.Query(`
-        SELECT id, id_accommodation, start_date, end_date, price, price_per_guest 
-        FROM available_periods_by_accommodation 
-        WHERE id_accommodation = ?`, id.Hex()).Iter().Scanner()
+			SELECT id, id_accommodation, start_date, end_date, price, price_per_guest 
+			FROM available_periods_by_accommodation 
+			WHERE id_accommodation = ?`, id.Hex()).Iter().Scanner()
 
 		for scanner.Next() {
 			var (
@@ -491,11 +492,10 @@ func (rr *ReservationRepo) FindAccommodationIdsByDates(dates *Dates) (ListOfObje
 
 			period.IDAccommodation, _ = primitive.ObjectIDFromHex(idAccommodationStr)
 
-			fmt.Println("FOUND PERIODS, ", period.ID.String())
-
 			if (period.StartDate.Before(dates.StartDate) || period.StartDate.Equal(dates.StartDate)) &&
 				(period.EndDate.After(dates.EndDate) || period.EndDate.Equal(dates.EndDate)) {
 				periodIDs = append(periodIDs, period.ID)
+				uniqueAccommodationIds[period.IDAccommodation] = struct{}{}
 			}
 		}
 
@@ -505,9 +505,12 @@ func (rr *ReservationRepo) FindAccommodationIdsByDates(dates *Dates) (ListOfObje
 		}
 	}
 
-	fmt.Println("Period ID 505, ", periodIDs)
+	var accommodationIds []primitive.ObjectID
+	for id := range uniqueAccommodationIds {
+		accommodationIds = append(accommodationIds, id)
+	}
 
-	listOfInvalidIds, err := rr.FindReservationForSearch(periodIDs, dates.StartDate, dates.EndDate)
+	listOfInvalidIds, err := rr.FindReservationForSearch(periodIDs, accommodationIds, dates.StartDate, dates.EndDate)
 	if err != nil {
 		rr.logger.Println(err)
 		return ListOfObjectIds{}, err
@@ -516,10 +519,11 @@ func (rr *ReservationRepo) FindAccommodationIdsByDates(dates *Dates) (ListOfObje
 	return listOfInvalidIds, nil
 }
 
-func (rr *ReservationRepo) FindReservationForSearch(periodsIds []gocql.UUID, startDate, endDate time.Time) (ListOfObjectIds, error) {
+func (rr *ReservationRepo) FindReservationForSearch(periodsIds []gocql.UUID, listOfAccommodationIds []primitive.ObjectID, startDate, endDate time.Time) (ListOfObjectIds, error) {
 	idAccommodationsMap := make(map[primitive.ObjectID]Reservations)
 
-	listOfAccommodationIds, _ := rr.FindAccommodationIdsByPeriods(periodsIds)
+	//need fixing
+	//listOfAccommodationIds, _ := rr.FindAccommodationIdsByPeriods(periodsIds)
 
 	for _, id := range listOfAccommodationIds {
 		idAccommodationsMap[id] = Reservations{}

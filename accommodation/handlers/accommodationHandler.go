@@ -258,6 +258,21 @@ func (ah *AccommodationHandler) SearchAccommodations(rw http.ResponseWriter, r *
 		return
 	}
 
+	if startDate.Before(time.Now()) {
+		http.Error(rw, "Start date must be in future", http.StatusBadRequest)
+		return
+	}
+
+	if endDate.Before(time.Now()) {
+		http.Error(rw, "End date must be in future", http.StatusBadRequest)
+		return
+	}
+
+	if startDate.After(endDate) {
+		http.Error(rw, "Start date must be before end date", http.StatusBadRequest)
+		return
+	}
+
 	if endDateStr != "" && startDateStr != "" {
 		for _, accommodation := range accommodations {
 			accommodationIDs = append(accommodationIDs, accommodation.ID)

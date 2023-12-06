@@ -67,7 +67,6 @@ func (rc ReservationClient) PassDatesToReservationService(ctx context.Context, a
 		}
 	}
 
-	// Parse the JSON response
 	var serviceResponse data.ListOfObjectIds
 	decoder := json.NewDecoder(resp.Body)
 	if err := decoder.Decode(&serviceResponse); err != nil {
