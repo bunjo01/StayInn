@@ -92,6 +92,7 @@ func main() {
 	router.HandleFunc("/recovery-password", credentialsHandler.UpdatePasswordWithRecoveryUUID).Methods("POST")
 	router.HandleFunc("/getAllUsers", credentialsHandler.GetAllUsers).Methods("GET")
 	router.HandleFunc("/update-username/{oldUsername}/{username}", credentialsHandler.UpdateUsername).Methods("PUT")
+	router.HandleFunc("/update-email/{oldEmail}/{email}", credentialsHandler.UpdateEmail).Methods("PUT")
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 

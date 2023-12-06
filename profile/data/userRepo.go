@@ -132,6 +132,15 @@ func (ur *UserRepo) CheckUsernameAvailability(ctx context.Context, username stri
 	return errors.Is(err, mongo.ErrNoDocuments), nil
 }
 
+func (ur *UserRepo) CheckEmailAvailability(ctx context.Context, email string) (bool, error) {
+	collection := ur.getUserCollection()
+	filter := bson.M{"email": email}
+
+	err := collection.FindOne(ctx, filter).Err()
+
+	return errors.Is(err, mongo.ErrNoDocuments), nil
+}
+
 func (ur *UserRepo) UpdateUser(ctx context.Context, username string, user *NewUser) error {
 	usernameAvailable, err := ur.CheckUsernameAvailability(ctx, user.Username)
 	if err != nil {
@@ -142,6 +151,16 @@ func (ur *UserRepo) UpdateUser(ctx context.Context, username string, user *NewUs
 	if !usernameAvailable && username != user.Username {
 		return fmt.Errorf("username %s is already taken", user.Username)
 	}
+
+	emailAvailable, err := ur.CheckEmailAvailability(ctx, user.Email)
+    if err != nil {
+        ur.logger.Println("Error checking email availability:", err)
+        return err
+    }
+
+    if !emailAvailable {
+        return fmt.Errorf("email %s is already taken", user.Email)
+    }
 
 	collection := ur.getUserCollection()
 

@@ -95,6 +95,21 @@ func (ch *CredentialsHandler) UpdateUsername(w http.ResponseWriter, r *http.Requ
 	w.WriteHeader(http.StatusOK)
 }
 
+func (ch *CredentialsHandler) UpdateEmail(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	oldEmail := vars["oldEmail"]
+	email := vars["email"]
+
+	ch.logger.Printf("Received request to update email from %s to %s\n", oldEmail, email)
+
+	if err := ch.repo.ChangeEmail(r.Context(), oldEmail, email); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to change email: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 // Handler method for registration
 func (ch *CredentialsHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var newUser data.NewUser
