@@ -160,6 +160,56 @@ func (uh *UserHandler) DeleteUser(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	username := vars["username"]
 
+	// Extracting role from token
+	tokenString := uh.extractTokenFromHeader(r)
+	role, err := uh.getRole(tokenString)
+	if err != nil {
+		uh.logger.Println("Failed to read role from token:", err)
+		http.Error(rw, "Failed to read role from token", http.StatusBadRequest)
+		return
+	}
+
+	// Extracting userID for Cassandra
+	user, err := uh.repo.GetUser(context.Background(), username)
+	if err != nil {
+		uh.logger.Printf("Failed to retrieve user for username: %s", username)
+		http.Error(rw, "Failed to retrieve user for username: "+username, http.StatusBadRequest)
+		return
+	}
+
+	// Check reservation service for reservations if user is 'GUEST'
+	// Check accommodation service if user is 'HOST' and delete all his accommodations
+	if role == "GUEST" {
+		ctx, cancel := context.WithTimeout(r.Context(), 5000*time.Millisecond)
+		defer cancel()
+		_, err = uh.reservation.CheckUserReservations(ctx, user.ID)
+		if err != nil {
+			uh.logger.Println(err)
+			writeResp(err, http.StatusServiceUnavailable, rw)
+			return
+		}
+	} else if role == "HOST" {
+		ctx, cancel := context.WithTimeout(r.Context(), 5000*time.Millisecond)
+		defer cancel()
+		_, err = uh.accommodation.CheckAndDeleteUserAccommodations(ctx, user.ID)
+		if err != nil {
+			uh.logger.Println(err)
+			writeResp(err, http.StatusServiceUnavailable, rw)
+			return
+		}
+	} else {
+		http.Error(rw, "Invalid role", http.StatusForbidden)
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 5000*time.Millisecond)
+	defer cancel()
+	_, err = uh.auth.DeleteUserInAuthService(ctx, username)
+	if err != nil {
+		uh.logger.Println(err)
+		writeResp(err, http.StatusServiceUnavailable, rw)
+		return
+	}
+
 	if err := uh.repo.DeleteUser(r.Context(), username); err != nil {
 		uh.logger.Println("Failed to delete user:", err)
 		http.Error(rw, "Failed to delete user", http.StatusInternalServerError)
@@ -210,6 +260,25 @@ func (uh *UserHandler) AuthorizeRoles(allowedRoles ...string) mux.MiddlewareFunc
 			http.Error(w, "Forbidden", http.StatusForbidden)
 		})
 	}
+}
+
+func (uh *UserHandler) getRole(tokenString string) (string, error) {
+	claims := jwt.MapClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		return secretKey, nil
+	})
+
+	if err != nil || !token.Valid {
+		return "", err
+	}
+
+	_, ok1 := claims["username"].(string)
+	role, ok2 := claims["role"].(string)
+	if !ok1 || !ok2 {
+		return "", err
+	}
+
+	return role, nil
 }
 
 func (uh *UserHandler) extractTokenFromHeader(rr *http.Request) string {
