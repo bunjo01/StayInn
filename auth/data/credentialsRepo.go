@@ -7,7 +7,8 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
+
+	// "strconv"
 	"strings"
 	"sync"
 	"time"
@@ -558,19 +559,21 @@ func hashPassword(password string) (string, error) {
 
 // GenerateToken generates a JWT token with the specified username and role.
 func (cr *CredentialsRepo) GenerateToken(username, role string) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
-		jwt.MapClaims{
-			"username": username,
-			"role":     role,
-			"exp":      strconv.FormatInt(time.Now().Add(time.Hour*24).Unix(), 10),
-		})
+    expirationTime := time.Now().Add(24 * time.Hour)
+    claims := jwt.MapClaims{
+        "username": username,
+        "role":     role,
+        "exp":      expirationTime.Unix(),
+    }
 
-	tokenString, err := token.SignedString(secretKey)
-	if err != nil {
-		return "", err
-	}
+    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	return tokenString, nil
+    tokenString, err := token.SignedString(secretKey)
+    if err != nil {
+        return "", err
+    }
+
+    return tokenString, nil
 }
 
 func (cr *CredentialsRepo) getCredentialsCollection() *mongo.Collection {
