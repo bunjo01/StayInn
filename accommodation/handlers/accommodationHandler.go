@@ -21,12 +21,14 @@ type AccommodationHandler struct {
 	logger      *log.Logger
 	repo        *data.AccommodationRepository
 	reservation clients.ReservationClient
+	profile     clients.ProfileClient
 }
 
 var secretKey = []byte("stayinn_secret")
 
-func NewAccommodationsHandler(l *log.Logger, r *data.AccommodationRepository, rc clients.ReservationClient) *AccommodationHandler {
-	return &AccommodationHandler{l, r, rc}
+func NewAccommodationsHandler(l *log.Logger, r *data.AccommodationRepository,
+	rc clients.ReservationClient, p clients.ProfileClient) *AccommodationHandler {
+	return &AccommodationHandler{l, r, rc, p}
 }
 
 func (ah *AccommodationHandler) GetAllAccommodations(rw http.ResponseWriter, r *http.Request) {
@@ -80,7 +82,26 @@ func (ah *AccommodationHandler) CreateAccommodation(rw http.ResponseWriter, r *h
 		return
 	}
 
-	// Dodajemo smeštaj
+	tokenStr := ah.extractTokenFromHeader(r)
+	username, err := ah.getUsername(tokenStr)
+	if err != nil {
+		ah.logger.Println("Failed to read username from token:", err)
+		http.Error(rw, "Failed to read username from token", http.StatusBadRequest)
+	}
+
+	hostID, err := ah.profile.GetUserId(r.Context(), username)
+	if err != nil {
+		ah.logger.Println("Failed to get HostID from username:", err)
+		http.Error(rw, "Failed to get HostID from username", http.StatusBadRequest)
+	}
+
+	accommodation.HostID, err = primitive.ObjectIDFromHex(hostID)
+	if err != nil {
+		ah.logger.Println("Failed to set HostID for accommodation:", err)
+		http.Error(rw, "Failed to set HostID for accommodation", http.StatusBadRequest)
+	}
+
+	// Adding accommodation
 	accommodation.ID = primitive.NewObjectID()
 	if err := ah.repo.CreateAccommodation(r.Context(), &accommodation); err != nil {
 		ah.logger.Println("Failed to create accommodation:", err)
@@ -140,6 +161,63 @@ func (ah *AccommodationHandler) DeleteAccommodation(rw http.ResponseWriter, r *h
 	}
 
 	rw.WriteHeader(http.StatusNoContent)
+}
+
+func (ah *AccommodationHandler) DeleteUserAccommodations(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userID, err := primitive.ObjectIDFromHex(vars["id"])
+	if err != nil {
+		http.Error(rw, "Invalid userID", http.StatusBadRequest)
+		return
+	}
+	accommodations, err := ah.repo.GetAccommodationsForUser(r.Context(), userID)
+	if err != nil {
+		ah.logger.Println("Failed to get accommodations for userID:", err)
+		http.Error(rw, "Failed to get accommodations for userID: "+userID.String(), http.StatusInternalServerError)
+		return
+	}
+
+	var accIDs []primitive.ObjectID
+	for _, accommodation := range accommodations {
+		accIDs = append(accIDs, accommodation.ID)
+	}
+
+	// 4000 ms because it's second in chain of service calls
+	ctx, cancel := context.WithTimeout(r.Context(), 4000*time.Millisecond)
+	defer cancel()
+	_, err = ah.reservation.CheckAndDeletePeriods(ctx, accIDs)
+	if err != nil {
+		ah.logger.Println(err)
+		writeResp(err, http.StatusServiceUnavailable, rw)
+		return
+	}
+
+	if err := ah.repo.DeleteAccommodationsForUser(r.Context(), userID); err != nil {
+		ah.logger.Println("Failed to delete accommodations for userID:", err)
+		http.Error(rw, "Failed to delete accommodations for userID: "+userID.String(), http.StatusInternalServerError)
+		return
+	}
+
+	rw.WriteHeader(http.StatusNoContent)
+}
+
+func (ah *AccommodationHandler) getUsername(tokenString string) (string, error) {
+	claims := jwt.MapClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		return secretKey, nil
+	})
+
+	if err != nil || !token.Valid {
+		return "", err
+	}
+
+	username, ok1 := claims["username"].(string)
+	_, ok2 := claims["role"].(string)
+	if !ok1 || !ok2 {
+		return "", err
+	}
+
+	return username, nil
 }
 
 func (ah *AccommodationHandler) AuthorizeRoles(allowedRoles ...string) mux.MiddlewareFunc {

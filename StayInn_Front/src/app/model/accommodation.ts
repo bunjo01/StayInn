@@ -1,5 +1,6 @@
 export interface Accommodation {
     id?: string;
+    hostID?: string;
     name?: string;
     location?: string;
     amenities: AmenityEnum[];

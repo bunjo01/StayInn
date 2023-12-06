@@ -10,6 +10,7 @@ import (
 
 type Accommodation struct {
 	ID        primitive.ObjectID `json:"id" bson:"_id"`
+	HostID    primitive.ObjectID `json:"hostID" bson:"hostID"`
 	Name      string             `json:"name" bson:"name"`
 	Location  string             `json:"location" bson:"location"`
 	Amenities []AmenityEnum      `json:"amenities" bson:"amenities"`

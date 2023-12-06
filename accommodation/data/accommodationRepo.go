@@ -97,6 +97,25 @@ func (ar *AccommodationRepository) GetAllAccommodations(ctx context.Context) ([]
 	return accommodations, nil
 }
 
+func (ar *AccommodationRepository) GetAccommodationsForUser(ctx context.Context, userID primitive.ObjectID) ([]*Accommodation, error) {
+	collection := ar.getAccommodationCollection()
+
+	cursor, err := collection.Find(ctx, bson.M{"hostID": userID})
+	if err != nil {
+		ar.logger.Println(err)
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var accommodations []*Accommodation
+	if err := cursor.All(ctx, &accommodations); err != nil {
+		ar.logger.Println(err)
+		return nil, err
+	}
+
+	return accommodations, nil
+}
+
 func (ar *AccommodationRepository) GetAccommodation(ctx context.Context, id primitive.ObjectID) (*Accommodation, error) {
 	collection := ar.getAccommodationCollection()
 
@@ -138,32 +157,45 @@ func (ar *AccommodationRepository) DeleteAccommodation(ctx context.Context, id p
 	return nil
 }
 
+func (ar *AccommodationRepository) DeleteAccommodationsForUser(ctx context.Context, userID primitive.ObjectID) error {
+	collection := ar.getAccommodationCollection()
+
+	filter := bson.M{"hostID": userID}
+	_, err := collection.DeleteMany(ctx, filter)
+	if err != nil {
+		ar.logger.Println(err)
+		return err
+	}
+
+	return nil
+}
+
 // Search part
 
 func (ar *AccommodationRepository) GetFilteredAccommodations(ctx context.Context, filters bson.M) ([]*Accommodation, error) {
-    collection := ar.getAccommodationCollection()
+	collection := ar.getAccommodationCollection()
 
-    // Log parameters
-    ar.logger.Printf("Filter parameters: %v\n", filters)
+	// Log parameters
+	ar.logger.Printf("Filter parameters: %v\n", filters)
 
-    cursor, err := collection.Find(ctx, filters)
-    if err != nil {
-        ar.logger.Println(err)
-        return nil, err
-    }
-    defer cursor.Close(ctx)
+	cursor, err := collection.Find(ctx, filters)
+	if err != nil {
+		ar.logger.Println(err)
+		return nil, err
+	}
+	defer cursor.Close(ctx)
 
-    var accommodations []*Accommodation
-    if err := cursor.All(ctx, &accommodations); err != nil {
-        ar.logger.Println(err)
-        return nil, err
-    }
+	var accommodations []*Accommodation
+	if err := cursor.All(ctx, &accommodations); err != nil {
+		ar.logger.Println(err)
+		return nil, err
+	}
 
-    return accommodations, nil
+	return accommodations, nil
 }
 
 func (ar *AccommodationRepository) getAccommodationCollection() *mongo.Collection {
 	patientDatabase := ar.cli.Database("mongoDemo")
-    patientsCollection := patientDatabase.Collection("accommodations")
+	patientsCollection := patientDatabase.Collection("accommodations")
 	return patientsCollection
 }

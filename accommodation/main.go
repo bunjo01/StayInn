@@ -47,6 +47,14 @@ func main() {
 		},
 	}
 
+	profileClient := &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConns:        10,
+			MaxIdleConnsPerHost: 10,
+			MaxConnsPerHost:     10,
+		},
+	}
+
 	reservationBreaker := gobreaker.NewCircuitBreaker(
 		gobreaker.Settings{
 			Name:        "reservation",
@@ -69,10 +77,33 @@ func main() {
 		},
 	)
 
+	profileBreaker := gobreaker.NewCircuitBreaker(
+		gobreaker.Settings{
+			Name:        "profile",
+			MaxRequests: 1,
+			Timeout:     10 * time.Second,
+			Interval:    0,
+			ReadyToTrip: func(counts gobreaker.Counts) bool {
+				return counts.ConsecutiveFailures > 2
+			},
+			OnStateChange: func(name string, from, to gobreaker.State) {
+				logger.Printf("CB '%s' changed from '%s' to '%s'\n", name, from, to)
+			},
+			IsSuccessful: func(err error) bool {
+				if err == nil {
+					return true
+				}
+				errResp, ok := err.(domain.ErrResp)
+				return ok && errResp.StatusCode >= 400 && errResp.StatusCode < 500
+			},
+		},
+	)
+
 	// TODO: Change second param accordingly after implementing method in client or set it in client method
 	reservation := clients.NewReservationClient(reservationClient, os.Getenv("RESERVATION_SERVICE_URI"), reservationBreaker)
+	profile := clients.NewProfileClient(profileClient, os.Getenv("PROFILE_SERVICE_URI"), profileBreaker)
 
-	accommodationsHandler := handlers.NewAccommodationsHandler(logger, store, reservation)
+	accommodationsHandler := handlers.NewAccommodationsHandler(logger, store, reservation, profile)
 
 	// Router init
 	router := mux.NewRouter()
@@ -94,6 +125,10 @@ func main() {
 	deleteAccommodationRouter := router.Methods(http.MethodDelete).Path("/accommodation/{id}").Subrouter()
 	deleteAccommodationRouter.HandleFunc("", accommodationsHandler.DeleteAccommodation)
 	deleteAccommodationRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
+
+	deleteUserAccommodationsRouter := router.Methods(http.MethodDelete).Path("/user/{id}/accommodations").Subrouter()
+	deleteUserAccommodationsRouter.HandleFunc("", accommodationsHandler.DeleteUserAccommodations)
+	deleteUserAccommodationsRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
 
 	// Search part
 
