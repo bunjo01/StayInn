@@ -30,6 +30,7 @@ import { ResetPasswordComponent } from './reset-password/reset-password.componen
 import { ForgetPasswordComponent } from './forget-password/forget-password.component';
 import { CreateAccommodationComponent } from './create-accommodation/create-accommodation.component';
 import { EditPeriodTemplateComponent } from './reservations/edit-period-template/edit-period-template.component';
+import { AccommodationDetailsComponent } from './accommodation-details/accommodation-details.component';
 
 @NgModule({
   declarations: [
@@ -51,6 +52,7 @@ import { EditPeriodTemplateComponent } from './reservations/edit-period-template
     ForgetPasswordComponent,
     CreateAccommodationComponent,
     EditPeriodTemplateComponent,
+    AccommodationDetailsComponent,
   ],
   imports: [
     BrowserModule,
