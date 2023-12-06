@@ -5,6 +5,7 @@ import (
 	"accommodation/data"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -190,11 +191,9 @@ func (ah *AccommodationHandler) extractTokenFromHeader(rr *http.Request) string 
 
 func (ah *AccommodationHandler) SearchAccommodations(rw http.ResponseWriter, r *http.Request) {
 	ah.logger.Printf("Entering SearchAccommodations function")
-	// Get the list of IDs from the reservation service
 	ctx, cancel := context.WithTimeout(r.Context(), 5000*time.Millisecond)
 	defer cancel()
 
-	// Parse start and end dates
 	startDateStr := r.URL.Query().Get("startDate")
 	endDateStr := r.URL.Query().Get("endDate")
 
@@ -212,14 +211,8 @@ func (ah *AccommodationHandler) SearchAccommodations(rw http.ResponseWriter, r *
 		return
 	}
 
-	ids, err := ah.reservation.PassDatesToReservationService(ctx, startDate, endDate)
-	if err != nil {
-		ah.logger.Println(err)
-		writeResp(err, http.StatusServiceUnavailable, rw)
-		return
-	}
+	println(startDate.String(), " ", endDate.String())
 
-	// Parse other query parameters
 	location := r.URL.Query().Get("location")
 	numberOfGuests := r.URL.Query().Get("numberOfGuests")
 
@@ -230,13 +223,6 @@ func (ah *AccommodationHandler) SearchAccommodations(rw http.ResponseWriter, r *
 	}
 
 	filter := make(bson.M)
-
-	if len(ids) == 0 {
-		writeResp(err, http.StatusOK, rw)
-		return
-	}
-
-	filter["_id"] = bson.M{"$in": ids}
 
 	if location != "" {
 		filter["location"] = location
@@ -249,17 +235,55 @@ func (ah *AccommodationHandler) SearchAccommodations(rw http.ResponseWriter, r *
 		}
 	}
 
-	// Retrieve accommodations based on the filter
 	accommodations, err := ah.repo.GetFilteredAccommodations(ctx, filter)
 	if err != nil {
 		http.Error(rw, "Failed to retrieve accommodations", http.StatusInternalServerError)
 		return
 	}
 
-	// Return the filtered accommodations as JSON response
+	var accommodationIDs []primitive.ObjectID
+	for _, accommodation := range accommodations {
+		accommodationIDs = append(accommodationIDs, accommodation.ID)
+	}
+
+	fmt.Println("249, filtered accommodation ids : ", accommodationIDs)
+
+	ids, err := ah.reservation.PassDatesToReservationService(ctx, accommodationIDs, startDate, endDate)
+	if err != nil {
+		ah.logger.Println(err)
+		writeResp(err, http.StatusServiceUnavailable, rw)
+		return
+	}
+
+	fmt.Println("RETURN IDS, ", ids)
+
+	//var (
+	//	uniqueAccommodationIDs []primitive.ObjectID
+	//	accommodationIDSet     = make(map[primitive.ObjectID]bool)
+	//)
+	//
+	//for _, id := range accommodationIDs {
+	//	accommodationIDSet[id] = true
+	//}
+	//
+	//for _, id := range ids {
+	//	if _, exists := accommodationIDSet[id]; !exists {
+	//		uniqueAccommodationIDs = append(uniqueAccommodationIDs, id)
+	//	}
+	//}
+	//
+	//fmt.Println("UNIQUE IDS ", uniqueAccommodationIDs)
+
+	accommodationForReturn, err := ah.repo.FindAccommodationsByIDs(ctx, ids)
+	if err != nil {
+		ah.logger.Println(err)
+		writeResp(err, http.StatusServiceUnavailable, rw)
+		return
+	}
+
 	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(rw).Encode(accommodations); err != nil {
+	if err := json.NewEncoder(rw).Encode(accommodationForReturn); err != nil {
 		http.Error(rw, "Failed to encode accommodations", http.StatusInternalServerError)
 	}
 }

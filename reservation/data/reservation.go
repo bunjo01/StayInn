@@ -30,8 +30,9 @@ type ReservationByAvailablePeriod struct {
 }
 
 type Dates struct {
-	StartDate time.Time `json:"startDate"`
-	EndDate   time.Time `json:"endDate"`
+	AccommodationIds []primitive.ObjectID `json:"accommodationIds"`
+	StartDate        time.Time            `json:"startDate"`
+	EndDate          time.Time            `json:"endDate"`
 }
 
 type ListOfObjectIds struct {

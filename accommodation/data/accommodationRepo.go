@@ -138,32 +138,53 @@ func (ar *AccommodationRepository) DeleteAccommodation(ctx context.Context, id p
 	return nil
 }
 
+func (ar *AccommodationRepository) FindAccommodationsByIDs(ctx context.Context, ids []primitive.ObjectID) (*[]Accommodation, error) {
+	var accommodations []Accommodation
+	if len(ids) != 0 {
+		collection := ar.getAccommodationCollection()
+		filter := bson.M{"_id": bson.M{"$in": ids}}
+
+		cur, err := collection.Find(ctx, filter)
+		if err != nil {
+			return nil, err
+		}
+		defer cur.Close(ctx)
+
+		if err := cur.All(ctx, &accommodations); err != nil {
+			return nil, err
+		}
+
+		return &accommodations, nil
+	}
+	return &accommodations, nil
+}
+
 // Search part
 
 func (ar *AccommodationRepository) GetFilteredAccommodations(ctx context.Context, filters bson.M) ([]*Accommodation, error) {
-    collection := ar.getAccommodationCollection()
+	collection := ar.getAccommodationCollection()
 
-    // Log parameters
-    ar.logger.Printf("Filter parameters: %v\n", filters)
+	// Log parameters
+	ar.logger.Printf("Filter parameters: %v\n", filters)
 
-    cursor, err := collection.Find(ctx, filters)
-    if err != nil {
-        ar.logger.Println(err)
-        return nil, err
-    }
-    defer cursor.Close(ctx)
+	cursor, err := collection.Find(ctx, filters)
+	if err != nil {
+		ar.logger.Println(err)
+		return nil, err
+	}
+	defer cursor.Close(ctx)
 
-    var accommodations []*Accommodation
-    if err := cursor.All(ctx, &accommodations); err != nil {
-        ar.logger.Println(err)
-        return nil, err
-    }
+	var accommodations []*Accommodation
+	if err := cursor.All(ctx, &accommodations); err != nil {
+		ar.logger.Println(err)
+		return nil, err
+	}
 
-    return accommodations, nil
+	return accommodations, nil
 }
 
 func (ar *AccommodationRepository) getAccommodationCollection() *mongo.Collection {
 	patientDatabase := ar.cli.Database("mongoDemo")
-    patientsCollection := patientDatabase.Collection("accommodations")
+	patientsCollection := patientDatabase.Collection("accommodations")
 	return patientsCollection
 }

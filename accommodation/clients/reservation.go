@@ -29,10 +29,11 @@ func NewReservationClient(client *http.Client, address string, cb *gobreaker.Cir
 	}
 }
 
-func (rc ReservationClient) PassDatesToReservationService(ctx context.Context, startDate, endDate time.Time) ([]primitive.ObjectID, error) {
+func (rc ReservationClient) PassDatesToReservationService(ctx context.Context, accommodationIds []primitive.ObjectID, startDate, endDate time.Time) ([]primitive.ObjectID, error) {
 	dates := data.Dates{
-		StartDate: startDate,
-		EndDate:   endDate,
+		AccommodationIds: accommodationIds,
+		StartDate:        startDate,
+		EndDate:          endDate,
 	}
 
 	requestBody, err := json.Marshal(dates)
