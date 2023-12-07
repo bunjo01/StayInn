@@ -106,6 +106,11 @@ func (ah *AccommodationHandler) UpdateAccommodation(rw http.ResponseWriter, r *h
 
 	var updatedAccommodation data.Accommodation
 	if err := json.NewDecoder(r.Body).Decode(&updatedAccommodation); err != nil {
+		ah.logger.Println(updatedAccommodation.Name)
+		ah.logger.Println(updatedAccommodation.Location)
+		ah.logger.Println(updatedAccommodation.MinGuests)
+		ah.logger.Println(updatedAccommodation.MaxGuests)
+		ah.logger.Println(updatedAccommodation.Amenities)
 		http.Error(rw, "Failed to decode request body", http.StatusBadRequest)
 		return
 	}

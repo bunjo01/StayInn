@@ -31,6 +31,7 @@ import { ForgetPasswordComponent } from './forget-password/forget-password.compo
 import { CreateAccommodationComponent } from './create-accommodation/create-accommodation.component';
 import { EditPeriodTemplateComponent } from './reservations/edit-period-template/edit-period-template.component';
 import { AccommodationDetailsComponent } from './accommodation-details/accommodation-details.component';
+import { EditAccommodationComponent } from './edit-accommodation/edit-accommodation.component';
 
 @NgModule({
   declarations: [
@@ -53,6 +54,7 @@ import { AccommodationDetailsComponent } from './accommodation-details/accommoda
     CreateAccommodationComponent,
     EditPeriodTemplateComponent,
     AccommodationDetailsComponent,
+    EditAccommodationComponent,
   ],
   imports: [
     BrowserModule,

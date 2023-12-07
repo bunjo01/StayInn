@@ -1,36 +1,35 @@
 <div class="container">
   <h2>Create accommodation</h2>
-  
+
   <form (ngSubmit)="createAccommodation()" #accommodationForm="ngForm">
     <div class="form-group">
       <label for="name">Name:</label>
       <input type="text" id="name" name="name" [(ngModel)]="newAccommodation.name" required>
     </div>
-    
+
     <div class="form-group">
       <label for="location">Location:</label>
       <input type="text" id="location" name="location" [(ngModel)]="newAccommodation.location" required>
     </div>
-    
-    <div class="form-group" id="amenityTitle">
-      <label>Amenities:</label>
-      <div class="amenityBox" *ngFor="let amenity of amenityValues; let i = index">
-        <input class="amenities" type="checkbox" id="amenity{{i}}" name="amenities" 
-               [(ngModel)]="newAccommodation.amenities[i]" [value]="amenity" />
-        <label for="amenity{{i}}">{{ getAmenityName(amenity) }}</label>
-      </div>
+
+
+    <label>Amenities:</label>
+    <div class="amenityBox" *ngFor="let amenity of amenityValues; let i = index">
+      <input class="amenities" type="checkbox" id="amenity{{i}}" name="amenities"
+        [(ngModel)]="newAccommodation.amenities[i]" [value]="amenity" />
+      <label for="amenity{{i}}">{{ getAmenityName(amenity) }}</label>
     </div>
-    
+
     <div class="form-group">
       <label for="minGuests">Minimal number of guests:</label>
       <input type="number" id="minGuests" name="minGuests" [(ngModel)]="newAccommodation.minGuests" required>
     </div>
-    
+
     <div class="form-group">
       <label for="maxGuests">Maximal number of guests:</label>
       <input type="number" id="maxGuests" name="maxGuests" [(ngModel)]="newAccommodation.maxGuests" required>
     </div>
-    
+
     <button class="btnCreateAccommodation" type="submit" [disabled]="!accommodationForm.form.valid">Potvrdi</button>
   </form>
 </div>

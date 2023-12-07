@@ -449,9 +449,7 @@ func (rr *ReservationRepo) DeleteReservationByIdAndAvailablePeriodID(id, periodI
 		return err
 	}
 
-	// Check if the start date of the reservation has passed
 	if time.Now().After(reservation.StartDate) {
-		// If the start date has passed, disallow deletion and return an error
 		return errors.New("cannot delete reservation after start date has passed")
 	}
 
