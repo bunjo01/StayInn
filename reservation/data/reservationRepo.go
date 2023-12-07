@@ -491,7 +491,7 @@ func (rr *ReservationRepo) DeleteReservationByIdAndAvailablePeriodID(id, periodI
 	}
 
 	query := `DELETE FROM reservations_by_available_period
-              WHERE id = ? AND id_available_period = ?`
+              WHERE id = ? AND id_available_period = ? ALLOW FILTERING`
 
 	if err := rr.session.Query(query, id, periodID).Exec(); err != nil {
 		rr.logger.Println(err)
@@ -515,7 +515,7 @@ func (rr *ReservationRepo) CheckAndDeleteReservationsByUserID(userID primitive.O
 	}
 
 	query := `DELETE FROM reservations_by_available_period
-              WHERE id_user = ?`
+              WHERE id_user = ? ALLOW FILTERING`
 
 	if err := rr.session.Query(query, userID.Hex()).Exec(); err != nil {
 		rr.logger.Println(err)
@@ -528,7 +528,7 @@ func (rr *ReservationRepo) DeletePeriodsForAccommodations(accIDs []primitive.Obj
 	var errs []error
 
 	for _, accID := range accIDs {
-		periods, err := rr.FindAvailablePeriodsByAccommodationId(accID.String())
+		periods, err := rr.FindAvailablePeriodsByAccommodationId(accID.Hex())
 		if err != nil {
 			rr.logger.Println(err)
 			errs = append(errs, err)
@@ -554,7 +554,7 @@ func (rr *ReservationRepo) DeletePeriodsForAccommodations(accIDs []primitive.Obj
 
 			// Batch deletion of reservations
 			if len(reservationIDs) > 0 {
-				query := `DELETE FROM reservations_by_available_period WHERE id IN ?`
+				query := `DELETE FROM reservations_by_available_period WHERE id IN ? ALLOW FILTERING`
 
 				if err := rr.session.Query(query, reservationIDs).Exec(); err != nil {
 					rr.logger.Println(err)

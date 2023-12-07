@@ -38,14 +38,14 @@ func (c AccommodationClient) CheckAndDeleteUserAccommodations(ctx context.Contex
 
 	cbResp, err := c.cb.Execute(func() (interface{}, error) {
 		req, err := http.NewRequestWithContext(ctx, http.MethodDelete,
-			c.address+"/user/"+userID.String()+"/accommodations", nil)
+			c.address+"/user/"+userID.Hex()+"/accommodations", nil)
 		if err != nil {
 			return nil, err
 		}
 		return c.client.Do(req)
 	})
 	if err != nil {
-		handleHttpReqErr(err, c.address+"/user/"+userID.String()+"/accommodations", http.MethodDelete, timeout)
+		handleHttpReqErr(err, c.address+"/user/"+userID.Hex()+"/accommodations", http.MethodDelete, timeout)
 	}
 
 	resp := cbResp.(*http.Response)

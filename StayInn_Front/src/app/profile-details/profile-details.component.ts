@@ -101,4 +101,26 @@ export class ProfileDetailsComponent implements OnInit {
       console.error('User profile is undefined. Cannot update.');
     }
   }
+
+  deleteProfile() {
+    const username: string = this.authService.getUsernameFromToken() || "";
+    this.profileService.deleteUser(username).subscribe(
+      (response) => {
+        this.toastr.success('Profile deleted successfully', 'Profile delete');
+        this.authService.logout();
+      },
+      (error) => {
+        if (error.error.StatusCode === 400) {
+          this.toastr.error('There are active reservations', 'Unable to delete profile');
+          return;
+        }
+        if (error.status === 503) {
+          this.toastr.error('Unable to contact auth service. Please try again later',
+           'Auth service offline');
+        } else {
+          this.toastr.error('There was an error while deleting your profile', 'Delete failed');
+        }
+        console.error('Error deleting user profile: ', error);
+      });
+  }
 }

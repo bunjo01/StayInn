@@ -178,7 +178,7 @@ func (ah *AccommodationHandler) DeleteUserAccommodations(rw http.ResponseWriter,
 	accommodations, err := ah.repo.GetAccommodationsForUser(r.Context(), userID)
 	if err != nil {
 		ah.logger.Println("Failed to get accommodations for userID:", err)
-		http.Error(rw, "Failed to get accommodations for userID: "+userID.String(), http.StatusInternalServerError)
+		http.Error(rw, "Failed to get accommodations for userID: "+userID.Hex(), http.StatusInternalServerError)
 		return
 	}
 
@@ -199,7 +199,7 @@ func (ah *AccommodationHandler) DeleteUserAccommodations(rw http.ResponseWriter,
 
 	if err := ah.repo.DeleteAccommodationsForUser(r.Context(), userID); err != nil {
 		ah.logger.Println("Failed to delete accommodations for userID:", err)
-		http.Error(rw, "Failed to delete accommodations for userID: "+userID.String(), http.StatusInternalServerError)
+		http.Error(rw, "Failed to delete accommodations for userID: "+userID.Hex(), http.StatusInternalServerError)
 		return
 	}
 

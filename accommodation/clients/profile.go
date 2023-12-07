@@ -36,14 +36,14 @@ func (pc ProfileClient) GetUserId(ctx context.Context, username string) (string,
 	}
 
 	cbResp, err := pc.cb.Execute(func() (interface{}, error) {
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, pc.address+"/users/"+username, nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, pc.address+"/users/"+username, nil)
 		if err != nil {
 			return "", err
 		}
 		return pc.client.Do(req)
 	})
 	if err != nil {
-		return "", handleHttpReqErr(err, pc.address+"/search", http.MethodPost, timeout)
+		return "", handleHttpReqErr(err, pc.address+"/users/"+username, http.MethodPost, timeout)
 	}
 
 	resp := cbResp.(*http.Response)

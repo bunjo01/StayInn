@@ -148,13 +148,18 @@ func (r *ReservationHandler) UpdateAvailablePeriodByAccommodation(rw http.Respon
 }
 
 func (r *ReservationHandler) DeletePeriodsForAccommodations(rw http.ResponseWriter, h *http.Request) {
-	accIDs := h.Context().Value(KeyProduct{}).([]primitive.ObjectID)
-	err := r.repo.DeletePeriodsForAccommodations(accIDs)
-	if err != nil {
-		r.logger.Print("Database exception: ", err)
-		rw.WriteHeader(http.StatusBadRequest)
-		return
+	if h.Context().Value(KeyProduct{}) != nil {
+		accIDs := h.Context().Value(KeyProduct{}).([]primitive.ObjectID)
+		if (accIDs != nil) && len(accIDs) > 0 {
+			err := r.repo.DeletePeriodsForAccommodations(accIDs)
+			if err != nil {
+				r.logger.Print("Database exception: ", err)
+				rw.WriteHeader(http.StatusBadRequest)
+				return
+			}
+		}
 	}
+
 	rw.WriteHeader(http.StatusNoContent)
 }
 

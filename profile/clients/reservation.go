@@ -37,14 +37,14 @@ func (c ReservationClient) CheckUserReservations(ctx context.Context, userID pri
 
 	cbResp, err := c.cb.Execute(func() (interface{}, error) {
 		req, err := http.NewRequestWithContext(ctx, http.MethodDelete,
-			c.address+"/user/"+userID.String()+"/reservations", nil)
+			c.address+"/user/"+userID.Hex()+"/reservations", nil)
 		if err != nil {
 			return nil, err
 		}
 		return c.client.Do(req)
 	})
 	if err != nil {
-		handleHttpReqErr(err, c.address+"/user/"+userID.String()+"/reservations", http.MethodDelete, timeout)
+		handleHttpReqErr(err, c.address+"/user/"+userID.Hex()+"/reservations", http.MethodDelete, timeout)
 	}
 
 	resp := cbResp.(*http.Response)

@@ -124,11 +124,11 @@ func main() {
 
 	deleteAccommodationRouter := router.Methods(http.MethodDelete).Path("/accommodation/{id}").Subrouter()
 	deleteAccommodationRouter.HandleFunc("", accommodationsHandler.DeleteAccommodation)
-	deleteAccommodationRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
+	//deleteAccommodationRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
 
 	deleteUserAccommodationsRouter := router.Methods(http.MethodDelete).Path("/user/{id}/accommodations").Subrouter()
 	deleteUserAccommodationsRouter.HandleFunc("", accommodationsHandler.DeleteUserAccommodations)
-	deleteUserAccommodationsRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
+	//deleteUserAccommodationsRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
 
 	// Search part
 

@@ -26,6 +26,7 @@ services:
     environment:
       - PORT=8080
       - MONGO_DB_URI=${MONGO_DB_URI_ACCOMMODATION}
+      - PROFILE_SERVICE_URI=${PROFILE_SERVICE}
       - RESERVATION_SERVICE_URI=${RESERVATION_SERVICE}
     depends_on:
       accommodation_db:
@@ -113,6 +114,8 @@ services:
       - CASSANDRA_USER=${CASSANDRA_USER}
       - CASSANDRA_PASSWORD=${CASSANDRA_PASSWORD}
       - ACCOMMODATION_SERVICE_URI=${ACCOMMODATION_SERVICE}
+      - PROFILE_SERVICE_URI=${PROFILE_SERVICE}
+      - NOTIFICATION_SERVICE_URI=${NOTIFICATION_SERVICE}
     depends_on:
       reservation_db:
         condition: service_healthy
@@ -149,6 +152,8 @@ services:
       - PORT=8083
       - MONGO_DB_URI=${MONGO_DB_URI_PROFILE}
       - AUTH_SERVICE_URI=${AUTH_SERVICE}
+      - ACCOMMODATION_SERVICE_URI=${ACCOMMODATION_SERVICE}
+      - RESERVATION_SERVICE_URI=${RESERVATION_SERVICE}
     depends_on:
       profile_db:
         condition: service_healthy
