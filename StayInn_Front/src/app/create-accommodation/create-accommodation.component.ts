@@ -24,12 +24,10 @@ export class CreateAccommodationComponent {
   constructor(private accommodationService: AccommodationService, private toastr: ToastrService, private router: Router) {}
 
   createAccommodation(): void {
-    // Mapiranje odabranih stavki checkbox-ova u listu brojeva na osnovu AmenityEnum
-    if(this.newAccommodation){
-      
+    if (this.newAccommodation) {
       this.newAccommodation.amenities = this.amenityValues
-        .filter((amenity, index) => this.newAccommodation.amenities[index])
-        .map((_, index) => index);
+        .filter((_, index) => this.newAccommodation.amenities[index])
+        .map((amenity, _) => amenity as AmenityEnum);
     }
 
     console.log('Data to be sent:', this.newAccommodation);
