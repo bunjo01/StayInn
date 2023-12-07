@@ -17,6 +17,7 @@ import { ResetPasswordComponent } from './reset-password/reset-password.componen
 import { CreateAccommodationComponent } from './create-accommodation/create-accommodation.component';
 import { EditPeriodTemplateComponent } from './reservations/edit-period-template/edit-period-template.component';
 import { AccommodationDetailsComponent } from './accommodation-details/accommodation-details.component';
+import { EditAccommodationComponent } from './edit-accommodation/edit-accommodation.component';
 
 const routes: Routes = [
   { path: '', component: EntryComponent },
@@ -34,6 +35,8 @@ const routes: Routes = [
   { path: 'notFound', component: UnauthorizedComponent},
   { path: 'profile', component: ProfileDetailsComponent},
   { path: 'create-accommodation', component: CreateAccommodationComponent, canActivate : [RoleGuardService], data: { 
+    expectedRole: 'HOST' }},
+  { path: 'update-accommodation', component: EditAccommodationComponent, canActivate : [RoleGuardService], data: { 
     expectedRole: 'HOST' }},
   { path: 'editAvailablePeriod', component: EditPeriodTemplateComponent, canActivate : [RoleGuardService], data: { 
     expectedRole: 'HOST' }},

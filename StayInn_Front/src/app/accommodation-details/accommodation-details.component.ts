@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Accommodation, AmenityEnum } from '../model/accommodation';
 import { AccommodationService } from '../services/accommodation.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-accommodation-details',
@@ -10,7 +11,7 @@ import { AccommodationService } from '../services/accommodation.service';
 export class AccommodationDetailsComponent implements OnInit {
   accommodation: Accommodation | null = null;
 
-  constructor(private accommodationService: AccommodationService) {}
+  constructor(private accommodationService: AccommodationService, private router: Router) {}
 
   ngOnInit(): void {
     this.accommodationService.getAccommodation().subscribe(
@@ -25,6 +26,16 @@ export class AccommodationDetailsComponent implements OnInit {
 
   getAmenityName(amenity: number): string {
     return AmenityEnum[amenity];
+  }
+
+  navigateToUpdateAccommodation(id: string): void{
+    this.accommodationService.sendAccommodationId(id);
+    if (this.accommodation) {
+      this.accommodationService.sendAccommodation(this.accommodation);
+    } else {
+      console.error('Smeštaj nije definisan ili je null.');
+    }
+    this.router.navigateByUrl('/update-accommodation');
   }
 
   amenityIcons: { [key: number]: string } = {

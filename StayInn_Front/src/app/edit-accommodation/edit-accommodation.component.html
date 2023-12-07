@@ -1,0 +1,28 @@
+<div *ngIf="accommodation" class="update-accommodation">
+    <h1>Update Accommodation</h1>
+    <form (submit)="updateAccommodation()" class="accommodation-form">
+        <label class="form-label">
+            Name:
+            <input type="text" [(ngModel)]="accommodation.name" name="name" class="form-input">
+        </label>
+        <label class="form-label">
+            Location:
+            <input type="text" [(ngModel)]="accommodation.location" name="location" class="form-input">
+        </label>
+        <label class="form-label">
+            Min Guests:
+            <input type="number" [(ngModel)]="accommodation.minGuests" name="minGuests" class="form-input">
+        </label>
+        <label class="form-label">
+            Max Guests:
+            <input type="number" [(ngModel)]="accommodation.maxGuests" name="maxGuests" class="form-input">
+        </label>
+        <label class="form-label">Amenities:</label>
+        <div class="amenityBox" *ngFor="let amenity of amenityValues; let i = index">
+            <input class="amenities" type="checkbox" id="amenity{{i}}" name="amenities"
+                [(ngModel)]="accommodation.amenities[i]" [value]="amenity" class="checkbox-input" />
+            <label for="amenity{{i}}" class="checkbox-label">{{ getAmenityName(amenity) }}</label>
+        </div>
+        <button type="submit" class="submit-button">Update</button>
+    </form>
+</div>

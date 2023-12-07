@@ -10,6 +10,7 @@ import { environment } from 'src/environments/environment';
 export class AccommodationService {
   private apiUrl = environment.baseUrl + '/api/accommodations';
   private currentAccommodation = new BehaviorSubject<Accommodation | null>(null);
+  private idAccommodation = new BehaviorSubject<string | null>(null);
   private searchedAccommodationsSubject = new Subject<Accommodation[]>();
 
   jwtToken = localStorage.getItem('token');
@@ -26,12 +27,28 @@ export class AccommodationService {
     return this.http.get<Accommodation[]>(this.apiUrl + '/accommodation');
   }
 
+  getAccommodationById(id: string): Observable<Accommodation> {
+    return this.http.get<Accommodation>(this.apiUrl + `/accommodation/${id}`);
+  }
+
+  updateAccommodation(accommodation: Accommodation, id: string): Observable<any> {
+    return this.http.put<any>(this.apiUrl + `/accommodation/${id}`, accommodation, {headers: this.headers});
+  }
+
   sendAccommodation(data: Accommodation) {
     this.currentAccommodation.next(data);
   }
 
+  sendAccommodationId(accommodationId: string) {
+    this.idAccommodation.next(accommodationId);
+  }
+
   getAccommodation() {
     return this.currentAccommodation.asObservable();
+  }
+
+  getAccommodationID() {
+    return this.idAccommodation.asObservable();
   }
 
   searchAccommodations(location: string, numberOfGuests: number, startDate: string, endDate: string): Observable<Accommodation[]> {
