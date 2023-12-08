@@ -54,7 +54,12 @@ export class ReservationService {
   }
 
   deleteReservation(idPeriod: string , idReservations : string){
-    return this.http.delete(this.baseUrl + `/${idPeriod}/${idReservations}`, {headers : this.headers});
+    let jwtToken = localStorage.getItem('token');
+    let headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${jwtToken}`
+    });
+    return this.http.delete(this.baseUrl + `/${idPeriod}/${idReservations}`, {headers : headers});
   }
 
   sendAvailablePeriod(data: AvailablePeriodByAccommodation) {

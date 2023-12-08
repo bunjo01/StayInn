@@ -3,7 +3,10 @@ import { Router } from '@angular/router';
 import { AvailablePeriodByAccommodation } from 'src/app/model/reservation';
 import { AccommodationService } from 'src/app/services/accommodation.service';
 import { AuthService } from 'src/app/services/auth.service';
+import { ProfileService } from 'src/app/services/profile.service';
 import { ReservationService } from 'src/app/services/reservation.service';
+import * as decode from 'jwt-decode';
+import { JwtPayload } from 'src/app/model/user';
 
 @Component({
   selector: 'app-available-periods',
@@ -13,14 +16,19 @@ import { ReservationService } from 'src/app/services/reservation.service';
 export class AvailablePeriodsComponent implements OnInit {
   availablePeriods: AvailablePeriodByAccommodation[] = [];
   accommodation: any;
+  loggedinUserUsername : any;
+  loggedinUserId: any;
 
   constructor(private reservationService: ReservationService,
               private accommodationService: AccommodationService,
               private router: Router,
-              private authService: AuthService) {}
+              private authService: AuthService,
+              private profileService: ProfileService) {}
 
   ngOnInit(): void {
     this.getAccommodation();
+    this.loggedinUserUsername = this.getUsernameFromToken();
+    this.getUserId();
     this.reservationService.getAvailablePeriods(this.accommodation.id).subscribe(
       data => {
         this.availablePeriods = data;
@@ -63,6 +71,32 @@ export class AvailablePeriodsComponent implements OnInit {
 
   isGuest(){
     return this.authService.getRoleFromToken() === 'GUEST'
+  }
+
+  isOwnerOfAccommodation(): boolean{
+    return this.loggedinUserId == this.accommodation.hostID
+  }
+  
+  isOwnerOfAvailablePeriod(userId: string): boolean{
+    return this.loggedinUserId == userId;
+  }
+
+  getUserId(){
+    this.profileService.getUser(this.loggedinUserUsername).subscribe((result) => {
+      this.loggedinUserId = result.id
+    })
+  }
+
+  getUsernameFromToken(){
+    const token = localStorage.getItem('token');
+    if (token === null) {
+      this.router.navigate(['login']);
+      return;
+    }
+
+    const tokenPayload = decode.jwtDecode(token) as JwtPayload;
+
+    return tokenPayload.username
   }
 
 }
