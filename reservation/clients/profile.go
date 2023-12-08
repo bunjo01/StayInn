@@ -1,7 +1,13 @@
 package clients
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
+	"reservation/data"
+	"reservation/domain"
+	"time"
 
 	"github.com/sony/gobreaker"
 )
@@ -21,3 +27,39 @@ func NewProfileClient(client *http.Client, address string, cb *gobreaker.Circuit
 }
 
 // TODO: Client methods (checking username and ID)
+func (pc ProfileClient) GetUserId(ctx context.Context, username string) (string, error) {
+	var timeout time.Duration
+	deadline, reqHasDeadline := ctx.Deadline()
+	if reqHasDeadline {
+		timeout = time.Until(deadline)
+	}
+
+	cbResp, err := pc.cb.Execute(func() (interface{}, error) {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, pc.address+"/users/"+username, nil)
+		if err != nil {
+			return "", err
+		}
+		return pc.client.Do(req)
+	})
+	if err != nil {
+		return "", handleHttpReqErr(err, pc.address+"/users/"+username, http.MethodPost, timeout)
+	}
+
+	resp := cbResp.(*http.Response)
+	if resp.StatusCode != http.StatusOK {
+		return "", domain.ErrResp{
+			URL:        resp.Request.URL.String(),
+			Method:     resp.Request.Method,
+			StatusCode: resp.StatusCode,
+		}
+	}
+
+	// Parse the JSON response
+	var serviceResponse data.User
+	decoder := json.NewDecoder(resp.Body)
+	if err := decoder.Decode(&serviceResponse); err != nil {
+		return "", fmt.Errorf("failed to decode JSON response: %v", err)
+	}
+
+	return serviceResponse.ID.Hex(), nil
+}

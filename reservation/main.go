@@ -194,7 +194,7 @@ func main() {
 	// TODO: Change second param accordingly after implementing methods on notification service
 	notification := clients.NewNotificationClient(notificationClient, os.Getenv("NOTIFICATION_SERVICE_URI"), notificationBreaker)
 	// TODO: Change second param in methods when sending request
-	profile := clients.NewProfileClient(profileClient, os.Getenv("PROFILE_SERVICE_URI")+"/users", profileBreaker)
+	profile := clients.NewProfileClient(profileClient, os.Getenv("PROFILE_SERVICE_URI"), profileBreaker)
 	// TODO: Change second param or add it in method
 	accommodation := clients.NewAccommodationClient(accommodationClient, os.Getenv("ACCOMMODATION_SERVICE_URI"), accommodationBreaker)
 

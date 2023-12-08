@@ -32,7 +32,7 @@ func (rr *ReservationRepo) CloseSession() {
 func (rr *ReservationRepo) CreateTables() error {
 	err := rr.session.Query(
 		fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s 
-        (id UUID, id_accommodation TEXT, start_date TIMESTAMP, end_date TIMESTAMP, 
+        (id UUID, id_accommodation TEXT, id_user TEXT, start_date TIMESTAMP, end_date TIMESTAMP, 
         price DOUBLE, price_per_guest BOOLEAN, 
         PRIMARY KEY ((id_accommodation), id)) 
         WITH CLUSTERING ORDER BY (id DESC)`,
@@ -58,28 +58,35 @@ func (rr *ReservationRepo) CreateTables() error {
 
 func (rr *ReservationRepo) GetAvailablePeriodsByAccommodation(id string) (AvailablePeriodsByAccommodation, error) {
 	scanner := rr.session.Query(`
-		SELECT id, id_accommodation, start_date, end_date, price, price_per_guest 
+		SELECT id, id_accommodation, id_user, start_date, end_date, price, price_per_guest 
 		FROM available_periods_by_accommodation WHERE id_accommodation = ?`,
 		id).Iter().Scanner()
 
 	var availablePeriods AvailablePeriodsByAccommodation
 	for scanner.Next() {
 		var period AvailablePeriodByAccommodation
-		var idAccommodation string
+		var idAccommodationStr string
+		var idUserStr string
 
-		err := scanner.Scan(&period.ID, &idAccommodation, &period.StartDate, &period.EndDate, &period.Price, &period.PricePerGuest)
+		err := scanner.Scan(&period.ID, &idAccommodationStr, &idUserStr, &period.StartDate, &period.EndDate, &period.Price, &period.PricePerGuest)
 		if err != nil {
 			rr.logger.Println(err)
 			return nil, err
 		}
 
-		// Convert idAccommodation string to primitive.ObjectID
-		objectID, err := primitive.ObjectIDFromHex(idAccommodation)
+		idAccommodation, err := primitive.ObjectIDFromHex(idAccommodationStr)
 		if err != nil {
 			rr.logger.Println(err)
 			return nil, err
 		}
-		period.IDAccommodation = objectID
+		period.IDAccommodation = idAccommodation
+
+		idUser, err := primitive.ObjectIDFromHex(idUserStr)
+		if err != nil {
+			rr.logger.Println(err)
+			return nil, err
+		}
+		period.IDUser = idUser
 
 		availablePeriods = append(availablePeriods, &period)
 	}
@@ -131,8 +138,10 @@ func (rr *ReservationRepo) GetReservationsByAvailablePeriod(idAvailablePeriod st
 	return reservations, nil
 }
 
+// extract username from token and communicate with profile service
 func (rr *ReservationRepo) InsertAvailablePeriodByAccommodation(availablePeriod *AvailablePeriodByAccommodation) error {
 	var err error
+
 	if availablePeriod.Price < 0 {
 		err = errors.New("price cannot be negative")
 		return err
@@ -161,10 +170,11 @@ func (rr *ReservationRepo) InsertAvailablePeriodByAccommodation(availablePeriod 
 
 	availablePeriodId, _ := gocql.RandomUUID()
 	idAccommodation := availablePeriod.IDAccommodation.Hex()
+	idUser := availablePeriod.IDUser.Hex()
 	err = rr.session.Query(
-		`INSERT INTO available_periods_by_accommodation (id, id_accommodation, start_date, end_date, price, price_per_guest) 
-		VALUES (?, ?, ?, ?, ?, ?)`,
-		availablePeriodId, idAccommodation, availablePeriod.StartDate, availablePeriod.EndDate,
+		`INSERT INTO available_periods_by_accommodation (id, id_accommodation, id_user, start_date, end_date, price, price_per_guest) 
+		VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		availablePeriodId, idAccommodation, idUser, availablePeriod.StartDate, availablePeriod.EndDate,
 		availablePeriod.Price, availablePeriod.PricePerGuest).Exec()
 	if err != nil {
 		rr.logger.Println(err)
@@ -218,9 +228,11 @@ func (rr *ReservationRepo) InsertReservationByAvailablePeriod(reservation *Reser
 	return nil
 }
 
+// Add so only user who make period can update it, extract username from token and communicate with profile service
 func (rr *ReservationRepo) UpdateAvailablePeriodByAccommodation(availablePeriod *AvailablePeriodByAccommodation) error {
 	id := availablePeriod.ID
 	accommodationdId := availablePeriod.IDAccommodation.Hex()
+
 	availablePeriods, err := rr.FindAvailablePeriodsById(id.String(), accommodationdId)
 	if err != nil {
 		rr.logger.Println(err)
@@ -285,7 +297,7 @@ func (rr *ReservationRepo) UpdateAvailablePeriodByAccommodation(availablePeriod 
 
 func (rr *ReservationRepo) FindAvailablePeriodsByAccommodationId(accommodationId string) (AvailablePeriodsByAccommodation, error) {
 	scanner := rr.session.Query(`
-    SELECT id, id_accommodation, start_date, end_date, price, price_per_guest 
+    SELECT id, id_accommodation, id_user, start_date, end_date, price, price_per_guest 
     FROM available_periods_by_accommodation 
     WHERE id_accommodation = ?`, accommodationId).Iter().Scanner()
 
@@ -293,10 +305,11 @@ func (rr *ReservationRepo) FindAvailablePeriodsByAccommodationId(accommodationId
 	for scanner.Next() {
 		var (
 			idAccommodationStr string
+			idUserStr          string
 			period             AvailablePeriodByAccommodation
 		)
 
-		err := scanner.Scan(&period.ID, &idAccommodationStr, &period.StartDate, &period.EndDate, &period.Price, &period.PricePerGuest)
+		err := scanner.Scan(&period.ID, &idAccommodationStr, &idUserStr, &period.StartDate, &period.EndDate, &period.Price, &period.PricePerGuest)
 
 		if err != nil {
 			rr.logger.Println(err)
@@ -305,6 +318,7 @@ func (rr *ReservationRepo) FindAvailablePeriodsByAccommodationId(accommodationId
 
 		// Convert string to primitive.ObjectID
 		period.IDAccommodation, _ = primitive.ObjectIDFromHex(idAccommodationStr)
+		period.IDUser, _ = primitive.ObjectIDFromHex(idUserStr)
 
 		availablePeriods = append(availablePeriods, &period)
 	}
@@ -319,7 +333,7 @@ func (rr *ReservationRepo) FindAvailablePeriodsByAccommodationId(accommodationId
 
 func (rr *ReservationRepo) FindAvailablePeriodsById(id, accommodationId string) (AvailablePeriodsByAccommodation, error) {
 	scanner := rr.session.Query(`
-        SELECT id, id_accommodation, start_date, end_date, price, price_per_guest 
+        SELECT id, id_accommodation, id_user, start_date, end_date, price, price_per_guest 
         FROM available_periods_by_accommodation 
         WHERE id = ? AND id_accommodation = ?`,
 		id, accommodationId).Iter().Scanner()
@@ -328,10 +342,11 @@ func (rr *ReservationRepo) FindAvailablePeriodsById(id, accommodationId string) 
 	for scanner.Next() {
 		var (
 			idAccommodationStr string
+			idUserStr          string
 			period             AvailablePeriodByAccommodation
 		)
 
-		err := scanner.Scan(&period.ID, &idAccommodationStr, &period.StartDate, &period.EndDate, &period.Price, &period.PricePerGuest)
+		err := scanner.Scan(&period.ID, &idAccommodationStr, &idUserStr, &period.StartDate, &period.EndDate, &period.Price, &period.PricePerGuest)
 
 		if err != nil {
 			rr.logger.Println(err)
@@ -339,6 +354,7 @@ func (rr *ReservationRepo) FindAvailablePeriodsById(id, accommodationId string) 
 		}
 
 		period.IDAccommodation, _ = primitive.ObjectIDFromHex(idAccommodationStr)
+		period.IDUser, _ = primitive.ObjectIDFromHex(idUserStr)
 
 		availablePeriods = append(availablePeriods, &period)
 	}
@@ -352,17 +368,18 @@ func (rr *ReservationRepo) FindAvailablePeriodsById(id, accommodationId string) 
 }
 
 func (rr *ReservationRepo) FindAvailablePeriodById(id, accommodationID string) (*AvailablePeriodByAccommodation, error) {
-	query := `SELECT id, id_accommodation, start_date, end_date, price, price_per_guest 
+	query := `SELECT id, id_accommodation, id_user, start_date, end_date, price, price_per_guest 
           FROM available_periods_by_accommodation 
           WHERE id = ? AND id_accommodation = ? LIMIT 1`
 
 	var (
 		idAccommodationStr string
+		idUserStr          string
 		period             AvailablePeriodByAccommodation
 	)
 
 	err := rr.session.Query(query, id, accommodationID).Consistency(gocql.One).Scan(
-		&period.ID, &idAccommodationStr, &period.StartDate, &period.EndDate, &period.Price, &period.PricePerGuest,
+		&period.ID, &idAccommodationStr, &idUserStr, &period.StartDate, &period.EndDate, &period.Price, &period.PricePerGuest,
 	)
 
 	if err != nil {
@@ -372,6 +389,7 @@ func (rr *ReservationRepo) FindAvailablePeriodById(id, accommodationID string) (
 
 	// Convert string to primitive.ObjectID
 	period.IDAccommodation, _ = primitive.ObjectIDFromHex(idAccommodationStr)
+	period.IDUser, _ = primitive.ObjectIDFromHex(idUserStr)
 
 	return &period, nil
 }
@@ -581,21 +599,23 @@ func (rr *ReservationRepo) DeletePeriodsForAccommodations(accIDs []primitive.Obj
 
 func (rr *ReservationRepo) FindAccommodationIdsByDates(dates *Dates) (ListOfObjectIds, error) {
 	var periodIDs []gocql.UUID
+	var accommodationIds []primitive.ObjectID
 	uniqueAccommodationIds := make(map[primitive.ObjectID]struct{})
 
 	for _, id := range dates.AccommodationIds {
 		scanner := rr.session.Query(`
-			SELECT id, id_accommodation, start_date, end_date, price, price_per_guest 
+			SELECT id, id_accommodation, id_user, start_date, end_date, price, price_per_guest 
 			FROM available_periods_by_accommodation 
 			WHERE id_accommodation = ?`, id.Hex()).Iter().Scanner()
 
 		for scanner.Next() {
 			var (
 				idAccommodationStr string
+				idUserStr          string
 				period             AvailablePeriodByAccommodation
 			)
 
-			err := scanner.Scan(&period.ID, &idAccommodationStr, &period.StartDate, &period.EndDate, &period.Price, &period.PricePerGuest)
+			err := scanner.Scan(&period.ID, &idAccommodationStr, &idUserStr, &period.StartDate, &period.EndDate, &period.Price, &period.PricePerGuest)
 
 			if err != nil {
 				rr.logger.Println(err)
@@ -603,6 +623,7 @@ func (rr *ReservationRepo) FindAccommodationIdsByDates(dates *Dates) (ListOfObje
 			}
 
 			period.IDAccommodation, _ = primitive.ObjectIDFromHex(idAccommodationStr)
+			period.IDUser, _ = primitive.ObjectIDFromHex(idUserStr)
 
 			if (period.StartDate.Before(dates.StartDate) || period.StartDate.Equal(dates.StartDate)) &&
 				(period.EndDate.After(dates.EndDate) || period.EndDate.Equal(dates.EndDate)) {
@@ -617,7 +638,6 @@ func (rr *ReservationRepo) FindAccommodationIdsByDates(dates *Dates) (ListOfObje
 		}
 	}
 
-	var accommodationIds []primitive.ObjectID
 	for id := range uniqueAccommodationIds {
 		accommodationIds = append(accommodationIds, id)
 	}
@@ -633,9 +653,6 @@ func (rr *ReservationRepo) FindAccommodationIdsByDates(dates *Dates) (ListOfObje
 
 func (rr *ReservationRepo) FindReservationForSearch(periodsIds []gocql.UUID, listOfAccommodationIds []primitive.ObjectID, startDate, endDate time.Time) (ListOfObjectIds, error) {
 	idAccommodationsMap := make(map[primitive.ObjectID]Reservations)
-
-	//need fixing
-	//listOfAccommodationIds, _ := rr.FindAccommodationIdsByPeriods(periodsIds)
 
 	for _, id := range listOfAccommodationIds {
 		idAccommodationsMap[id] = Reservations{}

@@ -87,18 +87,21 @@ func (ah *AccommodationHandler) CreateAccommodation(rw http.ResponseWriter, r *h
 	if err != nil {
 		ah.logger.Println("Failed to read username from token:", err)
 		http.Error(rw, "Failed to read username from token", http.StatusBadRequest)
+		return
 	}
 
 	hostID, err := ah.profile.GetUserId(r.Context(), username)
 	if err != nil {
 		ah.logger.Println("Failed to get HostID from username:", err)
 		http.Error(rw, "Failed to get HostID from username", http.StatusBadRequest)
+		return
 	}
 
 	accommodation.HostID, err = primitive.ObjectIDFromHex(hostID)
 	if err != nil {
 		ah.logger.Println("Failed to set HostID for accommodation:", err)
 		http.Error(rw, "Failed to set HostID for accommodation", http.StatusBadRequest)
+		return
 	}
 
 	// Adding accommodation

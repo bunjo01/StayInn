@@ -12,7 +12,8 @@ import (
 type AvailablePeriodByAccommodation struct {
 	ID              gocql.UUID
 	IDAccommodation primitive.ObjectID // Partition key
-	StartDate       time.Time          // Sort key
+	IDUser          primitive.ObjectID
+	StartDate       time.Time // Sort key
 	EndDate         time.Time
 	Price           float64
 	PricePerGuest   bool

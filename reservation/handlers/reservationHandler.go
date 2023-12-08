@@ -99,7 +99,29 @@ func (r *ReservationHandler) GetAllReservationByAvailablePeriod(rw http.Response
 
 func (r *ReservationHandler) CreateAvailablePeriod(rw http.ResponseWriter, h *http.Request) {
 	availablePeriod := h.Context().Value(KeyProduct{}).(*data.AvailablePeriodByAccommodation)
-	err := r.repo.InsertAvailablePeriodByAccommodation(availablePeriod)
+	tokenStr := r.extractTokenFromHeader(h)
+	username, err := r.getUsername(tokenStr)
+	if err != nil {
+		r.logger.Println("Failed to read username from token:", err)
+		http.Error(rw, "Failed to read username from token", http.StatusBadRequest)
+		return
+	}
+
+	userID, err := r.profile.GetUserId(h.Context(), username)
+	if err != nil {
+		r.logger.Println("Failed to get HostID from username:", err)
+		http.Error(rw, "Failed to get HostID from username", http.StatusBadRequest)
+		return
+	}
+
+	availablePeriod.IDUser, err = primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		r.logger.Println("Failed to set HostID for accommodation:", err)
+		http.Error(rw, "Failed to set HostID for accommodation", http.StatusBadRequest)
+		return
+	}
+
+	err = r.repo.InsertAvailablePeriodByAccommodation(availablePeriod)
 	if err != nil {
 		r.logger.Print("Database exception: ", err)
 		http.Error(rw, fmt.Sprintf("Failed to create available period: %v", err), http.StatusBadRequest)
@@ -293,4 +315,23 @@ func (r *ReservationHandler) extractTokenFromHeader(rr *http.Request) string {
 		return token[len("Bearer "):]
 	}
 	return ""
+}
+
+func (r *ReservationHandler) getUsername(tokenString string) (string, error) {
+	claims := jwt.MapClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		return secretKey, nil
+	})
+
+	if err != nil || !token.Valid {
+		return "", err
+	}
+
+	username, ok1 := claims["username"].(string)
+	_, ok2 := claims["role"].(string)
+	if !ok1 || !ok2 {
+		return "", err
+	}
+
+	return username, nil
 }
