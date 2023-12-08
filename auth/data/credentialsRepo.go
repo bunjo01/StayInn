@@ -181,6 +181,29 @@ func (cr *CredentialsRepo) AddActivation(activationUUID, username string, confir
 	return nil
 }
 
+func (cr *CredentialsRepo) AddRecovery(recoveryUUID, username string, confirmed bool) error {
+	collection := cr.getRecoveryCollection()
+
+	currentTime := time.Now()
+
+	newRecovery := RecoveryModel{
+		RecoveryUUID: recoveryUUID,
+		Time:         currentTime,
+		Confirmed:    confirmed,
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	_, err := collection.InsertOne(ctx, newRecovery)
+	if err != nil {
+		cr.logger.Fatal(err.Error())
+		return err
+	}
+
+	return nil
+}
+
 // Checks if username already exists in database.
 // Returns true if username is unique, else returns false
 func (cr *CredentialsRepo) CheckUsername(username string) bool {
@@ -452,12 +475,49 @@ func (cr *CredentialsRepo) SendRecoveryEmail(email string) (string, error) {
 		return "", errors.New("user with the given email was not found")
 	}
 
+	recoveryCollection := cr.getRecoveryCollection()
+
+	recoveryModel := RecoveryModel{
+		RecoveryUUID: recoveryUUID,
+		Time:         time.Now(),
+		Confirmed:    false,
+	}
+	_, err = recoveryCollection.InsertOne(ctx, recoveryModel)
+	if err != nil {
+		return "", err
+	}
+
 	_, err = SendEmail(email, recoveryUUID, "recovery")
 	if err != nil {
 		return "", err
 	}
 
 	return recoveryUUID, nil
+}
+
+func (cr *CredentialsRepo) IsRecoveryLinkExpired(recoveryUUID string) (bool, error) {
+	recoveryCollection := cr.getRecoveryCollection()
+
+	filter := bson.M{
+		"recoveryUUID": recoveryUUID,
+		"confirmed":    false,
+	}
+
+	var recoveryData RecoveryModel
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	err := recoveryCollection.FindOne(ctx, filter).Decode(&recoveryData)
+	if err != nil {
+		return true, err
+	}
+
+	elapsedTime := time.Since(recoveryData.Time)
+	if elapsedTime > 1*time.Minute {
+		return true, nil // Link has expired
+	}
+
+	return false, nil // Link is valid
 }
 
 func (cr *CredentialsRepo) ActivateUserAccount(activationUUID string) error {
@@ -517,10 +577,20 @@ func (cr *CredentialsRepo) ActivateUserAccount(activationUUID string) error {
 }
 
 func (cr *CredentialsRepo) UpdatePasswordWithRecoveryUUID(recoveryUUID, newPassword string) error {
+
+	expired, err := cr.IsRecoveryLinkExpired(recoveryUUID)
+	if err != nil {
+		return err
+	}
+
+	if expired {
+		return errors.New("recovery link has expired")
+	}
+
 	hashedPassword, err := hashPassword(newPassword)
 	if err != nil {
-		cr.logger.Println("Hashovanje lozinke pri resetovanju nije uspelo")
-		return err
+		cr.logger.Println("password hashing failed")
+		return errors.New("password hashing failed")
 	}
 
 	collection := cr.getCredentialsCollection()
@@ -537,7 +607,7 @@ func (cr *CredentialsRepo) UpdatePasswordWithRecoveryUUID(recoveryUUID, newPassw
 	result, err := collection.UpdateOne(ctx, filter, update)
 	if err != nil {
 		cr.logger.Println("Failed to update password using recoveryUUID")
-		return err
+		return errors.New("failed to update password using recoveryUUID")
 	}
 	if result.ModifiedCount == 0 {
 		cr.logger.Printf("No user found with recoveryUUID: %s", recoveryUUID)
@@ -572,21 +642,21 @@ func hashPassword(password string) (string, error) {
 
 // GenerateToken generates a JWT token with the specified username and role.
 func (cr *CredentialsRepo) GenerateToken(username, role string) (string, error) {
-    expirationTime := time.Now().Add(24 * time.Hour)
-    claims := jwt.MapClaims{
-        "username": username,
-        "role":     role,
-        "exp":      expirationTime.Unix(),
-    }
+	expirationTime := time.Now().Add(24 * time.Hour)
+	claims := jwt.MapClaims{
+		"username": username,
+		"role":     role,
+		"exp":      expirationTime.Unix(),
+	}
 
-    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-    tokenString, err := token.SignedString(secretKey)
-    if err != nil {
-        return "", err
-    }
+	tokenString, err := token.SignedString(secretKey)
+	if err != nil {
+		return "", err
+	}
 
-    return tokenString, nil
+	return tokenString, nil
 }
 
 func (cr *CredentialsRepo) getCredentialsCollection() *mongo.Collection {
@@ -598,5 +668,11 @@ func (cr *CredentialsRepo) getCredentialsCollection() *mongo.Collection {
 func (cr *CredentialsRepo) getActivationCollection() *mongo.Collection {
 	authDatabase := cr.cli.Database("authDB")
 	credentialsCollection := authDatabase.Collection("activation")
+	return credentialsCollection
+}
+
+func (cr *CredentialsRepo) getRecoveryCollection() *mongo.Collection {
+	authDatabase := cr.cli.Database("authDB")
+	credentialsCollection := authDatabase.Collection("recovery")
 	return credentialsCollection
 }
