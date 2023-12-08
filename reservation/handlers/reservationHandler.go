@@ -99,7 +99,20 @@ func (r *ReservationHandler) GetAllReservationByAvailablePeriod(rw http.Response
 
 func (r *ReservationHandler) CreateAvailablePeriod(rw http.ResponseWriter, h *http.Request) {
 	availablePeriod := h.Context().Value(KeyProduct{}).(*data.AvailablePeriodByAccommodation)
-	err := r.repo.InsertAvailablePeriodByAccommodation(availablePeriod)
+
+	exists, err := r.accommodation.CheckAccommodationID(h.Context(), availablePeriod.IDAccommodation)
+    if err != nil {
+        r.logger.Print("Failed to check accommodation existence: ", err)
+        http.Error(rw, "Failed to check accommodation existence", http.StatusInternalServerError)
+        return
+    }
+    if !exists {
+        r.logger.Print("Accommodation does not exist")
+        http.Error(rw, "Accommodation does not exist", http.StatusBadRequest)
+        return
+    }
+
+	err = r.repo.InsertAvailablePeriodByAccommodation(availablePeriod)
 	if err != nil {
 		r.logger.Print("Database exception: ", err)
 		http.Error(rw, fmt.Sprintf("Failed to create available period: %v", err), http.StatusBadRequest)
@@ -110,8 +123,23 @@ func (r *ReservationHandler) CreateAvailablePeriod(rw http.ResponseWriter, h *ht
 
 func (r *ReservationHandler) CreateReservation(rw http.ResponseWriter, h *http.Request) {
 	reservation := h.Context().Value(KeyProduct{}).(*data.ReservationByAvailablePeriod)
+	
+	r.logger.Printf("Checking accommodation existence for ID: %s", reservation.IDAccommodation.Hex())
 
-	err := r.repo.InsertReservationByAvailablePeriod(reservation)
+	exists, err := r.accommodation.CheckAccommodationID(h.Context(), reservation.IDAccommodation)
+    if !exists {
+        r.logger.Print("Accommodation does not exist")
+        http.Error(rw, "Accommodation does not exist", http.StatusBadRequest)
+        return
+    }
+
+	if err != nil {
+        r.logger.Print("Failed to check accommodation existence: ", err)
+        http.Error(rw, "Failed to check accommodation existence", http.StatusInternalServerError)
+        return
+    }
+
+	err = r.repo.InsertReservationByAvailablePeriod(reservation)
 	if err != nil {
 		r.logger.Print("Database exception: ", err)
 		http.Error(rw, fmt.Sprintf("Failed to create reservation: %v", err), http.StatusBadRequest)

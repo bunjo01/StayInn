@@ -32,7 +32,6 @@ func NewAccommodationsHandler(l *log.Logger, r *data.AccommodationRepository,
 }
 
 func (ah *AccommodationHandler) GetAllAccommodations(rw http.ResponseWriter, r *http.Request) {
-	ah.logger.Printf("Usli smo u GetAllAccommodations funkciju")
 	ctx := r.Context()
 
 	accommodations, err := ah.repo.GetAllAccommodations(ctx)
@@ -156,6 +155,18 @@ func (ah *AccommodationHandler) DeleteAccommodation(rw http.ResponseWriter, r *h
 	id, err := primitive.ObjectIDFromHex(vars["id"])
 	if err != nil {
 		http.Error(rw, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+
+	var accIDs []primitive.ObjectID
+	accIDs = append(accIDs, id)
+
+	ctx, cancel := context.WithTimeout(r.Context(), 4000*time.Millisecond)
+	defer cancel()
+	_, err = ah.reservation.CheckAndDeletePeriods(ctx, accIDs)
+	if err != nil {
+		ah.logger.Println("Error checking and deleting periods:", err)
+		writeResp(err, http.StatusServiceUnavailable, rw)
 		return
 	}
 
