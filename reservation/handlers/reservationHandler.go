@@ -121,6 +121,23 @@ func (r *ReservationHandler) CreateAvailablePeriod(rw http.ResponseWriter, h *ht
 		return
 	}
 
+	fmt.Println("ID ACCOMMODAITON", availablePeriod.IDAccommodation)
+
+	accommodation, err := r.accommodation.CheckIfAccommodationExists(h.Context(), availablePeriod.IDAccommodation)
+	if err != nil {
+		r.logger.Println("Failed to get accommodation by Id:", err)
+		http.Error(rw, "Failed to get accommodation by Id", http.StatusBadRequest)
+		return
+	}
+
+	fmt.Println("FOUND ACOOMODATION ", accommodation)
+
+	if accommodation == nil {
+		r.logger.Println("Accommodation not Found:", err)
+		http.Error(rw, "Accommodation not Found", http.StatusBadRequest)
+		return
+	}
+
 	err = r.repo.InsertAvailablePeriodByAccommodation(availablePeriod)
 	if err != nil {
 		r.logger.Print("Database exception: ", err)
