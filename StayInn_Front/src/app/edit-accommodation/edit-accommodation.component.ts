@@ -16,8 +16,8 @@ export class EditAccommodationComponent implements OnInit{
     name: '',
     location: '',
     amenities: [],
-    minGuests: 0,
-    maxGuests: 0 
+    minGuests: 1,
+    maxGuests: 1 
   };
   
   amenityValues = Object.values(AmenityEnum).filter(value => typeof value === 'number');
@@ -34,20 +34,6 @@ export class EditAccommodationComponent implements OnInit{
 
   ngOnInit(): void {
     this.getAccommodation();
-    
-    // this.route.paramMap.subscribe(params => {
-    //   const accommodationId = params.get('id');
-    //   if (accommodationId) {
-    //     this.accommodationService.getAccommodationById(accommodationId).subscribe(
-    //       data => {
-    //         this.accommodation = data;
-    //       },
-    //       error => {
-    //         console.error('Error fetching accommodation details:', error);
-    //       }
-    //     );
-    //   }
-    // });
   }
 
   getAccommodation(): void {
@@ -63,15 +49,12 @@ export class EditAccommodationComponent implements OnInit{
     return amenity;
   } 
   
-  
   updateAccommodation(): void {
     this.accommodation.amenities = this.amenityValues
         .filter((_, index) => this.accommodation.amenities[index])
         .map((amenity, ) => amenity as AmenityEnum);
     this.accommodationService.getAccommodationID().subscribe(accommodationId => {
-      // console.log(accommodationId);
       if (accommodationId) {
-        // console.log(this.accommodation)
         this.accommodationService.updateAccommodation(this.accommodation, accommodationId).subscribe(
           updatedAccommodation => {
             console.log('Accommodation updated:', updatedAccommodation);

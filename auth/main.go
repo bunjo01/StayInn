@@ -74,7 +74,7 @@ func main() {
 		},
 	)
 
-	profile := clients.NewProfileClient(profileClient, os.Getenv("PROFILE_SERVICE_URI")+"/users", profileBreaker)
+	profile := clients.NewProfileClient(profileClient, os.Getenv("PROFILE_SERVICE_URI"), profileBreaker)
 
 	//Initialize the handler and inject logger and other services clients
 	credentialsHandler := handlers.NewCredentialsHandler(logger, store, profile)

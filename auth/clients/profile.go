@@ -53,7 +53,7 @@ func (c ProfileClient) PassInfoToProfileService(ctx context.Context, info data.N
 	}
 
 	cbResp, err := c.cb.Execute(func() (interface{}, error) {
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.address, bytes.NewBuffer(requestBody))
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.address+"/users", bytes.NewBuffer(requestBody))
 		if err != nil {
 			return nil, err
 		}

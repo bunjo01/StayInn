@@ -189,6 +189,7 @@ func (ah *AccommodationHandler) DeleteUserAccommodations(rw http.ResponseWriter,
 		http.Error(rw, "Invalid userID", http.StatusBadRequest)
 		return
 	}
+
 	accommodations, err := ah.repo.GetAccommodationsForUser(r.Context(), userID)
 	if err != nil {
 		ah.logger.Println("Failed to get accommodations for userID:", err)
@@ -252,11 +253,13 @@ func (ah *AccommodationHandler) AuthorizeRoles(allowedRoles ...string) mux.Middl
 			token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 				return secretKey, nil
 			})
+			ah.logger.Println("claims ok, token:", token.Valid)
 
 			if err != nil || !token.Valid {
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
+			ah.logger.Println("token valid")
 
 			_, ok1 := claims["username"].(string)
 			role, ok2 := claims["role"].(string)
@@ -264,6 +267,7 @@ func (ah *AccommodationHandler) AuthorizeRoles(allowedRoles ...string) mux.Middl
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
+			ah.logger.Println("username and role ok")
 
 			for _, allowedRole := range allowedRoles {
 				if allowedRole == role {

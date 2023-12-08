@@ -428,6 +428,7 @@ func (rr *ReservationRepo) FindAllReservationsByAvailablePeriod(periodId string)
 		return nil, err
 	}
 
+	rr.logger.Println(len(reservations))
 	return reservations, nil
 }
 
@@ -548,55 +549,47 @@ func (rr *ReservationRepo) CheckAndDeleteReservationsByUserID(userID primitive.O
 }
 
 func (rr *ReservationRepo) DeletePeriodsForAccommodations(accIDs []primitive.ObjectID) error {
-	var errs []error
-
 	for _, accID := range accIDs {
-		periods, err := rr.FindAvailablePeriodsByAccommodationId(accID.Hex())
+		periods, err := rr.FindAvailablePeriodsByAccommodationId(accID.String())
 		if err != nil {
 			rr.logger.Println(err)
-			errs = append(errs, err)
-			continue
+			return err
 		}
 
 		for _, period := range periods {
 			reservations, err := rr.FindAllReservationsByAvailablePeriod(period.ID.String())
 			if err != nil {
 				rr.logger.Println(err)
-				errs = append(errs, err)
-				continue
+				return err
 			}
 
 			var reservationIDs []gocql.UUID
 			for _, reservation := range reservations {
 				if !time.Now().After(reservation.EndDate) {
-					errs = append(errs, errors.New("cannot delete period, there are active reservations"))
-					continue
+					// If the end date has not passed, disallow deletion and return an error
+					return errors.New("cannot delete period, there are active reservations")
 				}
+
 				reservationIDs = append(reservationIDs, reservation.ID)
 			}
 
 			// Batch deletion of reservations
 			if len(reservationIDs) > 0 {
-				query := `DELETE FROM reservations_by_available_period WHERE id IN ? ALLOW FILTERING`
+				query := `DELETE FROM reservations_by_available_period WHERE id IN ?`
 
 				if err := rr.session.Query(query, reservationIDs).Exec(); err != nil {
 					rr.logger.Println(err)
-					errs = append(errs, err)
+					return err
 				}
 			}
 
-			// Delete the available period
 			query := `DELETE FROM available_periods_by_accommodation WHERE id = ?`
 
 			if err := rr.session.Query(query, period.ID).Exec(); err != nil {
 				rr.logger.Println(err)
-				errs = append(errs, err)
+				return err
 			}
 		}
-	}
-
-	if len(errs) > 0 {
-		return fmt.Errorf("encountered %d errors: %v", len(errs), errs)
 	}
 
 	return nil
