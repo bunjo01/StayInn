@@ -122,7 +122,7 @@ func (r *ReservationHandler) CreateAvailablePeriod(rw http.ResponseWriter, h *ht
 		return
 	}
 
-	_, err = r.accommodation.CheckIfAccommodationExists(h.Context(), availablePeriod.IDAccommodation)
+	_, err = r.accommodation.CheckAccommodationID(h.Context(), availablePeriod.IDAccommodation)
 	if err != nil {
 		r.logger.Println("Failed to get accommodation by Id:", err)
 		http.Error(rw, "Failed to get accommodation by Id", http.StatusBadRequest)
