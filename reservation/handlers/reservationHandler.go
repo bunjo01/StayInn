@@ -121,20 +121,10 @@ func (r *ReservationHandler) CreateAvailablePeriod(rw http.ResponseWriter, h *ht
 		return
 	}
 
-	fmt.Println("ID ACCOMMODAITON", availablePeriod.IDAccommodation)
-
-	accommodation, err := r.accommodation.CheckIfAccommodationExists(h.Context(), availablePeriod.IDAccommodation)
+	_, err = r.accommodation.CheckIfAccommodationExists(h.Context(), availablePeriod.IDAccommodation)
 	if err != nil {
 		r.logger.Println("Failed to get accommodation by Id:", err)
 		http.Error(rw, "Failed to get accommodation by Id", http.StatusBadRequest)
-		return
-	}
-
-	fmt.Println("FOUND ACOOMODATION ", accommodation)
-
-	if accommodation == nil {
-		r.logger.Println("Accommodation not Found:", err)
-		http.Error(rw, "Accommodation not Found", http.StatusBadRequest)
 		return
 	}
 
@@ -198,7 +188,28 @@ func (r *ReservationHandler) FindAccommodationIdsByDates(rw http.ResponseWriter,
 
 func (r *ReservationHandler) UpdateAvailablePeriodByAccommodation(rw http.ResponseWriter, h *http.Request) {
 	availablePeriod := h.Context().Value(KeyProduct{}).(*data.AvailablePeriodByAccommodation)
-	err := r.repo.UpdateAvailablePeriodByAccommodation(availablePeriod)
+	tokenStr := r.extractTokenFromHeader(h)
+	username, err := r.getUsername(tokenStr)
+	if err != nil {
+		r.logger.Println("Failed to read username from token:", err)
+		http.Error(rw, "Failed to read username from token", http.StatusBadRequest)
+		return
+	}
+
+	userID, err := r.profile.GetUserId(h.Context(), username)
+	if err != nil {
+		r.logger.Println("Failed to get HostID from username:", err)
+		http.Error(rw, "Failed to get HostID from username", http.StatusBadRequest)
+		return
+	}
+
+	if availablePeriod.IDUser.Hex() != userID {
+		r.logger.Println("You are not the owner of available period:")
+		http.Error(rw, "You are not the owner of available period", http.StatusBadRequest)
+		return
+	}
+
+	err = r.repo.UpdateAvailablePeriodByAccommodation(availablePeriod)
 	if err != nil {
 		r.logger.Print("Database exception: ", err)
 		rw.WriteHeader(http.StatusBadRequest)
@@ -244,8 +255,22 @@ func (r *ReservationHandler) DeleteReservation(rw http.ResponseWriter, h *http.R
 	vars := mux.Vars(h)
 	periodID := vars["periodID"]
 	reservationID := vars["reservationID"]
+	tokenStr := r.extractTokenFromHeader(h)
+	username, err := r.getUsername(tokenStr)
+	if err != nil {
+		r.logger.Println("Failed to read username from token:", err)
+		http.Error(rw, "Failed to read username from token", http.StatusBadRequest)
+		return
+	}
 
-	err := r.repo.DeleteReservationByIdAndAvailablePeriodID(reservationID, periodID)
+	userID, err := r.profile.GetUserId(h.Context(), username)
+	if err != nil {
+		r.logger.Println("Failed to get HostID from username:", err)
+		http.Error(rw, "Failed to get HostID from username", http.StatusBadRequest)
+		return
+	}
+
+	err = r.repo.DeleteReservationByIdAndAvailablePeriodID(reservationID, periodID, userID)
 	if err != nil {
 		r.logger.Println("Database exception: ", err)
 		rw.WriteHeader(http.StatusNotFound)

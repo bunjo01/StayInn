@@ -497,11 +497,16 @@ func (rr *ReservationRepo) FindReservationByIdAndAvailablePeriod(id, periodID st
 	return &reservation, nil
 }
 
-func (rr *ReservationRepo) DeleteReservationByIdAndAvailablePeriodID(id, periodID string) error {
+func (rr *ReservationRepo) DeleteReservationByIdAndAvailablePeriodID(id, periodID, ownerId string) error {
 	reservation, err := rr.FindReservationByIdAndAvailablePeriod(id, periodID)
 	if err != nil {
 		rr.logger.Println(err)
 		return err
+	}
+
+	if reservation.IDUser.Hex() != ownerId {
+		rr.logger.Println("You are not owner of reservation:", err)
+		return errors.New("you are not owner of reservation")
 	}
 
 	if time.Now().After(reservation.StartDate) {
@@ -509,7 +514,7 @@ func (rr *ReservationRepo) DeleteReservationByIdAndAvailablePeriodID(id, periodI
 	}
 
 	query := `DELETE FROM reservations_by_available_period
-              WHERE id = ? AND id_available_period = ? ALLOW FILTERING`
+              WHERE id = ? AND id_available_period = ?`
 
 	if err := rr.session.Query(query, id, periodID).Exec(); err != nil {
 		rr.logger.Println(err)
