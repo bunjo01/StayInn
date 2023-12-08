@@ -22,12 +22,12 @@
 
     <div class="form-group">
       <label for="minGuests">Minimal number of guests:</label>
-      <input type="number" id="minGuests" name="minGuests" [(ngModel)]="newAccommodation.minGuests" required>
+      <input type="number" min="1" max="100" id="minGuests" name="minGuests" [(ngModel)]="newAccommodation.minGuests" required>
     </div>
 
     <div class="form-group">
       <label for="maxGuests">Maximal number of guests:</label>
-      <input type="number" id="maxGuests" name="maxGuests" [(ngModel)]="newAccommodation.maxGuests" required>
+      <input type="number" min="1" max="100" id="maxGuests" name="maxGuests" [(ngModel)]="newAccommodation.maxGuests" required>
     </div>
 
     <button class="btnCreateAccommodation" type="submit" [disabled]="!accommodationForm.form.valid">Create</button>

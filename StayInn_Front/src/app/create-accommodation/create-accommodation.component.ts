@@ -15,8 +15,8 @@ export class CreateAccommodationComponent {
     name: '',
     location: '',
     amenities: [],
-    minGuests: 0,
-    maxGuests: 0 
+    minGuests: 1,
+    maxGuests: 1 
   };
 
   amenityValues = Object.values(AmenityEnum).filter(value => typeof value === 'number');

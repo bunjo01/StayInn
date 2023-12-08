@@ -13,12 +13,6 @@ export class AccommodationService {
   private idAccommodation = new BehaviorSubject<string | null>(null);
   private searchedAccommodationsSubject = new Subject<Accommodation[]>();
 
-  jwtToken = localStorage.getItem('token');
-  headers = new HttpHeaders({
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${this.jwtToken}`
-  });
-
   constructor(
     private http: HttpClient
   ) { }
@@ -32,7 +26,13 @@ export class AccommodationService {
   }
 
   updateAccommodation(accommodation: Accommodation, id: string): Observable<any> {
-    return this.http.put<any>(this.apiUrl + `/accommodation/${id}`, accommodation, {headers: this.headers});
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+
+    return this.http.put<any>(this.apiUrl + `/accommodation/${id}`, accommodation, { headers });
   }
 
   sendAccommodation(data: Accommodation) {
@@ -71,6 +71,12 @@ export class AccommodationService {
   }  
 
   createAccommodation(accommodation: Accommodation): Observable<Accommodation> {
-    return this.http.post<Accommodation>(this.apiUrl + '/accommodation', accommodation, { headers: this.headers });
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+
+    return this.http.post<Accommodation>(this.apiUrl + '/accommodation', accommodation, { headers });
   }
 }

@@ -37,9 +37,7 @@ export class AddAvailablePeriodTemplateComponent {
         console.log('Period created successfully:', response);
         this.toastr.success('Available period created successfully');
         this.formData = { ID: '', IDAccommodation: '', StartDate: '', EndDate: '', Price: 0, PricePerGuest: false };
-        this.router.navigateByUrl('/availablePeriods').then(() => {
-          window.location.reload();
-        });
+        this.router.navigateByUrl('');
       }, error => {
         console.error('Error creating available period:', error);
         if (error instanceof HttpErrorResponse) {
