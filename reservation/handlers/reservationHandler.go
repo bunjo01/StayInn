@@ -132,8 +132,29 @@ func (r *ReservationHandler) CreateAvailablePeriod(rw http.ResponseWriter, h *ht
 
 func (r *ReservationHandler) CreateReservation(rw http.ResponseWriter, h *http.Request) {
 	reservation := h.Context().Value(KeyProduct{}).(*data.ReservationByAvailablePeriod)
+	tokenStr := r.extractTokenFromHeader(h)
+	username, err := r.getUsername(tokenStr)
+	if err != nil {
+		r.logger.Println("Failed to read username from token:", err)
+		http.Error(rw, "Failed to read username from token", http.StatusBadRequest)
+		return
+	}
 
-	err := r.repo.InsertReservationByAvailablePeriod(reservation)
+	userID, err := r.profile.GetUserId(h.Context(), username)
+	if err != nil {
+		r.logger.Println("Failed to get HostID from username:", err)
+		http.Error(rw, "Failed to get HostID from username", http.StatusBadRequest)
+		return
+	}
+
+	reservation.IDUser, err = primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		r.logger.Println("Failed to set HostID for accommodation:", err)
+		http.Error(rw, "Failed to set HostID for accommodation", http.StatusBadRequest)
+		return
+	}
+
+	err = r.repo.InsertReservationByAvailablePeriod(reservation)
 	if err != nil {
 		r.logger.Print("Database exception: ", err)
 		http.Error(rw, fmt.Sprintf("Failed to create reservation: %v", err), http.StatusBadRequest)
