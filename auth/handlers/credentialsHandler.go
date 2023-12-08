@@ -220,7 +220,7 @@ func (ch *CredentialsHandler) UpdatePasswordWithRecoveryUUID(w http.ResponseWrit
 
 	err := ch.repo.UpdatePasswordWithRecoveryUUID(reqBody.RecoveryUUID, reqBody.NewPassword)
 	if err != nil {
-		http.Error(w, "Failed to update password with recoveryUUID", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error: %s", err), http.StatusBadRequest)
 		return
 	}
 
