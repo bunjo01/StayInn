@@ -1,12 +1,12 @@
 package main
 
 import (
-	"auth/domain"
 	"context"
 	"log"
 	"net/http"
 	"notification/clients"
 	"notification/data"
+	"notification/domain"
 	"notification/handlers"
 	"os"
 	"os/signal"
@@ -30,6 +30,14 @@ func main() {
 	// Logger initialization
 	logger := log.New(os.Stdout, "[notification-service] ", log.LstdFlags)
 	storeLogger := log.New(os.Stdout, "[notification-store] ", log.LstdFlags)
+
+	// Initializing repo for notifications
+	store, err := data.New(timeoutContext, storeLogger)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	defer store.Disconnect(timeoutContext)
+	store.Ping()
 
 	reservationClient := &http.Client{
 		Transport: &http.Transport{
@@ -93,14 +101,6 @@ func main() {
 
 	reservation := clients.NewReservationClient(reservationClient, os.Getenv("RESERVATION_SERVICE_URI"), reservationBreaker)
 	profile := clients.NewProfileClient(profileClient, os.Getenv("PROFILE_SERVICE_URI"), profileBreaker)
-
-	// Initializing repo for notifications
-	store, err := data.New(timeoutContext, storeLogger)
-	if err != nil {
-		logger.Fatal(err)
-	}
-	defer store.Disconnect(timeoutContext)
-	store.Ping()
 
 	// Uncomment after adding router methods
 	notificationsHandler := handlers.NewNotificationsHandler(logger, store, reservation, profile)

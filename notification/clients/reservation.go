@@ -1,13 +1,13 @@
 package clients
 
 import (
-	"auth/domain"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
-	"reservation/data"
+	"notification/data"
+	"notification/domain"
 	"time"
 
 	"github.com/sony/gobreaker"

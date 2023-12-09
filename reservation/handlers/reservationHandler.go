@@ -218,8 +218,21 @@ func (r *ReservationHandler) FindAccommodationIdsByDates(rw http.ResponseWriter,
 }
 
 func (r *ReservationHandler) FindAllReservationsByUserIDExpiredHandler(rw http.ResponseWriter, h *http.Request) {
-	vars := mux.Vars(h)
-	userID := vars["userID"]
+
+	tokenStr := r.extractTokenFromHeader(h)
+	username, err := r.getUsername(tokenStr)
+	if err != nil {
+		r.logger.Println("Failed to read username from token:", err)
+		http.Error(rw, "Failed to read username from token", http.StatusBadRequest)
+		return
+	}
+
+	userID, err := r.profile.GetUserId(h.Context(), username)
+	if err != nil {
+		r.logger.Println("Failed to get HostID from username:", err)
+		http.Error(rw, "Failed to get HostID from username", http.StatusBadRequest)
+		return
+	}
 
 	objectUserID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
