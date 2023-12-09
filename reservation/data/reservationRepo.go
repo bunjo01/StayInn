@@ -462,7 +462,6 @@ func (rr *ReservationRepo) FindAllReservationsByUserID(userID string) (Reservati
 	}
 
 	if err := scanner.Err(); err != nil {
-		fmt.Println("465")
 		rr.logger.Println(err)
 		return nil, err
 	}
@@ -528,7 +527,6 @@ func (rr *ReservationRepo) DeleteReservationByIdAndAvailablePeriodID(id, periodI
 func (rr *ReservationRepo) CheckAndDeleteReservationsByUserID(userID primitive.ObjectID) error {
 	reservations, err := rr.FindAllReservationsByUserID(userID.Hex())
 	if err != nil {
-		fmt.Println("530")
 		rr.logger.Println(err)
 		return err
 	}
