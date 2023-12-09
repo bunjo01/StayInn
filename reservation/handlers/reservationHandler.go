@@ -217,6 +217,31 @@ func (r *ReservationHandler) FindAccommodationIdsByDates(rw http.ResponseWriter,
 	}
 }
 
+func (r *ReservationHandler) FindAllReservationsByUserIDExpiredHandler(rw http.ResponseWriter, h *http.Request) {
+	vars := mux.Vars(h)
+	userID := vars["userID"]
+
+	objectUserID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		http.Error(rw, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	reservations, err := r.repo.FindAllReservationsByUserIDExpired(objectUserID.Hex())
+	if err != nil {
+		r.logger.Println("Database exception: ", err)
+		http.Error(rw, "Failed to fetch expired reservations", http.StatusBadRequest)
+		return
+	}
+
+	err = reservations.ToJSON(rw)
+	if err != nil {
+		http.Error(rw, "Unable to convert to JSON", http.StatusBadRequest)
+		r.logger.Fatal("Unable to convert to JSON:", err)
+		return
+	}
+}
+
 func (r *ReservationHandler) UpdateAvailablePeriodByAccommodation(rw http.ResponseWriter, h *http.Request) {
 	availablePeriod := h.Context().Value(KeyProduct{}).(*data.AvailablePeriodByAccommodation)
 	tokenStr := r.extractTokenFromHeader(h)

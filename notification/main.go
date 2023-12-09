@@ -1,16 +1,20 @@
 package main
 
 import (
+	"auth/domain"
 	"context"
 	"log"
 	"net/http"
+	"notification/clients"
 	"notification/data"
+	"notification/handlers"
 	"os"
 	"os/signal"
 	"time"
 
 	gorillaHandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/sony/gobreaker"
 )
 
 func main() {
@@ -27,6 +31,69 @@ func main() {
 	logger := log.New(os.Stdout, "[notification-service] ", log.LstdFlags)
 	storeLogger := log.New(os.Stdout, "[notification-store] ", log.LstdFlags)
 
+	reservationClient := &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConns:        10,
+			MaxIdleConnsPerHost: 10,
+			MaxConnsPerHost:     10,
+		},
+	}
+
+	profileClient := &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConns:        10,
+			MaxIdleConnsPerHost: 10,
+			MaxConnsPerHost:     10,
+		},
+	}
+
+	reservationBreaker := gobreaker.NewCircuitBreaker(
+		gobreaker.Settings{
+			Name:        "reservation",
+			MaxRequests: 1,
+			Timeout:     10 * time.Second,
+			Interval:    0,
+			ReadyToTrip: func(counts gobreaker.Counts) bool {
+				return counts.ConsecutiveFailures > 2
+			},
+			OnStateChange: func(name string, from, to gobreaker.State) {
+				logger.Printf("CB '%s' changed from '%s' to '%s'\n", name, from, to)
+			},
+			IsSuccessful: func(err error) bool {
+				if err == nil {
+					return true
+				}
+				errResp, ok := err.(domain.ErrResp)
+				return ok && errResp.StatusCode >= 400 && errResp.StatusCode < 500
+			},
+		},
+	)
+
+	profileBreaker := gobreaker.NewCircuitBreaker(
+		gobreaker.Settings{
+			Name:        "profile",
+			MaxRequests: 1,
+			Timeout:     10 * time.Second,
+			Interval:    0,
+			ReadyToTrip: func(counts gobreaker.Counts) bool {
+				return counts.ConsecutiveFailures > 2
+			},
+			OnStateChange: func(name string, from, to gobreaker.State) {
+				logger.Printf("CB '%s' changed from '%s' to '%s'\n", name, from, to)
+			},
+			IsSuccessful: func(err error) bool {
+				if err == nil {
+					return true
+				}
+				errResp, ok := err.(domain.ErrResp)
+				return ok && errResp.StatusCode >= 400 && errResp.StatusCode < 500
+			},
+		},
+	)
+
+	reservation := clients.NewReservationClient(reservationClient, os.Getenv("RESERVATION_SERVICE_URI"), reservationBreaker)
+	profile := clients.NewProfileClient(profileClient, os.Getenv("PROFILE_SERVICE_URI"), profileBreaker)
+
 	// Initializing repo for notifications
 	store, err := data.New(timeoutContext, storeLogger)
 	if err != nil {
@@ -36,12 +103,14 @@ func main() {
 	store.Ping()
 
 	// Uncomment after adding router methods
-	//notificationsHandler := handlers.NewNotificationsHandler(logger, store)
+	notificationsHandler := handlers.NewNotificationsHandler(logger, store, reservation, profile)
 
 	// Router init
 	router := mux.NewRouter()
-
+	router.Use(notificationsHandler.MiddlewareContentTypeSet)
 	// TODO: Router methods
+	createRatingForAccommodation := router.Methods(http.MethodPost).Path("/rating/accommodation").Subrouter()
+	createRatingForAccommodation.HandleFunc("", notificationsHandler.AddRating)
 
 	// CORS middleware
 	cors := gorillaHandlers.CORS(

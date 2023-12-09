@@ -20,6 +20,7 @@ type RatingAccommodation struct {
 	GuestUsername   string             `bson:"guestUsername" json:"guestUsername"`
 	IDAccommodation primitive.ObjectID `bson:"idAccommodation" json:"idAccommodation"`
 	Time            time.Time          `bson:"time" json:"time"`
+	Rate            int                `bson:"rate" json:"rate"`
 }
 
 func (rh *RatingHost) ToJSON(w io.Writer) error {

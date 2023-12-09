@@ -70,6 +70,17 @@ func (nr *NotificationsRepo) Ping() {
 
 // TODO Repo methods
 
+func (nr *NotificationsRepo) AddRating(rating *RatingAccommodation) error {
+	ratingsCollection := nr.getRatingsCollection()
+
+	_, err := ratingsCollection.InsertOne(context.Background(), rating)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Getting DB collections
 
 func (nr *NotificationsRepo) getNotificationsCollection() *mongo.Collection {

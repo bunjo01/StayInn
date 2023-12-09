@@ -469,6 +469,44 @@ func (rr *ReservationRepo) FindAllReservationsByUserID(userID string) (Reservati
 	return reservations, nil
 }
 
+func (rr *ReservationRepo) FindAllReservationsByUserIDExpired(userID string) (Reservations, error) {
+	scanner := rr.session.Query(`
+        SELECT id, id_accommodation, id_available_period, id_user, start_date, end_date, guest_number, price
+        FROM reservations_by_available_period
+        WHERE id_user = ? AND end_date < ?
+        ALLOW FILTERING`, userID, time.Now()).Iter().Scanner()
+
+	var reservations Reservations
+	for scanner.Next() {
+		var (
+			idAccommodationStr string
+			idUserStr          string
+			reservation        ReservationByAvailablePeriod
+		)
+
+		err := scanner.Scan(&reservation.ID, &idAccommodationStr, &reservation.IDAvailablePeriod, &idUserStr,
+			&reservation.StartDate, &reservation.EndDate, &reservation.GuestNumber, &reservation.Price)
+
+		if err != nil {
+			rr.logger.Println(err)
+			return nil, err
+		}
+
+		// Convert strings to primitive.ObjectID
+		reservation.IDAccommodation, _ = primitive.ObjectIDFromHex(idAccommodationStr)
+		reservation.IDUser, _ = primitive.ObjectIDFromHex(idUserStr)
+
+		reservations = append(reservations, &reservation)
+	}
+
+	if err := scanner.Err(); err != nil {
+		rr.logger.Println(err)
+		return nil, err
+	}
+
+	return reservations, nil
+}
+
 func (rr *ReservationRepo) FindReservationByIdAndAvailablePeriod(id, periodID string) (*ReservationByAvailablePeriod, error) {
 	query := `SELECT id, id_accommodation, id_available_period, id_user, start_date, 
                end_date, guest_number, price 
