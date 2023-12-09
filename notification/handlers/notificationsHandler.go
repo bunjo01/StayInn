@@ -96,6 +96,66 @@ func (rh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request
 	w.Write([]byte("Rating successfully added"))
 }
 
+func (rh *NotificationsHandler) AddHostRating(w http.ResponseWriter, r *http.Request) {
+	var rating data.RatingHost
+	err := json.NewDecoder(r.Body).Decode(&rating)
+	if err != nil {
+		http.Error(w, "Error parsing data", http.StatusBadRequest)
+		return
+	}
+
+	tokenStr := rh.extractTokenFromHeader(r)
+	username, err := rh.getUsername(tokenStr)
+	if err != nil {
+		rh.logger.Println("Failed to read username from token:", err)
+		http.Error(w, "Failed to read username from token", http.StatusBadRequest)
+		return
+	}
+
+	rating.GuestUsername = username
+
+	if rating.Rate < 1 || rating.Rate > 5 {
+		http.Error(w, "Rating must be between 1 and 5", http.StatusBadRequest)
+		return
+	}
+
+	hostID, err := rh.profileClient.GetUserId(r.Context(), rating.HostUsername)
+	if err != nil {
+		rh.logger.Println("Failed to get HostID from username:", err)
+		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
+		return
+	}
+
+	id, err := primitive.ObjectIDFromHex(hostID)
+	if err != nil {
+		http.Error(w, "Invalid hostID", http.StatusBadRequest)
+		return
+	}
+
+	hasExpiredReservations, err := rh.reservationClient.GetReservationsByUserIDExp(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Error checking expired reservations", http.StatusBadRequest)
+		return
+	}
+
+	if len(hasExpiredReservations) == 0 {
+		http.Error(w, "Guest does not have any expired reservations with the specified host", http.StatusBadRequest)
+		return
+	}
+
+	rating.Time = time.Now()
+
+	err = rh.repo.AddHostRating(&rating)
+	if err != nil {
+		http.Error(w, "Error adding host rating", http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte("Host rating successfully added"))
+}
+
+
 func (ah *NotificationsHandler) extractTokenFromHeader(rr *http.Request) string {
 	token := rr.Header.Get("Authorization")
 	if token != "" {

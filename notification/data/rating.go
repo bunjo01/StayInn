@@ -13,6 +13,7 @@ type RatingHost struct {
 	GuestUsername string             `bson:"guestUsername" json:"guestUsername"`
 	HostUsername  string             `bson:"hostUsername" json:"hostUsername"`
 	Time          time.Time          `bson:"time" json:"time"`
+	Rate          int                `bson:"rate" json:"rate"`
 }
 
 type RatingAccommodation struct {

@@ -68,10 +68,21 @@ func (nr *NotificationsRepo) Ping() {
 	nr.logger.Println(databases)
 }
 
-// TODO Repo methods
+// Repo methods
 
 func (nr *NotificationsRepo) AddRating(rating *RatingAccommodation) error {
 	ratingsCollection := nr.getRatingsCollection()
+
+	_, err := ratingsCollection.InsertOne(context.Background(), rating)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (nr *NotificationsRepo) AddHostRating(rating *RatingHost) error {
+	ratingsCollection := nr.getHostRatingsCollection()
 
 	_, err := ratingsCollection.InsertOne(context.Background(), rating)
 	if err != nil {
@@ -93,4 +104,10 @@ func (nr *NotificationsRepo) getRatingsCollection() *mongo.Collection {
 	notificationDatabase := nr.cli.Database("notificationDB")
 	ratingsCollection := notificationDatabase.Collection("ratings")
 	return ratingsCollection
+}
+
+func (nr *NotificationsRepo) getHostRatingsCollection() *mongo.Collection {
+	notificationDatabase := nr.cli.Database("notificationDB")
+	hostRatingsCollection := notificationDatabase.Collection("hostRatings")
+	return hostRatingsCollection
 }

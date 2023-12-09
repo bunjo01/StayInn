@@ -108,9 +108,13 @@ func main() {
 	// Router init
 	router := mux.NewRouter()
 	router.Use(notificationsHandler.MiddlewareContentTypeSet)
-	// TODO: Router methods
+
+	// Router methods
 	createRatingForAccommodation := router.Methods(http.MethodPost).Path("/rating/accommodation").Subrouter()
 	createRatingForAccommodation.HandleFunc("", notificationsHandler.AddRating)
+
+	createRatingForHost := router.Methods(http.MethodPost).Path("/rating/host/{hostUsername}").Subrouter()
+	createRatingForHost.HandleFunc("", notificationsHandler.AddHostRating)
 
 	// CORS middleware
 	cors := gorillaHandlers.CORS(
