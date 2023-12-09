@@ -436,7 +436,7 @@ func (rr *ReservationRepo) FindAllReservationsByUserID(userID string) (Reservati
 	scanner := rr.session.Query(`
         SELECT id, id_accommodation, id_available_period, id_user, start_date, end_date, guest_number, price
         FROM reservations_by_available_period
-        WHERE id_user = ?`, userID).Iter().Scanner()
+        WHERE id_user = ? ALLOW FILTERING`, userID).Iter().Scanner()
 
 	var reservations Reservations
 	for scanner.Next() {
@@ -462,6 +462,7 @@ func (rr *ReservationRepo) FindAllReservationsByUserID(userID string) (Reservati
 	}
 
 	if err := scanner.Err(); err != nil {
+		fmt.Println("465")
 		rr.logger.Println(err)
 		return nil, err
 	}
@@ -527,25 +528,34 @@ func (rr *ReservationRepo) DeleteReservationByIdAndAvailablePeriodID(id, periodI
 func (rr *ReservationRepo) CheckAndDeleteReservationsByUserID(userID primitive.ObjectID) error {
 	reservations, err := rr.FindAllReservationsByUserID(userID.Hex())
 	if err != nil {
+		fmt.Println("530")
 		rr.logger.Println(err)
 		return err
 	}
 
+	processedAccommodations := make(map[primitive.ObjectID]bool)
+	// Check if any reservation has an end date in the future
 	for _, reservation := range reservations {
-		if !time.Now().After(reservation.EndDate) {
-			rr.logger.Println(err)
+		if time.Now().Before(reservation.EndDate) {
+			rr.logger.Println("user has active reservations")
 			return errors.New("user has active reservations")
+		}
+		// Mark the accommodation as processed
+		processedAccommodations[reservation.IDAccommodation] = true
+	}
+
+	for accommodationID := range processedAccommodations {
+		query := `DELETE FROM reservations_by_available_period
+              WHERE id_accommodation = ? AND id_user = ?`
+
+		if err := rr.session.Query(query, accommodationID.Hex(), userID.Hex()).Exec(); err != nil {
+			rr.logger.Println(err)
+			return err
 		}
 	}
 
-	query := `DELETE FROM reservations_by_available_period
-              WHERE id_user = ? ALLOW FILTERING`
-
-	if err := rr.session.Query(query, userID.Hex()).Exec(); err != nil {
-		rr.logger.Println(err)
-		return err
-	}
 	return nil
+
 }
 
 func (rr *ReservationRepo) DeletePeriodsForAccommodations(accIDs []primitive.ObjectID) error {
