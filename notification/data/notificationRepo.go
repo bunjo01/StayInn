@@ -100,8 +100,6 @@ func (nr *NotificationsRepo) UpdateHostRating(id primitive.ObjectID, newRating *
 
 	update := bson.M{
 		"$set": bson.M{
-			"guestUsername": newRating.GuestUsername,
-			"hostUsername":  newRating.HostUsername,
 			"time":          newRating.Time,
 			"rate":          newRating.Rate,
 		},
@@ -129,6 +127,19 @@ func (nr *NotificationsRepo) DeleteHostRating(id primitive.ObjectID) error {
 
 func (ar *NotificationsRepo) FindRatingById(ctx context.Context, id primitive.ObjectID) (*RatingAccommodation, error) {
 	collection := ar.getRatingsCollection()
+
+	var rating RatingAccommodation
+	err := collection.FindOne(ctx, bson.M{"_id": id}).Decode(&rating)
+	if err != nil {
+		ar.logger.Println(err)
+		return nil, err
+	}
+
+	return &rating, nil
+}
+
+func (ar *NotificationsRepo) FindHostRatingById(ctx context.Context, id primitive.ObjectID) (*RatingAccommodation, error) {
+	collection := ar.getHostRatingsCollection()
 
 	var rating RatingAccommodation
 	err := collection.FindOne(ctx, bson.M{"_id": id}).Decode(&rating)

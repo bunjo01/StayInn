@@ -131,6 +131,40 @@ func (r *NotificationsHandler) FindRatingById(rw http.ResponseWriter, h *http.Re
 	}
 }
 
+func (r *NotificationsHandler) FindHostRatingById(rw http.ResponseWriter, h *http.Request) {
+	vars := mux.Vars(h)
+	ratingID := vars["id"]
+
+	ctx := h.Context()
+
+	objectID, err := primitive.ObjectIDFromHex(ratingID)
+	if err != nil {
+		http.Error(rw, "Invalid rating ID", http.StatusBadRequest)
+		r.logger.Println("Invalid rating ID:", err)
+		return
+	}
+
+	rating, err := r.repo.FindHostRatingById(ctx, objectID)
+	if err != nil {
+		r.logger.Println("Database exception: ", err)
+		http.Error(rw, "Database exception", http.StatusInternalServerError)
+		return
+	}
+
+	if rating == nil {
+		r.logger.Println("No period with given ID in accommodation")
+		http.Error(rw, "Rating not found", http.StatusNotFound)
+		return
+	}
+
+	err = rating.ToJSON(rw)
+	if err != nil {
+		http.Error(rw, "Unable to convert to json", http.StatusInternalServerError)
+		r.logger.Fatal("Unable to convert to json:", err)
+		return
+	}
+}
+
 func (rh *NotificationsHandler) AddHostRating(w http.ResponseWriter, r *http.Request) {
 	var rating data.RatingHost
 	err := json.NewDecoder(r.Body).Decode(&rating)
