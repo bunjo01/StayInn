@@ -193,6 +193,8 @@ services:
     environment:
       - PORT=8084
       - MONGO_DB_URI=${MONGO_DB_URI_NOTIFICATION}
+      - PROFILE_SERVICE_URI=${PROFILE_SERVICE}
+      - RESERVATION_SERVICE_URI=${RESERVATION_SERVICE}
     depends_on:
       notification_db:
         condition: service_healthy

@@ -36,6 +36,7 @@ func (pc ProfileClient) GetUserId(ctx context.Context, username string) (string,
 	}
 
 	cbResp, err := pc.cb.Execute(func() (interface{}, error) {
+		fmt.Println("Profile service address:", pc.address)
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, pc.address+"/users/"+username, nil)
 		if err != nil {
 			return "", err
@@ -48,6 +49,7 @@ func (pc ProfileClient) GetUserId(ctx context.Context, username string) (string,
 
 	resp := cbResp.(*http.Response)
 	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("Error: Profile service returned status code %d for username %s\n", resp.StatusCode, username)
 		return "", domain.ErrResp{
 			URL:        resp.Request.URL.String(),
 			Method:     resp.Request.Method,

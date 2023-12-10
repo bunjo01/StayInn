@@ -100,7 +100,9 @@ func main() {
 	)
 
 	reservation := clients.NewReservationClient(reservationClient, os.Getenv("RESERVATION_SERVICE_URI"), reservationBreaker)
-	profile := clients.NewProfileClient(profileClient, os.Getenv("PROFILE_SERVICE_URI"), profileBreaker)
+	profileServiceURI := os.Getenv("PROFILE_SERVICE_URI")
+	profile := clients.NewProfileClient(profileClient, profileServiceURI, profileBreaker)
+
 
 	// Uncomment after adding router methods
 	notificationsHandler := handlers.NewNotificationsHandler(logger, store, reservation, profile)
@@ -116,6 +118,15 @@ func main() {
 	createRatingForHost := router.Methods(http.MethodPost).Path("/rating/host/{hostUsername}").Subrouter()
 	createRatingForHost.HandleFunc("", notificationsHandler.AddHostRating)
 
+	getAllAccommodationRatings := router.Methods(http.MethodGet).Path("/ratings/accommodation").Subrouter()
+	getAllAccommodationRatings.HandleFunc("", notificationsHandler.GetAllAccommodationRatings)
+
+	getAllHostRatings := router.Methods(http.MethodGet).Path("/ratings/host").Subrouter()
+	getAllHostRatings.HandleFunc("", notificationsHandler.GetAllHostRatings)
+
+	getHostRatings := router.Methods(http.MethodGet).Path("/ratings/host/{hostUsername}").Subrouter()
+	getHostRatings.HandleFunc("", notificationsHandler.GetHostRatings)
+
 	findRatingForAccommodation := router.Methods(http.MethodGet).Path("/rating/accommodation/{id}").Subrouter()
 	findRatingForAccommodation.HandleFunc("", notificationsHandler.FindRatingById)
 
@@ -123,16 +134,16 @@ func main() {
 	findRatingForHost.HandleFunc("", notificationsHandler.FindHostRatingById)
 
 	updateRatingForHost := router.Methods(http.MethodPut).Path("/rating/host/{id}").Subrouter()
-	updateRatingForHost.HandleFunc("/{id}", notificationsHandler.UpdateHostRating)
+	updateRatingForHost.HandleFunc("", notificationsHandler.UpdateHostRating)
 
 	updateRatingForAccommodation := router.Methods(http.MethodPut).Path("/rating/accommodation/{id}").Subrouter()
-	updateRatingForAccommodation.HandleFunc("/{id}", notificationsHandler.UpdateAccommodationRating)
+	updateRatingForAccommodation.HandleFunc("", notificationsHandler.UpdateAccommodationRating)
 
 	deleteRatingForHost := router.Methods(http.MethodDelete).Path("/rating/host/{id}").Subrouter()
-	deleteRatingForHost.HandleFunc("/{id}", notificationsHandler.DeleteHostRating)
+	deleteRatingForHost.HandleFunc("", notificationsHandler.DeleteHostRating)
 
 	deleteRatingForAccommodation := router.Methods(http.MethodDelete).Path("/rating/accommodation/{id}").Subrouter()
-	deleteRatingForAccommodation.HandleFunc("/{id}", notificationsHandler.DeleteRatingAccommodationHandler)
+	deleteRatingForAccommodation.HandleFunc("", notificationsHandler.DeleteRatingAccommodationHandler)
 
 	// CORS middleware
 	cors := gorillaHandlers.CORS(

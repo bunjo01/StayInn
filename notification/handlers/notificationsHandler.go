@@ -165,7 +165,82 @@ func (r *NotificationsHandler) FindHostRatingById(rw http.ResponseWriter, h *htt
 	}
 }
 
+func (rh *NotificationsHandler) GetAllAccommodationRatings(w http.ResponseWriter, r *http.Request) {
+    ratings, err := rh.repo.GetAllAccommodationRatings(r.Context())
+    if err != nil {
+        rh.logger.Println("Error fetching all host ratings:", err)
+        http.Error(w, "Error fetching host ratings", http.StatusInternalServerError)
+        return
+    }
+
+    if err := json.NewEncoder(w).Encode(ratings); err != nil {
+        rh.logger.Println("Error encoding host ratings:", err)
+        http.Error(w, "Error encoding host ratings", http.StatusInternalServerError)
+        return
+    }
+}
+
+func (rh *NotificationsHandler) GetAllHostRatings(w http.ResponseWriter, r *http.Request) {
+    ratings, err := rh.repo.GetAllHostRatings(r.Context())
+    if err != nil {
+        rh.logger.Println("Error fetching all host ratings:", err)
+        http.Error(w, "Error fetching host ratings", http.StatusInternalServerError)
+        return
+    }
+
+    if err := json.NewEncoder(w).Encode(ratings); err != nil {
+        rh.logger.Println("Error encoding host ratings:", err)
+        http.Error(w, "Error encoding host ratings", http.StatusInternalServerError)
+        return
+    }
+}
+
+
+func (rh *NotificationsHandler) GetHostRatings(w http.ResponseWriter, r *http.Request) {
+    vars := mux.Vars(r)
+    hostUsername, ok := vars["hostUsername"]
+    if !ok {
+        http.Error(w, "Missing host username in the request path", http.StatusBadRequest)
+        return
+    }
+
+    _, err := rh.profileClient.GetUserId(r.Context(), hostUsername)
+    if err != nil {
+        rh.logger.Println("Failed to get HostID from username:", err)
+        http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
+        return
+    }
+
+    // id, err := primitive.ObjectIDFromHex(hostID)
+    // if err != nil {
+    //     http.Error(w, "Invalid hostID", http.StatusBadRequest)
+    //     return
+    // }
+
+    ratings, err := rh.repo.GetHostRatings(r.Context(), hostUsername)
+    if err != nil {
+        rh.logger.Println("Error fetching host ratings:", err)
+        http.Error(w, "Error fetching host ratings", http.StatusInternalServerError)
+        return
+    }
+
+    // Convert ratings to JSON and send the response
+    err = json.NewEncoder(w).Encode(ratings)
+    if err != nil {
+        rh.logger.Println("Error encoding response:", err)
+        http.Error(w, "Error encoding response", http.StatusInternalServerError)
+        return
+    }
+}
+
+
 func (rh *NotificationsHandler) AddHostRating(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	hostUsername, ok := vars["hostUsername"]
+	if !ok {
+		http.Error(w, "Missing host username in the request path", http.StatusBadRequest)
+		return
+	}
 	var rating data.RatingHost
 	err := json.NewDecoder(r.Body).Decode(&rating)
 	if err != nil {
@@ -182,6 +257,7 @@ func (rh *NotificationsHandler) AddHostRating(w http.ResponseWriter, r *http.Req
 	}
 
 	rating.GuestUsername = username
+	rating.HostUsername = hostUsername
 
 	if rating.Rate < 1 || rating.Rate > 5 {
 		http.Error(w, "Rating must be between 1 and 5", http.StatusBadRequest)
