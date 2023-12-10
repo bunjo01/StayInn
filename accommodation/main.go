@@ -118,6 +118,9 @@ func main() {
 	getAccommodationRouter := router.Methods(http.MethodGet).Path("/accommodation/{id}").Subrouter()
 	getAccommodationRouter.HandleFunc("", accommodationsHandler.GetAccommodation)
 
+	getAccommodationsForUserRouter := router.Methods(http.MethodGet).Path("/user/{username}/accommodations").Subrouter()
+	getAccommodationsForUserRouter.HandleFunc("", accommodationsHandler.GetAccommodationsForUser)
+
 	updateAccommodationRouter := router.Methods(http.MethodPut).Path("/accommodation/{id}").Subrouter()
 	updateAccommodationRouter.HandleFunc("", accommodationsHandler.UpdateAccommodation)
 	// updateAccommodationRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))

@@ -25,6 +25,10 @@ export class AccommodationService {
     return this.http.get<Accommodation>(this.apiUrl + `/accommodation/${id}`);
   }
 
+  getAccommodationsByUser(username: string): Observable<Accommodation[]> {
+    return this.http.get<Accommodation[]>(this.apiUrl + `/user/${username}/accommodations`);
+  }
+
   updateAccommodation(accommodation: Accommodation, id: string): Observable<any> {
     const token = localStorage.getItem('token');
     const headers = new HttpHeaders({

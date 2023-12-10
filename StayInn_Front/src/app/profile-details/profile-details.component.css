@@ -45,3 +45,51 @@ button {
   display: block;
   text-align: r;
 }
+
+.container-main {
+  text-align: center; 
+  padding: 0 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  margin: 0 auto;
+}
+
+.card-container {
+  width: 100%;
+  margin: 20px auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.card {
+  margin-bottom: 20px;
+  background-color: goldenrod;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.card ul {
+  list-style: none;
+}
+
+.card-image {
+  width: 100%;
+  height: auto;
+  border-radius: 6px 6px 0px 0px;
+  max-width: 300px;
+}
+
+.card-title {
+  margin-top: 10px;
+  margin-bottom: 10px;
+  font-weight: bold;
+  color: white;
+}
+
+.card-location {
+  margin-bottom: 10px;
+}

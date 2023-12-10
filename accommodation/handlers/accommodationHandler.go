@@ -182,6 +182,37 @@ func (ah *AccommodationHandler) DeleteAccommodation(rw http.ResponseWriter, r *h
 	rw.WriteHeader(http.StatusNoContent)
 }
 
+func (ah *AccommodationHandler) GetAccommodationsForUser(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	username := vars["username"]
+
+	userIDStr, err := ah.profile.GetUserId(r.Context(), username)
+	if err != nil {
+		ah.logger.Println("Failed to get UserID from username:", err)
+		http.Error(rw, "Failed to get UserID from username", http.StatusBadRequest)
+		return
+	}
+
+	userID, err := primitive.ObjectIDFromHex(userIDStr)
+	if err != nil {
+		http.Error(rw, "Invalid userID", http.StatusBadRequest)
+		return
+	}
+
+	accommodations, err := ah.repo.GetAccommodationsForUser(r.Context(), userID)
+	if err != nil {
+		ah.logger.Println("Failed to get accommodations for userID:", err)
+		http.Error(rw, "Failed to get accommodations for userID: "+userID.Hex(), http.StatusInternalServerError)
+		return
+	}
+
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(rw).Encode(accommodations); err != nil {
+		http.Error(rw, "Failed to encode accommodations", http.StatusInternalServerError)
+	}
+}
+
 func (ah *AccommodationHandler) DeleteUserAccommodations(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID, err := primitive.ObjectIDFromHex(vars["id"])
