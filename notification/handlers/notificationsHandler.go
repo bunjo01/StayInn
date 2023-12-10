@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -155,6 +156,59 @@ func (rh *NotificationsHandler) AddHostRating(w http.ResponseWriter, r *http.Req
 	w.Write([]byte("Host rating successfully added"))
 }
 
+func (rh *NotificationsHandler) UpdateHostRating(w http.ResponseWriter, r *http.Request) {
+    vars := mux.Vars(r)
+    ratingID, ok := vars["id"]
+    if !ok {
+        http.Error(w, "Missing rating ID in the request path", http.StatusBadRequest)
+        return
+    }
+
+    id, err := primitive.ObjectIDFromHex(ratingID)
+    if err != nil {
+        http.Error(w, "Invalid rating ID", http.StatusBadRequest)
+        return
+    }
+
+    var newRating data.RatingHost
+    if err := json.NewDecoder(r.Body).Decode(&newRating); err != nil {
+        http.Error(w, "Error parsing data", http.StatusBadRequest)
+        return
+    }
+
+    newRating.Time = time.Now()
+
+    if err := rh.repo.UpdateHostRating(id, &newRating); err != nil {
+        http.Error(w, "Error updating host rating", http.StatusBadRequest)
+        return
+    }
+
+    w.WriteHeader(http.StatusOK)
+    w.Write([]byte("Host rating successfully updated"))
+}
+
+func (rh *NotificationsHandler) DeleteHostRating(w http.ResponseWriter, r *http.Request) {
+    vars := mux.Vars(r)
+    ratingID, ok := vars["id"]
+    if !ok {
+        http.Error(w, "Missing rating ID in the request path", http.StatusBadRequest)
+        return
+    }
+
+    id, err := primitive.ObjectIDFromHex(ratingID)
+    if err != nil {
+        http.Error(w, "Invalid rating ID", http.StatusBadRequest)
+        return
+    }
+
+    if err := rh.repo.DeleteHostRating(id); err != nil {
+        http.Error(w, "Error deleting host rating", http.StatusBadRequest)
+        return
+    }
+
+    w.WriteHeader(http.StatusOK)
+    w.Write([]byte("Host rating successfully deleted"))
+}
 
 func (ah *NotificationsHandler) extractTokenFromHeader(rr *http.Request) string {
 	token := rr.Header.Get("Authorization")

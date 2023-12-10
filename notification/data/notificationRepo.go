@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -90,6 +91,39 @@ func (nr *NotificationsRepo) AddHostRating(rating *RatingHost) error {
 	}
 
 	return nil
+}
+
+func (nr *NotificationsRepo) UpdateHostRating(id primitive.ObjectID, newRating *RatingHost) error {
+	ratingsCollection := nr.getHostRatingsCollection()
+    filter := bson.M{"_id": id}
+
+    update := bson.M{
+        "$set": bson.M{
+            "guestUsername": newRating.GuestUsername,
+            "hostUsername":  newRating.HostUsername,
+            "time":          newRating.Time,
+            "rate":          newRating.Rate,
+        },
+    }
+
+    _, err := ratingsCollection.UpdateOne(context.Background(), filter, update)
+    if err != nil {
+        return err
+    }
+
+    return nil
+}
+
+func (nr *NotificationsRepo) DeleteHostRating(id primitive.ObjectID) error {
+	ratingsCollection := nr.getHostRatingsCollection()
+    filter := bson.M{"_id": id}
+	
+    _, err := ratingsCollection.DeleteOne(context.Background(), filter)
+    if err != nil {
+        return err
+    }
+
+    return nil
 }
 
 // Getting DB collections

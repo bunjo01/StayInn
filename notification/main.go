@@ -116,6 +116,12 @@ func main() {
 	createRatingForHost := router.Methods(http.MethodPost).Path("/rating/host/{hostUsername}").Subrouter()
 	createRatingForHost.HandleFunc("", notificationsHandler.AddHostRating)
 
+	updateRatingForHost := router.Methods(http.MethodPut).Path("/rating/host/{id}").Subrouter()
+	updateRatingForHost.HandleFunc("/{id}", notificationsHandler.UpdateHostRating)
+
+	deleteRatingForHost := router.Methods(http.MethodDelete).Path("/rating/host/{id}").Subrouter()
+	deleteRatingForHost.HandleFunc("/{id}", notificationsHandler.DeleteHostRating)
+
 	// CORS middleware
 	cors := gorillaHandlers.CORS(
 		gorillaHandlers.AllowedOrigins([]string{"*"}),
