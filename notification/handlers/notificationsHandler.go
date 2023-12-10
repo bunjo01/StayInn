@@ -275,9 +275,7 @@ func (rh *NotificationsHandler) UpdateAccommodationRating(w http.ResponseWriter,
 		return
 	}
 
-	rate := newRating.Rate
-
-	if err := rh.repo.UpdateRatingAccommodationByID(id, rate); err != nil {
+	if err := rh.repo.UpdateRatingAccommodationByID(id, newRating.Rate); err != nil {
 		http.Error(w, "Error updating host rating", http.StatusBadRequest)
 		return
 	}

@@ -113,17 +113,20 @@ func main() {
 	createRatingForAccommodation := router.Methods(http.MethodPost).Path("/rating/accommodation").Subrouter()
 	createRatingForAccommodation.HandleFunc("", notificationsHandler.AddRating)
 
-	findRatingForAccommodation := router.Methods(http.MethodGet).Path("/rating/accommodation/{id}").Subrouter()
-	findRatingForAccommodation.HandleFunc("", notificationsHandler.FindRatingById)
-	
-	findRatingForHost := router.Methods(http.MethodGet).Path("/rating/host/{id}").Subrouter()
-	findRatingForHost.HandleFunc("", notificationsHandler.FindHostRatingById)
-
 	createRatingForHost := router.Methods(http.MethodPost).Path("/rating/host/{hostUsername}").Subrouter()
 	createRatingForHost.HandleFunc("", notificationsHandler.AddHostRating)
 
+	findRatingForAccommodation := router.Methods(http.MethodGet).Path("/rating/accommodation/{id}").Subrouter()
+	findRatingForAccommodation.HandleFunc("", notificationsHandler.FindRatingById)
+
+	findRatingForHost := router.Methods(http.MethodGet).Path("/rating/host/{id}").Subrouter()
+	findRatingForHost.HandleFunc("", notificationsHandler.FindHostRatingById)
+
 	updateRatingForHost := router.Methods(http.MethodPut).Path("/rating/host/{id}").Subrouter()
 	updateRatingForHost.HandleFunc("/{id}", notificationsHandler.UpdateHostRating)
+
+	updateRatingForAccommodation := router.Methods(http.MethodPut).Path("/rating/accommodation/{id}").Subrouter()
+	updateRatingForAccommodation.HandleFunc("/{id}", notificationsHandler.UpdateAccommodationRating)
 
 	deleteRatingForHost := router.Methods(http.MethodDelete).Path("/rating/host/{id}").Subrouter()
 	deleteRatingForHost.HandleFunc("/{id}", notificationsHandler.DeleteHostRating)
