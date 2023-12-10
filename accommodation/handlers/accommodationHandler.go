@@ -1,13 +1,17 @@
 package handlers
 
 import (
+	"accommodation/cache"
 	"accommodation/clients"
 	"accommodation/data"
+	"accommodation/storage"
 	"context"
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -22,13 +26,16 @@ type AccommodationHandler struct {
 	repo        *data.AccommodationRepository
 	reservation clients.ReservationClient
 	profile     clients.ProfileClient
+	imageCache  *cache.ImageCache
+	images      *storage.FileStorage
 }
 
 var secretKey = []byte("stayinn_secret")
 
 func NewAccommodationsHandler(l *log.Logger, r *data.AccommodationRepository,
-	rc clients.ReservationClient, p clients.ProfileClient) *AccommodationHandler {
-	return &AccommodationHandler{l, r, rc, p}
+	rc clients.ReservationClient, p clients.ProfileClient,
+	ic *cache.ImageCache, i *storage.FileStorage) *AccommodationHandler {
+	return &AccommodationHandler{l, r, rc, p, ic, i}
 }
 
 func (ah *AccommodationHandler) GetAllAccommodations(rw http.ResponseWriter, r *http.Request) {
@@ -437,3 +444,11 @@ func (ah *AccommodationHandler) SearchAccommodations(rw http.ResponseWriter, r *
 		}
 	}
 }
+
+func (ah *AccommodationHandler) WalkRoot(rw http.ResponseWriter, r *http.Request) {
+	pathsArray := ah.images.WalkDirectories()
+	paths := strings.Join(pathsArray, "\n")
+	io.WriteString(rw, paths)
+}
+
+// TODO: Image storage and image cache methods

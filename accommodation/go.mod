@@ -10,10 +10,23 @@ require (
 	go.mongodb.org/mongo-driver v1.13.0
 )
 
-require github.com/golang/snappy v0.0.4 // indirect
+require (
+	github.com/golang/snappy v0.0.4 // indirect
+	github.com/hashicorp/go-uuid v1.0.3 // indirect
+	github.com/jcmturner/aescts/v2 v2.0.0 // indirect
+	github.com/jcmturner/dnsutils/v2 v2.0.0 // indirect
+	github.com/jcmturner/gofork v1.7.6 // indirect
+	github.com/jcmturner/goidentity/v6 v6.0.1 // indirect
+	github.com/jcmturner/gokrb5/v8 v8.4.4 // indirect
+	github.com/jcmturner/rpc/v2 v2.0.3 // indirect
+	golang.org/x/net v0.12.0 // indirect
+	google.golang.org/protobuf v1.31.0 // indirect
+)
 
 require (
+	github.com/colinmarc/hdfs/v2 v2.4.0
 	github.com/felixge/httpsnoop v1.0.3 // indirect
+	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
