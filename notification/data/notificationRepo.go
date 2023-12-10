@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"errors"
 	"log"
 	"os"
 	"time"
@@ -95,35 +96,88 @@ func (nr *NotificationsRepo) AddHostRating(rating *RatingHost) error {
 
 func (nr *NotificationsRepo) UpdateHostRating(id primitive.ObjectID, newRating *RatingHost) error {
 	ratingsCollection := nr.getHostRatingsCollection()
-    filter := bson.M{"_id": id}
+	filter := bson.M{"_id": id}
 
-    update := bson.M{
-        "$set": bson.M{
-            "guestUsername": newRating.GuestUsername,
-            "hostUsername":  newRating.HostUsername,
-            "time":          newRating.Time,
-            "rate":          newRating.Rate,
-        },
-    }
+	update := bson.M{
+		"$set": bson.M{
+			"guestUsername": newRating.GuestUsername,
+			"hostUsername":  newRating.HostUsername,
+			"time":          newRating.Time,
+			"rate":          newRating.Rate,
+		},
+	}
 
-    _, err := ratingsCollection.UpdateOne(context.Background(), filter, update)
-    if err != nil {
-        return err
-    }
+	_, err := ratingsCollection.UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		return err
+	}
 
-    return nil
+	return nil
 }
 
 func (nr *NotificationsRepo) DeleteHostRating(id primitive.ObjectID) error {
 	ratingsCollection := nr.getHostRatingsCollection()
-    filter := bson.M{"_id": id}
-	
-    _, err := ratingsCollection.DeleteOne(context.Background(), filter)
-    if err != nil {
-        return err
-    }
+	filter := bson.M{"_id": id}
 
-    return nil
+	_, err := ratingsCollection.DeleteOne(context.Background(), filter)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ar *NotificationsRepo) FindRatingById(ctx context.Context, id primitive.ObjectID) (*RatingAccommodation, error) {
+	collection := ar.getRatingsCollection()
+
+	var rating RatingAccommodation
+	err := collection.FindOne(ctx, bson.M{"_id": id}).Decode(&rating)
+	if err != nil {
+		ar.logger.Println(err)
+		return nil, err
+	}
+
+	return &rating, nil
+}
+
+func (nr *NotificationsRepo) UpdateRatingAccommodationByID(id primitive.ObjectID, newRate int) error {
+	ratingsCollection := nr.getRatingsCollection()
+
+	filter := bson.M{"_id": id}
+	update := bson.M{
+		"$set": bson.M{
+			"rate": newRate,
+			"time": time.Now(),
+		},
+	}
+
+	result, err := ratingsCollection.UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		return err
+	}
+
+	if result.ModifiedCount == 0 {
+		return errors.New("no documents updated")
+	}
+
+	return nil
+}
+
+func (nr *NotificationsRepo) DeleteRatingAccommodationByID(id primitive.ObjectID) error {
+	ratingsCollection := nr.getRatingsCollection()
+
+	filter := bson.M{"_id": id}
+
+	result, err := ratingsCollection.DeleteOne(context.Background(), filter)
+	if err != nil {
+		return err
+	}
+
+	if result.DeletedCount == 0 {
+		return errors.New("no documents deleted")
+	}
+
+	return nil
 }
 
 // Getting DB collections
