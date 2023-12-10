@@ -531,21 +531,29 @@ func (rr *ReservationRepo) CheckAndDeleteReservationsByUserID(userID primitive.O
 		return err
 	}
 
+	processedAccommodations := make(map[primitive.ObjectID]bool)
+	// Check if any reservation has an end date in the future
 	for _, reservation := range reservations {
-		if !time.Now().After(reservation.EndDate) {
-			rr.logger.Println(err)
+		if time.Now().Before(reservation.EndDate) {
+			rr.logger.Println("user has active reservations")
 			return errors.New("user has active reservations")
+		}
+		// Mark the accommodation as processed
+		processedAccommodations[reservation.IDAccommodation] = true
+	}
+
+	for accommodationID := range processedAccommodations {
+		query := `DELETE FROM reservations_by_available_period
+              WHERE id_accommodation = ? AND id_user = ?`
+
+		if err := rr.session.Query(query, accommodationID.Hex(), userID.Hex()).Exec(); err != nil {
+			rr.logger.Println(err)
+			return err
 		}
 	}
 
-	query := `DELETE FROM reservations_by_available_period
-              WHERE id_user = ? ALLOW FILTERING`
-
-	if err := rr.session.Query(query, userID.Hex()).Exec(); err != nil {
-		rr.logger.Println(err)
-		return err
-	}
 	return nil
+
 }
 
 func (rr *ReservationRepo) DeletePeriodsForAccommodations(accIDs []primitive.ObjectID) error {
