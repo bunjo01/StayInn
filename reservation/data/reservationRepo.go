@@ -436,7 +436,7 @@ func (rr *ReservationRepo) FindAllReservationsByUserID(userID string) (Reservati
 	scanner := rr.session.Query(`
         SELECT id, id_accommodation, id_available_period, id_user, start_date, end_date, guest_number, price
         FROM reservations_by_available_period
-        WHERE id_user = ?`, userID).Iter().Scanner()
+        WHERE id_user = ? ALLOW FILTERING`, userID).Iter().Scanner()
 
 	var reservations Reservations
 	for scanner.Next() {

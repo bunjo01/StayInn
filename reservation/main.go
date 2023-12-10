@@ -244,6 +244,9 @@ func main() {
 	deletePeriodsByAccommodationRouter.HandleFunc("", reservationHandler.DeletePeriodsForAccommodations)
 	//deletePeriodsByAccommodationRouter.Use(reservationHandler.AuthorizeRoles("HOST"))
 
+	getReservationsByUserIdRouter := router.Methods(http.MethodGet).Path("/user/{username}/reservations").Subrouter()
+	getReservationsByUserIdRouter.HandleFunc("", reservationHandler.GetAllReservationsByUser)
+
 	checkReservationsByUserIdRouter := router.Methods(http.MethodDelete).Path("/user/{id}/reservations").Subrouter()
 	checkReservationsByUserIdRouter.HandleFunc("", reservationHandler.CheckAndDeleteReservationsForUser)
 	//checkReservationsByUserIdRouter.Use(reservationHandler.AuthorizeRoles("GUEST"))

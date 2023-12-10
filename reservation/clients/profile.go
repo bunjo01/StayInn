@@ -27,6 +27,7 @@ func NewProfileClient(client *http.Client, address string, cb *gobreaker.Circuit
 }
 
 // TODO: Client methods (checking username and ID)
+
 func (pc ProfileClient) GetUserId(ctx context.Context, username string) (string, error) {
 	var timeout time.Duration
 	deadline, reqHasDeadline := ctx.Deadline()

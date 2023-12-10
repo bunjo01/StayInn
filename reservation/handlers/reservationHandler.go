@@ -215,6 +215,8 @@ func (r *ReservationHandler) FindAccommodationIdsByDates(rw http.ResponseWriter,
 		r.logger.Fatal("Unable to convert to json :", err)
 		return
 	}
+
+	rw.WriteHeader(http.StatusOK)
 }
 
 func (r *ReservationHandler) UpdateAvailablePeriodByAccommodation(rw http.ResponseWriter, h *http.Request) {
@@ -263,6 +265,33 @@ func (r *ReservationHandler) DeletePeriodsForAccommodations(rw http.ResponseWrit
 	}
 
 	rw.WriteHeader(http.StatusNoContent)
+}
+
+func (r *ReservationHandler) GetAllReservationsByUser(rw http.ResponseWriter, h *http.Request) {
+	vars := mux.Vars(h)
+	username := vars["username"]
+
+	userID, err := r.profile.GetUserId(h.Context(), username)
+	if err != nil {
+		r.logger.Println("Failed to get UserID from username:", err)
+		http.Error(rw, "Failed to get UserID from username", http.StatusBadRequest)
+		return
+	}
+
+	reservations, err := r.repo.FindAllReservationsByUserID(userID)
+	if err != nil {
+		r.logger.Println("Database exception: ", err)
+		rw.WriteHeader(http.StatusBadRequest)
+	}
+
+	err = reservations.ToJSON(rw)
+	if err != nil {
+		http.Error(rw, "Unable to convert to json:", http.StatusInternalServerError)
+		r.logger.Fatal("Unable to convert to json :", err)
+		return
+	}
+
+	rw.WriteHeader(http.StatusOK)
 }
 
 func (r *ReservationHandler) CheckAndDeleteReservationsForUser(rw http.ResponseWriter, h *http.Request) {
