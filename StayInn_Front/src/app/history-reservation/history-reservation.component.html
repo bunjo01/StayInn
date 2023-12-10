@@ -1,0 +1,10 @@
+<h2>History reservations</h2>
+<div class="reservation-cards">
+  <div *ngFor="let reservation of expiredReservations" class="reservation-card">
+    <p class="accommodation-id">ID accommodation: {{ reservation.IDAccommodation }}</p>
+    <p>Start date: {{ reservation.StartDate }}</p>
+    <p>End date: {{ reservation.EndDate }}</p>
+    <p>Price: {{ reservation.Price }}</p>
+  </div>
+</div>
+
