@@ -253,6 +253,7 @@ func (r *ReservationHandler) FindAllReservationsByUserIDExpiredHandler(rw http.R
 		r.logger.Fatal("Unable to convert to JSON:", err)
 		return
 	}
+
 }
 
 func (r *ReservationHandler) UpdateAvailablePeriodByAccommodation(rw http.ResponseWriter, h *http.Request) {
