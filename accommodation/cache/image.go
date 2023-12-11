@@ -6,8 +6,9 @@ import (
 )
 
 type Image struct {
-	ID   string `json:"id"`
-	Data []byte `json:"data"`
+	ID    string `json:"id"`
+	AccID string `json:"acc_id"`
+	Data  []byte `json:"data"`
 }
 
 type Images []*Image

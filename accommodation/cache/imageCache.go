@@ -43,8 +43,8 @@ func (ic *ImageCache) Ping() {
 }
 
 // Set key-value pair with default expiration
-func (ic *ImageCache) Post(accID string, image *Image) error {
-	key := constructKey(accID, image.ID)
+func (ic *ImageCache) Post(image *Image) error {
+	key := constructKey(image.AccID, image.ID)
 
 	value, err := json.Marshal(image)
 	if err != nil {

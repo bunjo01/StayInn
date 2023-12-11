@@ -130,6 +130,15 @@ func main() {
 	createAccommodationRouter.HandleFunc("", accommodationsHandler.CreateAccommodation)
 	createAccommodationRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
 
+	createAccommodationImagesRouter := router.Methods(http.MethodPost).Path("/accommodation/images").Subrouter()
+	createAccommodationImagesRouter.HandleFunc("", accommodationsHandler.CreateAccommodationImages)
+	createAccommodationImagesRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
+
+	getAccommodationImagesRouter := router.Methods(http.MethodPost).Path("/accommodation/{id}/images").Subrouter()
+	getAccommodationImagesRouter.HandleFunc("", accommodationsHandler.GetAccommodationImages)
+	getAccommodationImagesRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
+	getAccommodationImagesRouter.Use(accommodationsHandler.MiddlewareCacheAllHit)
+
 	getAllAccommodationRouter := router.Methods(http.MethodGet).Path("/accommodation").Subrouter()
 	getAllAccommodationRouter.HandleFunc("", accommodationsHandler.GetAllAccommodations)
 

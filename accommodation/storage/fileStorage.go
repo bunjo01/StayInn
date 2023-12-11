@@ -154,7 +154,39 @@ func (fs *FileStorage) ReadFile(fileName string, isCopied bool) (string, error) 
 	return fileContent, nil
 }
 
+// Writing bytes to a file. Used for saving images in HDFS.
+// Returns error if it fails.
+func (fs *FileStorage) WriteFileBytes(imageData []byte, fileName string) error {
+	filePath := hdfsWriteDir + fileName
+
+	// Create file on HDFS with default replication and block size
+	file, err := fs.client.Create(filePath)
+	if err != nil {
+		fs.logger.Println("Error in creating file on HDFS:", err)
+		return err
+	}
+
+	// Write image data
+	_, err = file.Write(imageData)
+	if err != nil {
+		fs.logger.Println("Error in writing image to file on HDFS:", err)
+		return err
+	}
+
+	// Close file to ensure all changes are flushed to HDFS
+	err = file.Close()
+	if err != nil {
+		fs.logger.Println("Error in closing file on HDFS:", err)
+		return err
+	}
+
+	return nil
+}
+
 // TODO NoSQL: add method that returns file content as byte array when content is not human readable (images, video,...)
+
+// Reading bytes from a file. Used for getting images in HDFS.
+// Returns ([]byte, nil) if successful, otherwise (nil, error).
 func (fs *FileStorage) ReadFileBytes(fileName string, isCopied bool) ([]byte, error) {
 	var filePath string
 	if isCopied {

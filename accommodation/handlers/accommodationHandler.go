@@ -7,6 +7,7 @@ import (
 	"accommodation/storage"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -123,6 +124,51 @@ func (ah *AccommodationHandler) CreateAccommodation(rw http.ResponseWriter, r *h
 	if err := json.NewEncoder(rw).Encode(accommodation); err != nil {
 		ah.logger.Println("Failed to encode accommodation:", err)
 		http.Error(rw, "Failed to encode accommodation", http.StatusInternalServerError)
+	}
+}
+
+func (ah *AccommodationHandler) CreateAccommodationImages(rw http.ResponseWriter, r *http.Request) {
+	var images cache.Images
+	if err := json.NewDecoder(r.Body).Decode(&images); err != nil {
+		http.Error(rw, "Failed to decode request body", http.StatusBadRequest)
+		return
+	}
+
+	for _, image := range images {
+		ah.images.WriteFileBytes(image.Data, image.AccID+"-image-"+image.ID)
+		ah.imageCache.Post(image)
+	}
+
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(http.StatusCreated)
+}
+
+func (ah *AccommodationHandler) GetAccommodationImages(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	accID := vars["id"]
+
+	var images []*cache.Image
+
+	for i := 0; i < 10; i++ {
+		filename := fmt.Sprintf("%s-image-%d", accID, i)
+		data, err := ah.images.ReadFileBytes(filename, false)
+		if err != nil {
+			ah.logger.Printf("Failed to read image '%s': %s", filename, err)
+			http.Error(rw, "Failed to read image", http.StatusInternalServerError)
+			return
+		}
+		image := &cache.Image{
+			ID:   string(rune(i)),
+			Data: data,
+		}
+		images = append(images, image)
+	}
+
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(rw).Encode(images); err != nil {
+		ah.logger.Println("Failed to encode images: ", err)
+		http.Error(rw, "Failed to encode images", http.StatusInternalServerError)
 	}
 }
 
@@ -478,7 +524,7 @@ func (ah *AccommodationHandler) MiddlewareCacheHit(next http.Handler) http.Handl
 func (ah *AccommodationHandler) MiddlewareCacheAllHit(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, h *http.Request) {
 		vars := mux.Vars(h)
-		accID := vars["accID"]
+		accID := vars["id"]
 
 		images, err := ah.imageCache.GetAll(accID)
 		if err != nil {
@@ -493,5 +539,3 @@ func (ah *AccommodationHandler) MiddlewareCacheAllHit(next http.Handler) http.Ha
 		}
 	})
 }
-
-// TODO: Image storage and image cache methods
