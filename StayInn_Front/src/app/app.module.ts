@@ -33,6 +33,8 @@ import { EditPeriodTemplateComponent } from './reservations/edit-period-template
 import { AccommodationDetailsComponent } from './accommodation-details/accommodation-details.component';
 import { EditAccommodationComponent } from './edit-accommodation/edit-accommodation.component';
 import { HistoryReservationComponent } from './history-reservation/history-reservation.component';
+import { RateAccommodationComponent } from './ratings/rate-accommodation/rate-accommodation.component';
+import { RateHostComponent } from './ratings/rate-host/rate-host.component';
 
 @NgModule({
   declarations: [
@@ -57,6 +59,8 @@ import { HistoryReservationComponent } from './history-reservation/history-reser
     AccommodationDetailsComponent,
     EditAccommodationComponent,
     HistoryReservationComponent,
+    RateAccommodationComponent,
+    RateHostComponent,
   ],
   imports: [
     BrowserModule,

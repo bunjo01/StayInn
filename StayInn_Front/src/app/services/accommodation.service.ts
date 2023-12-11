@@ -79,4 +79,14 @@ export class AccommodationService {
 
     return this.http.post<Accommodation>(this.apiUrl + '/accommodation', accommodation, { headers });
   }
+
+  deleteAccommodation(id: string): Observable<any> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+
+    return this.http.delete<any>(this.apiUrl + `/accommodation/${id}`, { headers });
+  }
 }
