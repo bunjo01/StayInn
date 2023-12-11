@@ -147,10 +147,10 @@ func (rr *ReservationRepo) InsertAvailablePeriodByAccommodation(availablePeriod 
 		return err
 	}
 
-	if availablePeriod.StartDate.Before(time.Now()) {
-		err = errors.New("start date must be in the future")
-		return err
-	}
+	// if availablePeriod.StartDate.Before(time.Now()) {
+	// 	err = errors.New("start date must be in the future")
+	// 	return err
+	// }
 
 	if availablePeriod.StartDate.After(availablePeriod.EndDate) {
 		err = errors.New("start date must be before end date")
