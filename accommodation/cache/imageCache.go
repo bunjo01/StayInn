@@ -10,6 +10,11 @@ import (
 	"github.com/go-redis/redis"
 )
 
+const (
+	defaultExpiration = 30 * time.Second
+	longExpiration    = 120 * time.Second
+)
+
 type ImageCache struct {
 	cli    *redis.Client
 	logger *log.Logger
@@ -38,21 +43,23 @@ func (ic *ImageCache) Ping() {
 }
 
 // Set key-value pair with default expiration
-func (ic *ImageCache) Post(accID, imageID string, image *Image) error {
-	key := constructKey(accID, imageID)
+func (ic *ImageCache) Post(accID string, image *Image) error {
+	key := constructKey(accID, image.ID)
+
 	value, err := json.Marshal(image)
 	if err != nil {
 		return err
 	}
 
-	err = ic.cli.Set(key, value, 30*time.Second).Err()
+	err = ic.cli.Set(key, value, defaultExpiration).Err()
 
 	return err
 }
 
-// Get image by key
+// Get single image by key
 func (ic *ImageCache) Get(accID, imageID string) (*Image, error) {
 	key := constructKey(accID, imageID)
+
 	val, err := ic.cli.Get(key).Bytes()
 	if err != nil {
 		return nil, err
@@ -71,6 +78,7 @@ func (ic *ImageCache) Get(accID, imageID string) (*Image, error) {
 // Get all images for accommodation
 func (ic *ImageCache) GetAll(accID string) (Images, error) {
 	key := constructKey(accID, "")
+
 	vals, err := ic.cli.Get(key).Bytes()
 	if err != nil {
 		return nil, err
@@ -89,12 +97,13 @@ func (ic *ImageCache) GetAll(accID string) (Images, error) {
 // Post all images for accommodation
 func (ic *ImageCache) PostAll(accID string, images Images) error {
 	key := constructKey(accID, "")
+
 	value, err := json.Marshal(images)
 	if err != nil {
 		return err
 	}
 
-	err = ic.cli.Set(key, value, 120*time.Second).Err()
+	err = ic.cli.Set(key, value, longExpiration).Err()
 
 	return err
 }
@@ -102,6 +111,7 @@ func (ic *ImageCache) PostAll(accID string, images Images) error {
 // Check if given key exists
 func (ic *ImageCache) Exists(accID, imageID string) (bool, error) {
 	key := constructKey(accID, imageID)
+
 	exists, err := ic.cli.Exists(key).Result()
 	if err != nil {
 		return false, err

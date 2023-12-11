@@ -451,4 +451,43 @@ func (ah *AccommodationHandler) WalkRoot(rw http.ResponseWriter, r *http.Request
 	io.WriteString(rw, paths)
 }
 
+func (ah *AccommodationHandler) MiddlewareCacheHit(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, h *http.Request) {
+		vars := mux.Vars(h)
+		accID := vars["accID"]
+		imageID := vars["imageID"]
+
+		image, err := ah.imageCache.Get(accID, imageID)
+		if err != nil {
+			next.ServeHTTP(rw, h)
+		} else {
+			err = image.ToJSON(rw)
+			if err != nil {
+				http.Error(rw, "Unable to convert image to JSON", http.StatusInternalServerError)
+				ah.logger.Fatal("Unable to convert image to JSON: ", err)
+				return
+			}
+		}
+	})
+}
+
+func (ah *AccommodationHandler) MiddlewareCacheAllHit(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, h *http.Request) {
+		vars := mux.Vars(h)
+		accID := vars["accID"]
+
+		images, err := ah.imageCache.GetAll(accID)
+		if err != nil {
+			next.ServeHTTP(rw, h)
+		} else {
+			err = images.ToJSON(rw)
+			if err != nil {
+				http.Error(rw, "Unable to convert image to JSON", http.StatusInternalServerError)
+				ah.logger.Fatal("Unable to convert image to JSON: ", err)
+				return
+			}
+		}
+	})
+}
+
 // TODO: Image storage and image cache methods
