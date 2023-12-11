@@ -24,7 +24,7 @@ func NewAccommodationClient(client *http.Client, address string, cb *gobreaker.C
 	}
 }
 
-func (ac *AccommodationClient) CheckAccommodationID(ctx context.Context, accID primitive.ObjectID) (bool, error) {
+func (ac *AccommodationClient) CheckAccommodationID(ctx context.Context, accID primitive.ObjectID, token string) (bool, error) {
 	var timeout time.Duration
 	deadline, reqHasDeadline := ctx.Deadline()
 	if reqHasDeadline {
@@ -36,6 +36,7 @@ func (ac *AccommodationClient) CheckAccommodationID(ctx context.Context, accID p
 		if err != nil {
 			return nil, err
 		}
+		req.Header.Set("Authorization", "Bearer "+token)
 		return ac.client.Do(req)
 	})
 	if err != nil {

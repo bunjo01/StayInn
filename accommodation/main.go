@@ -128,7 +128,7 @@ func main() {
 
 	createAccommodationRouter := router.Methods(http.MethodPost).Path("/accommodation").Subrouter()
 	createAccommodationRouter.HandleFunc("", accommodationsHandler.CreateAccommodation)
-	// createAccommodationRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
+	createAccommodationRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
 
 	getAllAccommodationRouter := router.Methods(http.MethodGet).Path("/accommodation").Subrouter()
 	getAllAccommodationRouter.HandleFunc("", accommodationsHandler.GetAllAccommodations)
@@ -141,15 +141,15 @@ func main() {
 
 	updateAccommodationRouter := router.Methods(http.MethodPut).Path("/accommodation/{id}").Subrouter()
 	updateAccommodationRouter.HandleFunc("", accommodationsHandler.UpdateAccommodation)
-	// updateAccommodationRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
+	updateAccommodationRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
 
 	deleteAccommodationRouter := router.Methods(http.MethodDelete).Path("/accommodation/{id}").Subrouter()
 	deleteAccommodationRouter.HandleFunc("", accommodationsHandler.DeleteAccommodation)
-	//deleteAccommodationRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
+	deleteAccommodationRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
 
 	deleteUserAccommodationsRouter := router.Methods(http.MethodDelete).Path("/user/{id}/accommodations").Subrouter()
 	deleteUserAccommodationsRouter.HandleFunc("", accommodationsHandler.DeleteUserAccommodations)
-	//deleteUserAccommodationsRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
+	deleteUserAccommodationsRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
 
 	// Search part
 

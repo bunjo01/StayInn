@@ -96,7 +96,7 @@ func (ah *AccommodationHandler) CreateAccommodation(rw http.ResponseWriter, r *h
 		return
 	}
 
-	hostID, err := ah.profile.GetUserId(r.Context(), username)
+	hostID, err := ah.profile.GetUserId(r.Context(), username, tokenStr)
 	if err != nil {
 		ah.logger.Println("Failed to get HostID from username:", err)
 		http.Error(rw, "Failed to get HostID from username", http.StatusBadRequest)
@@ -161,6 +161,7 @@ func (ah *AccommodationHandler) UpdateAccommodation(rw http.ResponseWriter, r *h
 }
 
 func (ah *AccommodationHandler) DeleteAccommodation(rw http.ResponseWriter, r *http.Request) {
+	tokenStr := ah.extractTokenFromHeader(r)
 	vars := mux.Vars(r)
 	id, err := primitive.ObjectIDFromHex(vars["id"])
 	if err != nil {
@@ -173,7 +174,7 @@ func (ah *AccommodationHandler) DeleteAccommodation(rw http.ResponseWriter, r *h
 
 	ctx, cancel := context.WithTimeout(r.Context(), 4000*time.Millisecond)
 	defer cancel()
-	_, err = ah.reservation.CheckAndDeletePeriods(ctx, accIDs)
+	_, err = ah.reservation.CheckAndDeletePeriods(ctx, accIDs, tokenStr)
 	if err != nil {
 		ah.logger.Println("Error checking and deleting periods:", err)
 		writeResp(err, http.StatusServiceUnavailable, rw)
@@ -193,7 +194,8 @@ func (ah *AccommodationHandler) GetAccommodationsForUser(rw http.ResponseWriter,
 	vars := mux.Vars(r)
 	username := vars["username"]
 
-	userIDStr, err := ah.profile.GetUserId(r.Context(), username)
+	tokenStr := ah.extractTokenFromHeader(r)
+	userIDStr, err := ah.profile.GetUserId(r.Context(), username, tokenStr)
 	if err != nil {
 		ah.logger.Println("Failed to get UserID from username:", err)
 		http.Error(rw, "Failed to get UserID from username", http.StatusBadRequest)
@@ -221,6 +223,7 @@ func (ah *AccommodationHandler) GetAccommodationsForUser(rw http.ResponseWriter,
 }
 
 func (ah *AccommodationHandler) DeleteUserAccommodations(rw http.ResponseWriter, r *http.Request) {
+	tokenStr := ah.extractTokenFromHeader(r)
 	vars := mux.Vars(r)
 	userID, err := primitive.ObjectIDFromHex(vars["id"])
 	if err != nil {
@@ -243,7 +246,7 @@ func (ah *AccommodationHandler) DeleteUserAccommodations(rw http.ResponseWriter,
 	// 4000 ms because it's second in chain of service calls
 	ctx, cancel := context.WithTimeout(r.Context(), 4000*time.Millisecond)
 	defer cancel()
-	_, err = ah.reservation.CheckAndDeletePeriods(ctx, accIDs)
+	_, err = ah.reservation.CheckAndDeletePeriods(ctx, accIDs, tokenStr)
 	if err != nil {
 		ah.logger.Println(err)
 		writeResp(err, http.StatusServiceUnavailable, rw)
@@ -328,6 +331,7 @@ func (ah *AccommodationHandler) extractTokenFromHeader(rr *http.Request) string 
 }
 
 func (ah *AccommodationHandler) SearchAccommodations(rw http.ResponseWriter, r *http.Request) {
+	tokenStr := ah.extractTokenFromHeader(r)
 	ah.logger.Printf("Entering SearchAccommodations function")
 	ctx, cancel := context.WithTimeout(r.Context(), 5000*time.Millisecond)
 	defer cancel()
@@ -417,7 +421,7 @@ func (ah *AccommodationHandler) SearchAccommodations(rw http.ResponseWriter, r *
 			accommodationIDs = append(accommodationIDs, accommodation.ID)
 		}
 
-		ids, err := ah.reservation.PassDatesToReservationService(ctx, accommodationIDs, startDate, endDate)
+		ids, err := ah.reservation.PassDatesToReservationService(ctx, accommodationIDs, startDate, endDate, tokenStr)
 		if err != nil {
 			ah.logger.Println(err)
 			writeResp(err, http.StatusServiceUnavailable, rw)

@@ -28,7 +28,7 @@ func NewReservationClient(client *http.Client, address string, cb *gobreaker.Cir
 
 // Checks reservation service if guest has reservations.
 // If guest has reservations, returns error
-func (c ReservationClient) CheckUserReservations(ctx context.Context, userID primitive.ObjectID) (interface{}, error) {
+func (c ReservationClient) CheckUserReservations(ctx context.Context, userID primitive.ObjectID, token string) (interface{}, error) {
 	var timeout time.Duration
 	deadline, reqHasDeadline := ctx.Deadline()
 	if reqHasDeadline {
@@ -41,6 +41,7 @@ func (c ReservationClient) CheckUserReservations(ctx context.Context, userID pri
 		if err != nil {
 			return nil, err
 		}
+		req.Header.Set("Authorization", "Bearer "+token)
 		return c.client.Do(req)
 	})
 	if err != nil {

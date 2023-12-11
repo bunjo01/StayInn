@@ -152,7 +152,7 @@ func main() {
 	router.HandleFunc("/api/users/check-username/{username}", userHandler.CheckUsernameAvailability).Methods("GET")
 	router.HandleFunc("/users/{username}", userHandler.UpdateUser).Methods("PUT")
 	router.HandleFunc("/users/{username}", userHandler.DeleteUser).Methods("DELETE")
-	//router.Use(userHandler.AuthorizeRoles("HOST", "GUEST"))
+	router.Use(userHandler.AuthorizeRoles("HOST", "GUEST"))
 
 	cors := gorillaHandlers.CORS(
 		gorillaHandlers.AllowedOrigins([]string{"*"}),

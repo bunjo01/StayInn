@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-func writeResp(resp any, statusCode int, w http.ResponseWriter) {
+func WriteResp(resp any, statusCode int, w http.ResponseWriter) {
 	w.WriteHeader(statusCode)
 	if resp == nil {
 		return
