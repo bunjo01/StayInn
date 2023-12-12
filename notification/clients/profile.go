@@ -1,9 +1,11 @@
 package clients
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 	"notification/data"
 	"notification/domain"
@@ -44,7 +46,7 @@ func (pc ProfileClient) GetUserId(ctx context.Context, username string) (string,
 		return pc.client.Do(req)
 	})
 	if err != nil {
-		return "", handleHttpReqErr(err, pc.address+"/users/"+username, http.MethodPost, timeout)
+		return "", handleHttpReqErr(err, pc.address+"/users/"+username, http.MethodGet, timeout)
 	}
 
 	resp := cbResp.(*http.Response)
@@ -65,4 +67,54 @@ func (pc ProfileClient) GetUserId(ctx context.Context, username string) (string,
 	}
 
 	return serviceResponse.ID.Hex(), nil
+}
+
+func (pc ProfileClient) GetUsernameById(ctx context.Context, id primitive.ObjectID) (data.User, error) {
+	var timeout time.Duration
+	deadline, reqHasDeadline := ctx.Deadline()
+	if reqHasDeadline {
+		timeout = time.Until(deadline)
+	}
+
+	idUser := data.UserId{}
+	idUser.ID = id
+	requestBody, err := json.Marshal(idUser)
+	if err != nil {
+		return data.User{}, fmt.Errorf("failed to marshal dates: %v", err)
+	}
+
+	cbResp, err := pc.cb.Execute(func() (interface{}, error) {
+		fmt.Println("Profile service address:", pc.address)
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, pc.address+"/users/get-user-by-id", bytes.NewBuffer(requestBody))
+		if err != nil {
+			return "", err
+		}
+		return pc.client.Do(req)
+	})
+	if err != nil {
+		return data.User{}, handleHttpReqErr(err, pc.address+"/users/get-username-by-id", http.MethodPost, timeout)
+	}
+
+	resp := cbResp.(*http.Response)
+	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("Error: Profile service returned status code %d for fetching user by id", resp.StatusCode)
+		return data.User{}, domain.ErrResp{
+			URL:        resp.Request.URL.String(),
+			Method:     resp.Request.Method,
+			StatusCode: resp.StatusCode,
+		}
+	}
+
+	fmt.Println("112")
+
+	// Parse the JSON response
+	var serviceResponse data.User
+	decoder := json.NewDecoder(resp.Body)
+	if err := decoder.Decode(&serviceResponse); err != nil {
+		return data.User{}, fmt.Errorf("failed to decode JSON response: %v", err)
+	}
+
+	fmt.Println("121")
+
+	return serviceResponse, nil
 }

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -112,7 +113,7 @@ func (rh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request
 	w.Write([]byte("Rating successfully added"))
 }
 
-func (r *NotificationsHandler) FindRatingById(rw http.ResponseWriter, h *http.Request) {
+func (rh *NotificationsHandler) FindRatingById(rw http.ResponseWriter, h *http.Request) {
 	vars := mux.Vars(h)
 	ratingID := vars["id"]
 
@@ -121,19 +122,19 @@ func (r *NotificationsHandler) FindRatingById(rw http.ResponseWriter, h *http.Re
 	objectID, err := primitive.ObjectIDFromHex(ratingID)
 	if err != nil {
 		http.Error(rw, "Invalid rating ID", http.StatusBadRequest)
-		r.logger.Println("Invalid rating ID:", err)
+		rh.logger.Println("Invalid rating ID:", err)
 		return
 	}
 
-	rating, err := r.repo.FindRatingById(ctx, objectID)
+	rating, err := rh.repo.FindRatingById(ctx, objectID)
 	if err != nil {
-		r.logger.Println("Database exception: ", err)
+		rh.logger.Println("Database exception: ", err)
 		http.Error(rw, "Database exception", http.StatusInternalServerError)
 		return
 	}
 
 	if rating == nil {
-		r.logger.Println("No period with given ID in accommodation")
+		rh.logger.Println("No period with given ID in accommodation")
 		http.Error(rw, "Rating not found", http.StatusNotFound)
 		return
 	}
@@ -141,12 +142,12 @@ func (r *NotificationsHandler) FindRatingById(rw http.ResponseWriter, h *http.Re
 	err = rating.ToJSON(rw)
 	if err != nil {
 		http.Error(rw, "Unable to convert to json", http.StatusInternalServerError)
-		r.logger.Fatal("Unable to convert to json:", err)
+		rh.logger.Fatal("Unable to convert to json:", err)
 		return
 	}
 }
 
-func (r *NotificationsHandler) FindHostRatingById(rw http.ResponseWriter, h *http.Request) {
+func (rh *NotificationsHandler) FindHostRatingById(rw http.ResponseWriter, h *http.Request) {
 	vars := mux.Vars(h)
 	ratingID := vars["id"]
 
@@ -155,19 +156,19 @@ func (r *NotificationsHandler) FindHostRatingById(rw http.ResponseWriter, h *htt
 	objectID, err := primitive.ObjectIDFromHex(ratingID)
 	if err != nil {
 		http.Error(rw, "Invalid rating ID", http.StatusBadRequest)
-		r.logger.Println("Invalid rating ID:", err)
+		rh.logger.Println("Invalid rating ID:", err)
 		return
 	}
 
-	rating, err := r.repo.FindHostRatingById(ctx, objectID)
+	rating, err := rh.repo.FindHostRatingById(ctx, objectID)
 	if err != nil {
-		r.logger.Println("Database exception: ", err)
+		rh.logger.Println("Database exception: ", err)
 		http.Error(rw, "Database exception", http.StatusInternalServerError)
 		return
 	}
 
 	if rating == nil {
-		r.logger.Println("No period with given ID in accommodation")
+		rh.logger.Println("No period with given ID in accommodation")
 		http.Error(rw, "Rating not found", http.StatusNotFound)
 		return
 	}
@@ -175,7 +176,7 @@ func (r *NotificationsHandler) FindHostRatingById(rw http.ResponseWriter, h *htt
 	err = rating.ToJSON(rw)
 	if err != nil {
 		http.Error(rw, "Unable to convert to json", http.StatusInternalServerError)
-		r.logger.Fatal("Unable to convert to json:", err)
+		rh.logger.Fatal("Unable to convert to json:", err)
 		return
 	}
 }
@@ -319,13 +320,10 @@ func (rh *NotificationsHandler) GetHostRatings(w http.ResponseWriter, r *http.Re
 }
 
 func (rh *NotificationsHandler) AddHostRating(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	hostUsername, ok := vars["hostUsername"]
-	if !ok {
-		http.Error(w, "Missing host username in the request path", http.StatusBadRequest)
-		return
-	}
 	var rating data.RatingHost
+	ctx, cancel := context.WithTimeout(r.Context(), 5000*time.Millisecond)
+	defer cancel()
+
 	err := json.NewDecoder(r.Body).Decode(&rating)
 	if err != nil {
 		http.Error(w, "Error parsing data", http.StatusBadRequest)
@@ -333,50 +331,71 @@ func (rh *NotificationsHandler) AddHostRating(w http.ResponseWriter, r *http.Req
 	}
 
 	tokenStr := rh.extractTokenFromHeader(r)
-	username, err := rh.getUsername(tokenStr)
+	guestUsername, err := rh.getUsername(tokenStr)
 	if err != nil {
 		rh.logger.Println("Failed to read username from token:", err)
 		http.Error(w, "Failed to read username from token", http.StatusBadRequest)
 		return
 	}
 
-	rating.GuestUsername = username
-	rating.HostUsername = hostUsername
+	host, err := rh.profileClient.GetUsernameById(ctx, rating.HostID)
+	if err != nil {
+		rh.logger.Println(err)
+		http.Error(w, "Failed to get host", http.StatusBadRequest)
+		return
+	}
+
+	guestId, err := rh.profileClient.GetUserId(ctx, guestUsername)
+	if err != nil {
+		rh.logger.Println(err)
+		http.Error(w, "Failed to get guest", http.StatusBadRequest)
+		return
+	}
+
+	rating.GuestUsername = guestUsername
+	rating.HostUsername = host.Username
+
+	rating.GuestID, err = primitive.ObjectIDFromHex(guestId)
+	if err != nil {
+		rh.logger.Println(err)
+		http.Error(w, "Failed to parse primitive object id", http.StatusBadRequest)
+		return
+	}
 
 	if rating.Rate < 1 || rating.Rate > 5 {
 		http.Error(w, "Rating must be between 1 and 5", http.StatusBadRequest)
 		return
 	}
 
-	hostID, err := rh.profileClient.GetUserId(r.Context(), rating.HostUsername)
-	if err != nil {
-		rh.logger.Println("Failed to get HostID from username:", err)
-		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
-		return
-	}
+	//hostID, err := rh.profileClient.GetUserId(r.Context(), rating.HostUsername)
+	//if err != nil {
+	//	rh.logger.Println("Failed to get HostID from username:", err)
+	//	http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
+	//	return
+	//}
+	//
+	//id, err := primitive.ObjectIDFromHex(hostID)
+	//if err != nil {
+	//	http.Error(w, "Invalid hostID", http.StatusBadRequest)
+	//	return
+	//}
+	//
+	//rating.GuestID = id
 
-	id, err := primitive.ObjectIDFromHex(hostID)
-	if err != nil {
-		http.Error(w, "Invalid hostID", http.StatusBadRequest)
-		return
-	}
-
-	rating.GuestID = id
-
-	hasExpiredReservations, err := rh.reservationClient.GetReservationsByUserIDExp(r.Context(), id)
-	if err != nil {
-		http.Error(w, "Error checking expired reservations", http.StatusBadRequest)
-		return
-	}
-
-	if len(hasExpiredReservations) == 0 {
-		http.Error(w, "Guest does not have any expired reservations with the specified host", http.StatusBadRequest)
-		return
-	}
+	//hasExpiredReservations, err := rh.reservationClient.GetReservationsByUserIDExp(r.Context(), rating.GuestID)
+	//if err != nil {
+	//	http.Error(w, "Error checking expired reservations", http.StatusBadRequest)
+	//	return
+	//}
+	//
+	//if len(hasExpiredReservations) == 0 {
+	//	http.Error(w, "Guest does not have any expired reservations with the specified host", http.StatusBadRequest)
+	//	return
+	//}
 
 	rating.Time = time.Now()
 
-	ratings, err := rh.repo.GetAllHostRatingsByUser(r.Context(), id)
+	ratings, err := rh.repo.GetAllHostRatingsByUser(r.Context(), rating.HostID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error fetching user ratings accommodation: %s", err), http.StatusBadRequest)
 		return
@@ -638,7 +657,7 @@ func (rh *NotificationsHandler) DeleteRatingAccommodationHandler(w http.Response
 	w.Write([]byte("Document deleted successfully"))
 }
 
-func (ah *NotificationsHandler) extractTokenFromHeader(rr *http.Request) string {
+func (rh *NotificationsHandler) extractTokenFromHeader(rr *http.Request) string {
 	token := rr.Header.Get("Authorization")
 	if token != "" {
 		return token[len("Bearer "):]
@@ -646,7 +665,7 @@ func (ah *NotificationsHandler) extractTokenFromHeader(rr *http.Request) string 
 	return ""
 }
 
-func (ah *NotificationsHandler) getUsername(tokenString string) (string, error) {
+func (rh *NotificationsHandler) getUsername(tokenString string) (string, error) {
 	claims := jwt.MapClaims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		return secretKey, nil
@@ -665,7 +684,7 @@ func (ah *NotificationsHandler) getUsername(tokenString string) (string, error) 
 	return username, nil
 }
 
-func (r *NotificationsHandler) MiddlewareContentTypeSet(next http.Handler) http.Handler {
+func (rh *NotificationsHandler) MiddlewareContentTypeSet(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, h *http.Request) {
 		rw.Header().Add("Content-Type", "application/json")
 

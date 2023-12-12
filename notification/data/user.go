@@ -22,12 +22,26 @@ type User struct {
 	Role      string             `bson:"role" json:"role"`
 }
 
+type UserId struct {
+	ID primitive.ObjectID `json:"id"`
+}
+
 func (u *User) ToJSON(w io.Writer) error {
 	e := json.NewEncoder(w)
 	return e.Encode(u)
 }
 
 func (u *User) FromJSON(r io.Reader) error {
+	d := json.NewDecoder(r)
+	return d.Decode(u)
+}
+
+func (u *UserId) ToJSON(w io.Writer) error {
+	e := json.NewEncoder(w)
+	return e.Encode(u)
+}
+
+func (u *UserId) FromJSON(r io.Reader) error {
 	d := json.NewDecoder(r)
 	return d.Decode(u)
 }

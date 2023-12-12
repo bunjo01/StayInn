@@ -11,6 +11,7 @@ import (
 type RatingHost struct {
 	ID            primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	GuestID       primitive.ObjectID `bson:"idGuest" json:"idGuest"`
+	HostID        primitive.ObjectID `bson:"idHost" json:"idHost"`
 	GuestUsername string             `bson:"guestUsername" json:"guestUsername"`
 	HostUsername  string             `bson:"hostUsername" json:"hostUsername"`
 	Time          time.Time          `bson:"time" json:"time"`
@@ -20,7 +21,9 @@ type RatingHost struct {
 type RatingAccommodation struct {
 	ID              primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	GuestID         primitive.ObjectID `bson:"idGuest" json:"idGuest"`
+	HostID          primitive.ObjectID `bson:"idHost" json:"idHost"`
 	GuestUsername   string             `bson:"guestUsername" json:"guestUsername"`
+	HostUsername    string             `bson:"hostUsername" json:"hostUsername"`
 	IDAccommodation primitive.ObjectID `bson:"idAccommodation" json:"idAccommodation"`
 	Time            time.Time          `bson:"time" json:"time"`
 	Rate            int                `bson:"rate" json:"rate"`

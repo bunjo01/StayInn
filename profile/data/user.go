@@ -22,6 +22,10 @@ type NewUser struct {
 	Role      string             `bson:"role" json:"role"`
 }
 
+type UserId struct {
+	ID primitive.ObjectID `json:"id"`
+}
+
 func (nu *NewUser) ToJSON(w io.Writer) error {
 	e := json.NewEncoder(w)
 	return e.Encode(nu)
