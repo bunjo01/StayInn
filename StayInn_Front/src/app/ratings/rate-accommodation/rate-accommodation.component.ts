@@ -44,12 +44,12 @@ export class RateAccommodationComponent implements OnInit{
       this.ratingService.addRatingAccommodation(ratingData).subscribe(
         (response) => {
           console.log('Rating added successfully:', response);
-          this.toastr.success('Rating added successfully')
+          this.toastr.success('Rating added successfully');
           this.router.navigate(['/history-reservation']);
         },
         (error) => {
           console.error('Error adding rating:', error);
-          this.toastr.error('Error adding rating')
+          this.toastr.error('Error adding rating');
         }
       );
     } else {

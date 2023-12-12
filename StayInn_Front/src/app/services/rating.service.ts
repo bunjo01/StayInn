@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
@@ -14,22 +14,31 @@ export class RatingService {
 
   constructor(private http: HttpClient) {}
 
-  addRatingAccommodation(ratingAccommodation: any): Observable<any> {
+  addRatingAccommodation(ratingAccommodation: any): Observable<HttpResponse<any>> {
     const token = localStorage.getItem('token');
     const headers = new HttpHeaders({
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
     });
 
-    return this.http.post<any>(this.baseUrl + '/rating/accommodation', JSON.stringify(ratingAccommodation), { headers });
+    return this.http.post(this.baseUrl + '/rating/accommodation', JSON.stringify(ratingAccommodation), {
+      headers,
+      responseType: 'text',
+      observe: 'response'
+    });
   }
 
+  getRatingsAccommodationByUser(): Observable<RatingAccommodation[]> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
 
-  getRatingsAccommodationByUser(): Observable<RatingAccommodation[]>{
-  return this.http.get<RatingAccommodation[]>(this.baseUrl +   '/ratings/accommodationByUser');
+    return this.http.get<RatingAccommodation[]>(this.baseUrl + '/ratings/accommodationByUser', { headers });
   }
 
-  deleteRatingsAccommodationByUser(idRating: string){
+  deleteRatingsAccommodationByUser(idRating: string) {
     const token = localStorage.getItem('token');
     const headers = new HttpHeaders({
       'Content-Type': 'application/json',
@@ -46,5 +55,4 @@ export class RatingService {
   getAccommodationID() {
     return this.dataSubject.asObservable();
   }
-
 }

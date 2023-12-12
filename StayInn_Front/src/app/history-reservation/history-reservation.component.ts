@@ -9,6 +9,7 @@ import { AccommodationService } from '../services/accommodation.service';
 import { Accommodation, DisplayedAccommodation } from '../model/accommodation';
 import { RatingService } from '../services/rating.service';
 import { RatingAccommodation } from '../model/ratings';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-history-reservation',
@@ -23,10 +24,11 @@ export class HistoryReservationComponent implements OnInit{
   userRatings: RatingAccommodation[] = [];
 
   constructor(private http: HttpClient, private reservationService: ReservationService, private profileService: ProfileService,
-     private accommodationService: AccommodationService , private router: Router, private ratingService: RatingService) { }
+     private accommodationService: AccommodationService , private router: Router, private ratingService: RatingService, private authService: AuthService) { }
 
   ngOnInit(): void {
       this.loggedinUserUsername = this.getUsernameFromToken();
+      console.log(this.loggedinUserUsername);
       this.getUserId();
       this.reservationService.getReservationByUserExp()
       .subscribe((reservations: any[]) => {
@@ -52,17 +54,23 @@ export class HistoryReservationComponent implements OnInit{
     })
   }
 
-  getUsernameFromToken(){
+  getUsernameFromToken() {
     const token = localStorage.getItem('token');
-    if (token === null) {
+    if (!token) {
       this.router.navigate(['login']);
-      return;
+      return null;  // Dodajte povratnu vrednost ukoliko token nije prisutan
     }
-
-    const tokenPayload = decode.jwtDecode(token) as JwtPayload;
-
-    return tokenPayload.username
+  
+    try {
+      const tokenPayload = decode.jwtDecode(token) as JwtPayload;
+      return tokenPayload.username;
+    } catch (error) {
+      console.error('Greška prilikom dekodiranja tokena:', error);
+      this.router.navigate(['login']);
+      return null;  // Dodajte povratnu vrednost u slučaju greške prilikom dekodiranja tokena
+    }
   }
+  
 
   loadAccommodations() {
     this.expiredReservations.forEach((reservation) => {

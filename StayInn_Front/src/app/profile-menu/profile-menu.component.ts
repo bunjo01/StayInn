@@ -26,4 +26,8 @@ export class ProfileMenuComponent {
       this.authService.logout();
     }
   }
+
+  getUsername(): string | undefined {
+    return this.authService.getUsernameFromToken();
+  }
 }

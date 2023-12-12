@@ -14,8 +14,8 @@
 <div *ngIf="userRatings.length > 0">
   <ul>
     <li *ngFor="let rating of userRatings">
-      <p>Accommodation: {{ rating.accommodationId }}</p>
-      <p>Rating: {{ rating.rating }}</p>
+      <p>Accommodation: {{ rating.idAccommodation }}</p>
+      <p>Rating: {{ rating.rate }}</p>
       <!-- ... ostale informacije o ocjeni ... -->
     </li>
   </ul>
