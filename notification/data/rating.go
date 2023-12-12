@@ -26,9 +26,14 @@ type RatingAccommodation struct {
 	Rate            int                `bson:"rate" json:"rate"`
 }
 
-type RatingAccommodationDTO struct {
-	IDAccommodation primitive.ObjectID `bson:"idAccommodation" json:"idAccommodation"`
-	Rate            int                `bson:"rate" json:"rate"`
+type AverageRatingAccommodation struct {
+	AccommodationID primitive.ObjectID `bson:"idAccommodation" json:"idAccommodation"`
+	AverageRating   float64            `bson:"averageRating" json:"averageRating"`
+}
+
+type AverageRatingHost struct {
+	Username      string  `bson:"username" json:"username"`
+	AverageRating float64 `bson:"averageRating" json:"averageRating"`
 }
 
 func (rh *RatingHost) ToJSON(w io.Writer) error {

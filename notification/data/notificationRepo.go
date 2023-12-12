@@ -276,6 +276,52 @@ func (nr *NotificationsRepo) GetHostRatings(ctx context.Context, hostUsername st
 	return ratings, nil
 }
 
+func (r *NotificationsRepo) GetRatingsByAccommodationID(accommodationID primitive.ObjectID) ([]RatingAccommodation, error) {
+	ratingsCollection := r.getRatingsCollection()
+	var ratings []RatingAccommodation
+
+	filter := bson.M{"idAccommodation": accommodationID}
+
+	cursor, err := ratingsCollection.Find(context.TODO(), filter)
+	if err != nil {
+		return ratings, err
+	}
+	defer cursor.Close(context.TODO())
+
+	for cursor.Next(context.TODO()) {
+		var rating RatingAccommodation
+		if err := cursor.Decode(&rating); err != nil {
+			return ratings, err
+		}
+		ratings = append(ratings, rating)
+	}
+
+	return ratings, nil
+}
+
+func (r *NotificationsRepo) GetRatingsByHostUsername(username string) ([]RatingHost, error) {
+	ratingsCollection := r.getHostRatingsCollection()
+	var ratings []RatingHost
+
+	filter := bson.M{"hostUsername": username}
+
+	cursor, err := ratingsCollection.Find(context.TODO(), filter)
+	if err != nil {
+		return ratings, err
+	}
+	defer cursor.Close(context.TODO())
+
+	for cursor.Next(context.TODO()) {
+		var rating RatingHost
+		if err := cursor.Decode(&rating); err != nil {
+			return ratings, err
+		}
+		ratings = append(ratings, rating)
+	}
+
+	return ratings, nil
+}
+
 func (nr *NotificationsRepo) UpdateRatingAccommodationByID(id primitive.ObjectID, newRate int) error {
 	ratingsCollection := nr.getRatingsCollection()
 

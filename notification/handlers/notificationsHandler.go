@@ -399,6 +399,93 @@ func (rh *NotificationsHandler) AddHostRating(w http.ResponseWriter, r *http.Req
 	w.Write([]byte("Host rating successfully added"))
 }
 
+func (rh *NotificationsHandler) GetAverageAccommodationRating(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	accommodationID := params["accommodationID"]
+
+	objectID, err := primitive.ObjectIDFromHex(accommodationID)
+	if err != nil {
+		http.Error(w, "Invalid rating ID", http.StatusBadRequest)
+		rh.logger.Println("Invalid rating ID:", err)
+		return
+	}
+
+	ratings, err := rh.repo.GetRatingsByAccommodationID(objectID)
+	if err != nil {
+		http.Error(w, "Failed to fetch ratings", http.StatusBadRequest)
+		return
+	}
+
+	totalRatings := len(ratings)
+	if totalRatings == 0 {
+		http.Error(w, "No ratings found for this accommodation", http.StatusNotFound)
+		return
+	}
+
+	sum := 0
+	for _, rating := range ratings {
+		sum += rating.Rate
+	}
+
+	averageRating := float64(sum) / float64(totalRatings)
+
+	avgRatingAccommodation := data.AverageRatingAccommodation{
+		AccommodationID: objectID,
+		AverageRating:   averageRating,
+	}
+
+	jsonResponse, err := json.Marshal(avgRatingAccommodation)
+	if err != nil {
+		http.Error(w, "Error encoding average rating", http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(jsonResponse)
+
+}
+
+func (rh *NotificationsHandler) GetAverageHostRating(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	username := params["username"]
+
+	ratings, err := rh.repo.GetRatingsByHostUsername(username)
+	if err != nil {
+		http.Error(w, "Failed to fetch ratings", http.StatusBadRequest)
+		return
+	}
+
+	totalRatings := len(ratings)
+	if totalRatings == 0 {
+		http.Error(w, "No ratings found for this accommodation", http.StatusNotFound)
+		return
+	}
+
+	sum := 0
+	for _, rating := range ratings {
+		sum += rating.Rate
+	}
+
+	averageRating := float64(sum) / float64(totalRatings)
+
+	avgRatingAccommodation := data.AverageRatingHost{
+		Username:      username,
+		AverageRating: averageRating,
+	}
+
+	jsonResponse, err := json.Marshal(avgRatingAccommodation)
+	if err != nil {
+		http.Error(w, "Error encoding average rating", http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(jsonResponse)
+
+}
+
 func (rh *NotificationsHandler) UpdateHostRating(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	ratingID, ok := vars["id"]
