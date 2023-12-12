@@ -113,13 +113,31 @@ func (nr *NotificationsRepo) UpdateHostRating(id primitive.ObjectID, newRating *
 	return nil
 }
 
-func (nr *NotificationsRepo) DeleteHostRating(id primitive.ObjectID) error {
+func (nr *NotificationsRepo) DeleteHostRating(id primitive.ObjectID, idUser primitive.ObjectID) error {
 	ratingsCollection := nr.getHostRatingsCollection()
 	filter := bson.M{"_id": id}
 
-	_, err := ratingsCollection.DeleteOne(context.Background(), filter)
+	var rating RatingHost
+	err := ratingsCollection.FindOne(context.Background(), filter).Decode(&rating)
 	if err != nil {
 		return err
+	}
+
+	if rating.ID == primitive.NilObjectID {
+		return errors.New("no rating found with this ID")
+	}
+
+	if rating.GuestID != idUser {
+		return errors.New("user did not create this rating")
+	}
+
+	result, err := ratingsCollection.DeleteOne(context.Background(), filter)
+	if err != nil {
+		return err
+	}
+
+	if result.DeletedCount == 0 {
+		return errors.New("no documents deleted")
 	}
 
 	return nil
@@ -214,6 +232,27 @@ func (nr *NotificationsRepo) GetAllHostRatings(ctx context.Context) ([]RatingHos
 	return ratings, nil
 }
 
+func (nr *NotificationsRepo) GetAllHostRatingsByUser(ctx context.Context, userID primitive.ObjectID) ([]RatingHost, error) {
+	ratingsCollection := nr.getHostRatingsCollection()
+
+	cursor, err := ratingsCollection.Find(ctx, bson.M{"idGuest": userID})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var ratings []RatingHost
+	for cursor.Next(ctx) {
+		var rating RatingHost
+		if err := cursor.Decode(&rating); err != nil {
+			return nil, err
+		}
+		ratings = append(ratings, rating)
+	}
+
+	return ratings, nil
+}
+
 func (nr *NotificationsRepo) GetHostRatings(ctx context.Context, hostUsername string) ([]RatingHost, error) {
 	ratingsCollection := nr.getHostRatingsCollection()
 
@@ -260,10 +299,24 @@ func (nr *NotificationsRepo) UpdateRatingAccommodationByID(id primitive.ObjectID
 	return nil
 }
 
-func (nr *NotificationsRepo) DeleteRatingAccommodationByID(id primitive.ObjectID) error {
+func (nr *NotificationsRepo) DeleteRatingAccommodationByID(id primitive.ObjectID, idUser primitive.ObjectID) error {
 	ratingsCollection := nr.getRatingsCollection()
 
 	filter := bson.M{"_id": id}
+
+	var rating RatingAccommodation
+	err := ratingsCollection.FindOne(context.Background(), filter).Decode(&rating)
+	if err != nil {
+		return err
+	}
+
+	if rating.ID == primitive.NilObjectID {
+		return errors.New("no rating found with this ID")
+	}
+
+	if rating.GuestID != idUser {
+		return errors.New("user did not create this rating")
+	}
 
 	result, err := ratingsCollection.DeleteOne(context.Background(), filter)
 	if err != nil {

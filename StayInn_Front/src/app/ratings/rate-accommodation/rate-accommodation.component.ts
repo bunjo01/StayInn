@@ -1,6 +1,9 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
+import { Observable } from 'rxjs';
+import { Accommodation } from 'src/app/model/accommodation';
+import { AccommodationService } from 'src/app/services/accommodation.service';
 import { RatingService } from 'src/app/services/rating.service';
 
 @Component({
@@ -8,12 +11,19 @@ import { RatingService } from 'src/app/services/rating.service';
   templateUrl: './rate-accommodation.component.html',
   styleUrls: ['./rate-accommodation.component.css']
 })
-export class RateAccommodationComponent {
+export class RateAccommodationComponent implements OnInit{
 
   accommodationID: string | null = null;
-  constructor(private ratingService: RatingService, private toastr: ToastrService, private router: Router) {
+  accommodation$: Observable<Accommodation> | undefined;
+  constructor(private ratingService: RatingService, private toastr: ToastrService, private router: Router, private accommodationService: AccommodationService) {
+  }
+
+  ngOnInit(): void {
     this.ratingService.getAccommodationID().subscribe(id => {
       this.accommodationID = id;
+      if (this.accommodationID) {
+        this.accommodation$ = this.accommodationService.getAccommodationById(this.accommodationID);
+      }
     });
   }
 

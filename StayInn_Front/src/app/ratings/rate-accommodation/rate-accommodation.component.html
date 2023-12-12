@@ -1,3 +1,9 @@
+<div *ngIf="accommodation$ | async as accommodation" class="accommodation-info">
+    <h2>Accommodation Details:</h2>
+    <p>Name: {{ accommodation.name }}</p>
+    <p>Description: {{ accommodation.location }}</p>
+</div>
+
 <div class="rating">
     <span class="star" (click)="setRating(1)" [class.filled]="ratingA >= 1">&#9733;</span>
     <span class="star" (click)="setRating(2)" [class.filled]="ratingA >= 2">&#9733;</span>
