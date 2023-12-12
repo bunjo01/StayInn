@@ -129,6 +129,7 @@ func (ah *AccommodationHandler) CreateAccommodation(rw http.ResponseWriter, r *h
 
 func (ah *AccommodationHandler) CreateAccommodationImages(rw http.ResponseWriter, r *http.Request) {
 	var images cache.Images
+	var accID string
 	if err := json.NewDecoder(r.Body).Decode(&images); err != nil {
 		http.Error(rw, "Failed to decode request body", http.StatusBadRequest)
 		return
@@ -136,8 +137,9 @@ func (ah *AccommodationHandler) CreateAccommodationImages(rw http.ResponseWriter
 
 	for _, image := range images {
 		ah.images.WriteFileBytes(image.Data, image.AccID+"-image-"+image.ID)
-		ah.imageCache.Post(image)
+		accID = image.AccID
 	}
+	ah.imageCache.PostAll(accID, images)
 
 	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusCreated)
@@ -160,6 +162,13 @@ func (ah *AccommodationHandler) GetAccommodationImages(rw http.ResponseWriter, r
 			Data: data,
 		}
 		images = append(images, image)
+	}
+
+	if len(images) > 0 {
+		err := ah.imageCache.PostAll(accID, images)
+		if err != nil {
+			ah.logger.Println("Unable to write to cache:", err)
+		}
 	}
 
 	rw.Header().Set("Content-Type", "application/json")
@@ -526,6 +535,7 @@ func (ah *AccommodationHandler) MiddlewareCacheAllHit(next http.Handler) http.Ha
 
 		images, err := ah.imageCache.GetAll(accID)
 		if err != nil {
+			ah.logger.Println("Cache not found:", err)
 			next.ServeHTTP(rw, h)
 		} else {
 			err = images.ToJSON(rw)
