@@ -50,10 +50,6 @@
     border: 4px solid black;
 }
 
-.sub-menu-wrap.open-menu + .menu-icon h2{
-    color: black;
-}
-
 .user-info {
     display: flex;
     align-items: center;

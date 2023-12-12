@@ -24,5 +24,10 @@
   <button class="btnAccommodationUpdate" (click)="navigateToUpdateAccommodation(accommodation.id)">Update accommodation</button>
   <button class="btnAccommodationDelete" (click)="navigateToDeleteAccommodation(accommodation.id)">Delete accommodation</button>
  
-  <app-rate-accommodation></app-rate-accommodation>
+  <div class="rating-wrap">
+    <h2>Ratings:</h2>
+    <app-rate-accommodation [accommodationID]="accommodation?.id"></app-rate-accommodation>
+    <app-rate-host [hostUsername]="accommodation?.hostUsername"></app-rate-host>
+  </div>
+
 </div>

@@ -38,6 +38,15 @@ export class RatingService {
     return this.http.get<RatingAccommodation[]>(this.baseUrl + '/ratings/accommodationByUser', { headers });
   }
 
+  getRatingAccommodationByUser(accommodationId: string): Observable<RatingAccommodation> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+    return this.http.get<RatingAccommodation>(this.baseUrl + '/rating/accommodation/getByAccommodationId' + accommodationId, { headers });
+  }
+
   deleteRatingsAccommodationByUser(idRating: string) {
     const token = localStorage.getItem('token');
     const headers = new HttpHeaders({
@@ -54,5 +63,15 @@ export class RatingService {
 
   getAccommodationID() {
     return this.dataSubject.asObservable();
+  }
+
+  addRatingHost(ratingHost: any): Observable<any> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+  
+    return this.http.post<any>(this.baseUrl + '/rating/host', JSON.stringify(ratingHost), { headers });
   }
 }
