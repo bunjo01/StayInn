@@ -31,8 +31,8 @@
     </div>
 
     <div class="form-group">
-      <label for="image">Image/s (limit 30MB or 10 images):</label>
-      <input type="file" id="image" name="image" accept="image/*" multiple (change)="handleImageUpload()" #imageInput>
+      <label for="image">Images (30MB/10 images, jpeg/png):</label>
+      <input type="file" id="image" name="image" accept="image/jpeg, image/png" multiple (change)="handleImageUpload()" #imageInput>
     </div>
 
     <button class="btnCreateAccommodation" type="submit" [disabled]="!accommodationForm.form.valid">Create</button>

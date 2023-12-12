@@ -3,6 +3,7 @@ import { Accommodation, AmenityEnum } from '../model/accommodation';
 import { AccommodationService } from '../services/accommodation.service';
 import { Router } from '@angular/router';
 import { Image } from '../model/image';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-accommodation-details',
@@ -13,7 +14,11 @@ export class AccommodationDetailsComponent implements OnInit {
   accommodation: Accommodation | null = null;
   images: Image[] = [];
 
-  constructor(private accommodationService: AccommodationService, private router: Router) {}
+  constructor(
+    private accommodationService: AccommodationService, 
+    private router: Router,
+    private sanitizer: DomSanitizer
+    ) { }
 
   ngOnInit(): void {
     this.accommodationService.getAccommodation().subscribe(
@@ -46,7 +51,7 @@ export class AccommodationDetailsComponent implements OnInit {
     if (this.accommodation) {
       this.accommodationService.sendAccommodation(this.accommodation);
     } else {
-      console.error('Smeštaj nije definisan ili je null.');
+      console.error('Accommodation not defined or null');
     }
     this.router.navigateByUrl('/update-accommodation');
   }
@@ -72,4 +77,18 @@ export class AccommodationDetailsComponent implements OnInit {
     17: "../../assets/images/smokingAllowed.png"
   };
 
+  getSafeImage(base64Image: string): SafeResourceUrl {
+    // Determine the image type based on the content
+    const isPng = base64Image.startsWith('/9j/') || base64Image.startsWith('iVBOR');
+    const isJpeg = base64Image.startsWith('/8A') || base64Image.startsWith('/9A') || base64Image.startsWith('R0lGOD');
+  
+    // Default to PNG if neither PNG nor JPEG is detected
+    const imageType = isPng ? 'image/png' : (isJpeg ? 'image/jpeg' : 'image/png');
+  
+    // Construct the data URL with the detected image type
+    const imageUrl = `data:${imageType};base64,${base64Image}`;
+  
+    // Return the sanitized URL
+    return this.sanitizer.bypassSecurityTrustResourceUrl(imageUrl);
+  }
 }

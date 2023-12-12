@@ -68,32 +68,44 @@ export class CreateAccommodationComponent {
 
   handleImageUpload(): void {
     this.images = [];
-
     const files = this.imageInput.nativeElement.files;
-
+  
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const reader = new FileReader();
-
+  
       reader.onload = (e: any) => {
-        const imageData = e.target.result.split(',')[1];
-        const image: Image = { id: String(this.imageCounter++), acc_id: '', data: imageData };
-        this.images.push(image);
-
-        if (this.imageCounter === files.length) {
-          const result = window.confirm('Images processed. Do you want to submit data for creation?');
+        // Check if the file type is allowed
+        if (file.type === 'image/jpeg' || file.type === 'image/png') {
+          const imageData = e.target.result.split(',')[1];
+          const image: Image = { id: String(this.imageCounter++), acc_id: '', data: imageData };
+          this.images.push(image);
+  
+          if (this.imageCounter === files.length) {
+            const result = window.confirm('Images processed. Do you want to submit data for creation?');
     
-          if (result) {
-            this.createAccommodation();
-          } else {
-            return;
+            if (result) {
+              this.createAccommodation();
+            } else {
+              return;
+            }
           }
+        } else {
+          this.toastr.error("You tried to do something bad. This incident was logged and reported. Shame on you!",
+           "You know what you did...",
+          {
+            disableTimeOut: true,
+            closeButton: false,
+            tapToDismiss: false,
+          });
+          this.imageInput.nativeElement.value = '';
         }
       };
-
+  
       reader.readAsDataURL(file);
     }
   }
+  
 
   getAmenityName(amenity: number): string {
     return AmenityEnum[amenity];

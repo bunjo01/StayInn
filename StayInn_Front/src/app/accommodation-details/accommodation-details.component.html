@@ -21,11 +21,11 @@
   </ul>
   <div *ngIf="images && images.length > 0; else noImages">
     <div class="image-container" *ngFor="let image of images">
-      <img [src]="image.data" alt="Image {{ image.id }}">
+      <img [src]="getSafeImage(image.data)" alt="Image {{ image.id }}">
     </div>
   </div>
   <ng-template #noImages>
     <h3>No images available</h3>
-  </ng-template>  
+  </ng-template> 
   <button class="btnAccommodationUpdate" (click)="navigateToUpdateAccommodation(accommodation.id)">Update accommodation</button>
 </div>
