@@ -153,12 +153,10 @@ func (ah *AccommodationHandler) GetAccommodationImages(rw http.ResponseWriter, r
 		filename := fmt.Sprintf("%s-image-%d", accID, i)
 		data, err := ah.images.ReadFileBytes(filename, false)
 		if err != nil {
-			ah.logger.Printf("Failed to read image '%s': %s", filename, err)
-			http.Error(rw, "Failed to read image", http.StatusInternalServerError)
-			return
+			break
 		}
 		image := &cache.Image{
-			ID:   string(rune(i)),
+			ID:   strconv.Itoa(i),
 			Data: data,
 		}
 		images = append(images, image)

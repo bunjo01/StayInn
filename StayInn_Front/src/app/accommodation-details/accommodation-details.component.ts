@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Accommodation, AmenityEnum } from '../model/accommodation';
 import { AccommodationService } from '../services/accommodation.service';
 import { Router } from '@angular/router';
+import { Image } from '../model/image';
 
 @Component({
   selector: 'app-accommodation-details',
@@ -10,6 +11,7 @@ import { Router } from '@angular/router';
 })
 export class AccommodationDetailsComponent implements OnInit {
   accommodation: Accommodation | null = null;
+  images: Image[] = [];
 
   constructor(private accommodationService: AccommodationService, private router: Router) {}
 
@@ -17,6 +19,17 @@ export class AccommodationDetailsComponent implements OnInit {
     this.accommodationService.getAccommodation().subscribe(
       data => {
         this.accommodation = data;
+        const accId: string = this.accommodation?.id || "";
+
+        this.accommodationService.getAccommodationImages(accId).subscribe(
+          (images: Image[]) => {
+            console.log(images);
+            this.images = images;
+          },
+          (error: Error) => {
+            console.log(error);
+          }
+        );
       },
       error => {
         console.error('Error fetching accommodation details:', error);
