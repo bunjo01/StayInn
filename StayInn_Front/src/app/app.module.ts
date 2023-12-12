@@ -35,6 +35,7 @@ import { EditAccommodationComponent } from './edit-accommodation/edit-accommodat
 import { HistoryReservationComponent } from './history-reservation/history-reservation.component';
 import { RateAccommodationComponent } from './ratings/rate-accommodation/rate-accommodation.component';
 import { RateHostComponent } from './ratings/rate-host/rate-host.component';
+import { ProfileMenuComponent } from './profile-menu/profile-menu.component';
 
 @NgModule({
   declarations: [
@@ -61,6 +62,7 @@ import { RateHostComponent } from './ratings/rate-host/rate-host.component';
     HistoryReservationComponent,
     RateAccommodationComponent,
     RateHostComponent,
+    ProfileMenuComponent,
   ],
   imports: [
     BrowserModule,
