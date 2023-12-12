@@ -4,13 +4,17 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"notification/clients"
 	"notification/data"
+	"notification/domain"
+	"notification/handlers"
 	"os"
 	"os/signal"
 	"time"
 
 	gorillaHandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/sony/gobreaker"
 )
 
 func main() {
@@ -35,13 +39,122 @@ func main() {
 	defer store.Disconnect(timeoutContext)
 	store.Ping()
 
+	reservationClient := &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConns:        10,
+			MaxIdleConnsPerHost: 10,
+			MaxConnsPerHost:     10,
+		},
+	}
+
+	profileClient := &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConns:        10,
+			MaxIdleConnsPerHost: 10,
+			MaxConnsPerHost:     10,
+		},
+	}
+
+	reservationBreaker := gobreaker.NewCircuitBreaker(
+		gobreaker.Settings{
+			Name:        "reservation",
+			MaxRequests: 1,
+			Timeout:     10 * time.Second,
+			Interval:    0,
+			ReadyToTrip: func(counts gobreaker.Counts) bool {
+				return counts.ConsecutiveFailures > 2
+			},
+			OnStateChange: func(name string, from, to gobreaker.State) {
+				logger.Printf("CB '%s' changed from '%s' to '%s'\n", name, from, to)
+			},
+			IsSuccessful: func(err error) bool {
+				if err == nil {
+					return true
+				}
+				errResp, ok := err.(domain.ErrResp)
+				return ok && errResp.StatusCode >= 400 && errResp.StatusCode < 500
+			},
+		},
+	)
+
+	profileBreaker := gobreaker.NewCircuitBreaker(
+		gobreaker.Settings{
+			Name:        "profile",
+			MaxRequests: 1,
+			Timeout:     10 * time.Second,
+			Interval:    0,
+			ReadyToTrip: func(counts gobreaker.Counts) bool {
+				return counts.ConsecutiveFailures > 2
+			},
+			OnStateChange: func(name string, from, to gobreaker.State) {
+				logger.Printf("CB '%s' changed from '%s' to '%s'\n", name, from, to)
+			},
+			IsSuccessful: func(err error) bool {
+				if err == nil {
+					return true
+				}
+				errResp, ok := err.(domain.ErrResp)
+				return ok && errResp.StatusCode >= 400 && errResp.StatusCode < 500
+			},
+		},
+	)
+
+	reservation := clients.NewReservationClient(reservationClient, os.Getenv("RESERVATION_SERVICE_URI"), reservationBreaker)
+	profileServiceURI := os.Getenv("PROFILE_SERVICE_URI")
+	profile := clients.NewProfileClient(profileClient, profileServiceURI, profileBreaker)
+
 	// Uncomment after adding router methods
-	//notificationsHandler := handlers.NewNotificationsHandler(logger, store)
+	notificationsHandler := handlers.NewNotificationsHandler(logger, store, reservation, profile)
 
 	// Router init
 	router := mux.NewRouter()
+	router.Use(notificationsHandler.MiddlewareContentTypeSet)
 
-	// TODO: Router methods
+	// Router methods
+	createRatingForAccommodation := router.Methods(http.MethodPost).Path("/rating/accommodation").Subrouter()
+	createRatingForAccommodation.HandleFunc("", notificationsHandler.AddRating)
+
+	createRatingForHost := router.Methods(http.MethodPost).Path("/rating/host").Subrouter()
+	createRatingForHost.HandleFunc("", notificationsHandler.AddHostRating)
+
+	getAllAccommodationRatings := router.Methods(http.MethodGet).Path("/ratings/accommodation").Subrouter()
+	getAllAccommodationRatings.HandleFunc("", notificationsHandler.GetAllAccommodationRatings)
+
+	getAllAccommodationRatingsByUser := router.Methods(http.MethodGet).Path("/ratings/accommodationByUser").Subrouter()
+	getAllAccommodationRatingsByUser.HandleFunc("", notificationsHandler.GetAllAccommodationRatingsByUser)
+
+	getAllHostRatings := router.Methods(http.MethodGet).Path("/ratings/host").Subrouter()
+	getAllHostRatings.HandleFunc("", notificationsHandler.GetAllHostRatings)
+
+	getAllHostRatingsByUser := router.Methods(http.MethodGet).Path("/ratings/hostByUser").Subrouter()
+	getAllHostRatingsByUser.HandleFunc("", notificationsHandler.GetAllHostRatingsByUser)
+
+	getHostRatings := router.Methods(http.MethodGet).Path("/ratings/host/{hostUsername}").Subrouter()
+	getHostRatings.HandleFunc("", notificationsHandler.GetHostRatings)
+
+	getAverageAccommodationRating := router.Methods(http.MethodGet).Path("/ratings/average/{accommodationID}").Subrouter()
+	getAverageAccommodationRating.HandleFunc("", notificationsHandler.GetAverageAccommodationRating)
+
+	getAverageHostRating := router.Methods(http.MethodGet).Path("/ratings/average/{username}").Subrouter()
+	getAverageHostRating.HandleFunc("", notificationsHandler.GetAverageHostRating)
+
+	findRatingForAccommodation := router.Methods(http.MethodGet).Path("/rating/accommodation/{id}").Subrouter()
+	findRatingForAccommodation.HandleFunc("", notificationsHandler.FindRatingById)
+
+	findRatingForHost := router.Methods(http.MethodGet).Path("/rating/host/{id}").Subrouter()
+	findRatingForHost.HandleFunc("", notificationsHandler.FindHostRatingById)
+
+	updateRatingForHost := router.Methods(http.MethodPut).Path("/rating/host/{id}").Subrouter()
+	updateRatingForHost.HandleFunc("", notificationsHandler.UpdateHostRating)
+
+	updateRatingForAccommodation := router.Methods(http.MethodPut).Path("/rating/accommodation/{id}").Subrouter()
+	updateRatingForAccommodation.HandleFunc("", notificationsHandler.UpdateAccommodationRating)
+
+	deleteRatingForHost := router.Methods(http.MethodDelete).Path("/rating/host/{id}").Subrouter()
+	deleteRatingForHost.HandleFunc("", notificationsHandler.DeleteHostRating)
+
+	deleteRatingForAccommodation := router.Methods(http.MethodDelete).Path("/rating/accommodation/{id}").Subrouter()
+	deleteRatingForAccommodation.HandleFunc("", notificationsHandler.DeleteRatingAccommodationHandler)
 
 	// CORS middleware
 	cors := gorillaHandlers.CORS(

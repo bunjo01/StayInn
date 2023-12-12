@@ -38,6 +38,18 @@ export class AccommodationDetailsComponent implements OnInit {
     this.router.navigateByUrl('/update-accommodation');
   }
 
+  deleteAccommodation(id: string): void {
+    this.accommodationService.deleteAccommodation(id).subscribe(
+      () => {
+        console.log('Smeštaj uspešno obrisan.');
+        this.router.navigate([''])
+      },
+      error => {
+        console.error('Greška prilikom brisanja smeštaja:', error);
+      }
+    );
+  }
+
   amenityIcons: { [key: number]: string } = {
     0: "../../assets/images/essentials.png",
     1: "../../assets/images/wifi.png",

@@ -74,6 +74,33 @@ func (uh *UserHandler) GetUser(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (uh *UserHandler) GetUserById(rw http.ResponseWriter, r *http.Request) {
+	var id data.UserId
+	if err := json.NewDecoder(r.Body).Decode(&id); err != nil {
+		uh.logger.Println("Failed to decode body:", err)
+		http.Error(rw, "Failed to decode request body", http.StatusBadRequest)
+		return
+	}
+
+	ctx := r.Context()
+	user, err := uh.repo.GetUserById(ctx, id.ID)
+	if err != nil {
+		http.Error(rw, "Failed to retrieve user", http.StatusInternalServerError)
+		return
+	}
+
+	if user == nil {
+		http.NotFound(rw, r)
+		return
+	}
+
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(rw).Encode(user); err != nil {
+		http.Error(rw, "Failed to encode user", http.StatusInternalServerError)
+	}
+}
+
 func (uh *UserHandler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 	var user data.NewUser
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
@@ -148,55 +175,54 @@ func (uh *UserHandler) CheckEmailAvailability(w http.ResponseWriter, r *http.Req
 }
 
 func (uh *UserHandler) UpdateUser(rw http.ResponseWriter, r *http.Request) {
-    vars := mux.Vars(r)
-    username := vars["username"]
+	vars := mux.Vars(r)
+	username := vars["username"]
 
-    // Dohvati trenutnog korisnika kako biste dobili trenutnu e-mail adresu
-    currentUser, err := uh.repo.GetUser(r.Context(), username)
-    if err != nil {
-        uh.logger.Println("Failed to get user:", err)
-        http.Error(rw, "Failed to get user", http.StatusInternalServerError)
-        return
-    }
+	// Dohvati trenutnog korisnika kako biste dobili trenutnu e-mail adresu
+	currentUser, err := uh.repo.GetUser(r.Context(), username)
+	if err != nil {
+		uh.logger.Println("Failed to get user:", err)
+		http.Error(rw, "Failed to get user", http.StatusInternalServerError)
+		return
+	}
 
-    email := currentUser.Email
+	email := currentUser.Email
 
-    var updatedUser data.NewUser
-    if err := json.NewDecoder(r.Body).Decode(&updatedUser); err != nil {
-        http.Error(rw, "Failed to decode request body", http.StatusBadRequest)
-        return
-    }
+	var updatedUser data.NewUser
+	if err := json.NewDecoder(r.Body).Decode(&updatedUser); err != nil {
+		http.Error(rw, "Failed to decode request body", http.StatusBadRequest)
+		return
+	}
 
-    if err := uh.repo.UpdateUser(r.Context(), username, &updatedUser); err != nil {
-        uh.logger.Println("Failed to update user:", err)
-        http.Error(rw, "Failed to update user", http.StatusInternalServerError)
-        return
-    }
+	if err := uh.repo.UpdateUser(r.Context(), username, &updatedUser); err != nil {
+		uh.logger.Println("Failed to update user:", err)
+		http.Error(rw, "Failed to update user", http.StatusInternalServerError)
+		return
+	}
 
-    rw.Header().Set("Content-Type", "application/json")
-    rw.WriteHeader(http.StatusOK)
-    if err := json.NewEncoder(rw).Encode(updatedUser); err != nil {
-        uh.logger.Println("Failed to encode updated user:", err)
-        http.Error(rw, "Failed to encode updated user", http.StatusInternalServerError)
-    }
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(rw).Encode(updatedUser); err != nil {
+		uh.logger.Println("Failed to encode updated user:", err)
+		http.Error(rw, "Failed to encode updated user", http.StatusInternalServerError)
+	}
 
 	ctx, cancel := context.WithTimeout(r.Context(), 5000*time.Millisecond)
-    defer cancel()
-    _, err = uh.auth.PassUsernameToAuthService(ctx, username, updatedUser.Username)
-    if err != nil {
-        uh.logger.Println(err)
-        writeResp(err, http.StatusServiceUnavailable, rw)
-        return
-    }
+	defer cancel()
+	_, err = uh.auth.PassUsernameToAuthService(ctx, username, updatedUser.Username)
+	if err != nil {
+		uh.logger.Println(err)
+		writeResp(err, http.StatusServiceUnavailable, rw)
+		return
+	}
 
-    _, err = uh.auth.PassEmailToAuthService(ctx, email, updatedUser.Email)
-    if err != nil {
-        uh.logger.Println(err)
-        writeResp(err, http.StatusServiceUnavailable, rw)
-        return
-    }
+	_, err = uh.auth.PassEmailToAuthService(ctx, email, updatedUser.Email)
+	if err != nil {
+		uh.logger.Println(err)
+		writeResp(err, http.StatusServiceUnavailable, rw)
+		return
+	}
 }
-
 
 func (uh *UserHandler) DeleteUser(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)

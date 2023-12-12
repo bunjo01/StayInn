@@ -16,7 +16,7 @@
 
 .header {
     width: 100vw;
-    height: 100px;
+    height: 90px;
     display: block;
     justify-content: space-between;
     align-items: center;
@@ -100,4 +100,3 @@
   .dropdown-menu option:hover {
     background-color: #555;
   }
-  

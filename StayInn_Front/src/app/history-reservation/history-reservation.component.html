@@ -1,0 +1,25 @@
+<h2>History reservations</h2>
+<div class="reservation-cards">
+  <div *ngFor="let displayedAccommodation of displayedAccommodations" class="reservation-card">
+    <p class="accommodation-name">Name: {{ displayedAccommodation.accommodationInfo.name }}</p>
+    <p>Location: {{ displayedAccommodation.accommodationInfo.location }}</p>
+    <p>Start date: {{ displayedAccommodation.reservationInfo.StartDate }}</p>
+    <p>End date: {{ displayedAccommodation.reservationInfo.EndDate }}</p>
+    <p>Price: {{ displayedAccommodation.reservationInfo.Price }}</p>
+    <button (click)="navigateToRateAccommodation(displayedAccommodation.accommodationInfo.id)">Rate Accommodation</button>
+  </div>
+</div>
+
+<div>Rating for Accommodation</div>
+<div *ngIf="userRatings.length > 0">
+  <ul>
+    <li *ngFor="let rating of userRatings">
+      <p>Accommodation: {{ rating.idAccommodation }}</p>
+      <p>Rating: {{ rating.rate }}</p>
+      <!-- ... ostale informacije o ocjeni ... -->
+    </li>
+  </ul>
+</div>
+<div *ngIf="userRatings.length === 0">
+  <p>No ratings available.</p>
+</div>

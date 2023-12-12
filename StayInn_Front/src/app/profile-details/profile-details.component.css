@@ -45,3 +45,7 @@ button {
   display: block;
   text-align: r;
 }
+
+#btnDelete {
+  background-color: red;
+}
