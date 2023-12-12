@@ -19,6 +19,7 @@ import { EditPeriodTemplateComponent } from './reservations/edit-period-template
 import { AccommodationDetailsComponent } from './accommodation-details/accommodation-details.component';
 import { EditAccommodationComponent } from './edit-accommodation/edit-accommodation.component';
 import { HistoryReservationComponent } from './history-reservation/history-reservation.component';
+import { RateAccommodationComponent } from './ratings/rate-accommodation/rate-accommodation.component';
 
 const routes: Routes = [
   { path: '', component: EntryComponent },
@@ -42,7 +43,8 @@ const routes: Routes = [
     expectedRole: 'HOST' }},
   { path: 'editAvailablePeriod', component: EditPeriodTemplateComponent, canActivate : [RoleGuardService], data: { 
     expectedRole: 'HOST' }},
-  {path: 'accommodation-details', component: AccommodationDetailsComponent}
+  {path: 'accommodation-details', component: AccommodationDetailsComponent},
+  {path: 'rate-accommodation', component: RateAccommodationComponent},
 ];
 
 @NgModule({

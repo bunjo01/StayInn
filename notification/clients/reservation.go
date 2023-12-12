@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"notification/data"
 	"notification/domain"
@@ -35,9 +34,8 @@ func (rc ReservationClient) GetReservationsByUserIDExp(ctx context.Context, accI
 		timeout = time.Until(deadline)
 	}
 
-	url := fmt.Sprintf("%s/reservations/expired/%s", rc.address, accID.Hex())
 	cbResp, err := rc.cb.Execute(func() (interface{}, error) {
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, rc.address+"/expired", nil)
 		if err != nil {
 			return nil, err
 		}
@@ -63,7 +61,7 @@ func (rc ReservationClient) GetReservationsByUserIDExp(ctx context.Context, accI
 		return reservations, nil
 	})
 	if err != nil {
-		return nil, handleHttpReqErr(err, url, http.MethodGet, timeout)
+		return nil, handleHttpReqErr(err, rc.address+"/expired", http.MethodGet, timeout)
 	}
 
 	reservations, ok := cbResp.(data.Reservations)

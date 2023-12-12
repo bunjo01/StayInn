@@ -32,7 +32,7 @@ export class AccommodationService {
       'Authorization': `Bearer ${token}`
     });
 
-    return this.http.put<any>(this.apiUrl + `/accommodation/${id}`, accommodation, { headers });
+    return this.http.put<any>(this.apiUrl + `/accommodation/${id}`, accommodation, { headers: headers });
   }
 
   sendAccommodation(data: Accommodation) {

@@ -7,6 +7,8 @@ import * as decode from 'jwt-decode';
 import { JwtPayload } from 'src/app/model/user';
 import { AccommodationService } from '../services/accommodation.service';
 import { Accommodation, DisplayedAccommodation } from '../model/accommodation';
+import { RatingService } from '../services/rating.service';
+import { RatingAccommodation } from '../model/ratings';
 
 @Component({
   selector: 'app-history-reservation',
@@ -18,9 +20,10 @@ export class HistoryReservationComponent implements OnInit{
   loggedinUserUsername : any;
   loggedinUserId: any;
   displayedAccommodations: DisplayedAccommodation[] = [];
+  userRatings: RatingAccommodation[] = [];
 
   constructor(private http: HttpClient, private reservationService: ReservationService, private profileService: ProfileService,
-     private accommodationService: AccommodationService , private router: Router) { }
+     private accommodationService: AccommodationService , private router: Router, private ratingService: RatingService) { }
 
   ngOnInit(): void {
       this.loggedinUserUsername = this.getUsernameFromToken();
@@ -32,6 +35,15 @@ export class HistoryReservationComponent implements OnInit{
       }, (error) => {
         console.error('Greška prilikom dohvatanja isteklih rezervacija:', error);
       });
+
+      this.ratingService.getRatingsAccommodationByUser().subscribe(
+        (ratings: RatingAccommodation[]) => {
+          this.userRatings = ratings;
+        },
+        (error) => {
+          console.error('Greška prilikom dohvatanja ocjena za smještaje:', error);
+        }
+      );
   }
 
   getUserId(){
@@ -68,5 +80,9 @@ export class HistoryReservationComponent implements OnInit{
       );
     });
   }
-  
+
+  navigateToRateAccommodation(idAccommodation: string) {
+    this.ratingService.sendAccommodationID(idAccommodation);
+    this.router.navigate(['/rate-accommodation']);
+  }  
 }

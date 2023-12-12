@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"notification/clients"
@@ -33,11 +34,11 @@ func (rh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request
 	var rating data.RatingAccommodation
 	err := json.NewDecoder(r.Body).Decode(&rating)
 	if err != nil {
-		http.Error(w, "Error parsing data", http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Error parsing data: %s", err), http.StatusBadRequest)
 		return
 	}
 
-	idAccommodation := rating.IDAccommodation
+	// idAccommodation := rating.IDAccommodation
 
 	tokenStr := rh.extractTokenFromHeader(r)
 	username, err := rh.getUsername(tokenStr)
@@ -46,7 +47,6 @@ func (rh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request
 		http.Error(w, "Failed to read username from token", http.StatusBadRequest)
 		return
 	}
-
 	rating.GuestUsername = username
 	rating.Time = time.Now()
 
@@ -70,23 +70,36 @@ func (rh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request
 
 	rating.GuestID = id
 
-	reservations, err := rh.reservationClient.GetReservationsByUserIDExp(r.Context(), id)
+	// reservations, err := rh.reservationClient.GetReservationsByUserIDExp(r.Context(), id)
+	// if err != nil {
+	// 	http.Error(w, fmt.Sprintf("Error fetching user reservations: %s", err), http.StatusBadRequest)
+	// 	return
+	// }
+
+	// found := false
+	// for _, reservation := range reservations {
+	// 	if reservation.IDAccommodation == idAccommodation {
+	// 		found = true
+	// 		break
+	// 	}
+	// }
+
+	// if !found {
+	// 	http.Error(w, "Accommodation ID not found in user reservations", http.StatusBadRequest)
+	// 	return
+	// }
+
+	ratings, err := rh.repo.GetAllAccommodationRatingsByUser(r.Context(), id)
 	if err != nil {
-		http.Error(w, "Error fetching user reservations", http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Error fetching user ratings accommodation: %s", err), http.StatusBadRequest)
 		return
 	}
 
-	found := false
-	for _, reservation := range reservations {
-		if reservation.IDAccommodation == idAccommodation {
-			found = true
-			break
+	for _, r := range ratings {
+		if r.IDAccommodation == rating.IDAccommodation {
+			http.Error(w, "User already rated this accommodation", http.StatusBadRequest)
+			return
 		}
-	}
-
-	if !found {
-		http.Error(w, "Accommodation ID not found in user reservations", http.StatusBadRequest)
-		return
 	}
 
 	err = rh.repo.AddRating(&rating)
@@ -169,6 +182,42 @@ func (r *NotificationsHandler) FindHostRatingById(rw http.ResponseWriter, h *htt
 
 func (rh *NotificationsHandler) GetAllAccommodationRatings(w http.ResponseWriter, r *http.Request) {
 	ratings, err := rh.repo.GetAllAccommodationRatings(r.Context())
+	if err != nil {
+		rh.logger.Println("Error fetching all host ratings:", err)
+		http.Error(w, "Error fetching host ratings", http.StatusInternalServerError)
+		return
+	}
+
+	if err := json.NewEncoder(w).Encode(ratings); err != nil {
+		rh.logger.Println("Error encoding host ratings:", err)
+		http.Error(w, "Error encoding host ratings", http.StatusInternalServerError)
+		return
+	}
+}
+
+func (rh *NotificationsHandler) GetAllAccommodationRatingsByUser(w http.ResponseWriter, r *http.Request) {
+	tokenStr := rh.extractTokenFromHeader(r)
+	username, err := rh.getUsername(tokenStr)
+	if err != nil {
+		rh.logger.Println("Failed to read username from token:", err)
+		http.Error(w, "Failed to read username from token", http.StatusBadRequest)
+		return
+	}
+
+	userID, err := rh.profileClient.GetUserId(r.Context(), username)
+	if err != nil {
+		rh.logger.Println("Failed to get HostID from username:", err)
+		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
+		return
+	}
+
+	id, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		http.Error(w, "Invalid userID", http.StatusBadRequest)
+		return
+	}
+
+	ratings, err := rh.repo.GetAllAccommodationRatingsByUser(r.Context(), id)
 	if err != nil {
 		rh.logger.Println("Error fetching all host ratings:", err)
 		http.Error(w, "Error fetching host ratings", http.StatusInternalServerError)

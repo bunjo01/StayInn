@@ -26,6 +26,11 @@ type RatingAccommodation struct {
 	Rate            int                `bson:"rate" json:"rate"`
 }
 
+type RatingAccommodationDTO struct {
+	IDAccommodation primitive.ObjectID `bson:"idAccommodation" json:"idAccommodation"`
+	Rate            int                `bson:"rate" json:"rate"`
+}
+
 func (rh *RatingHost) ToJSON(w io.Writer) error {
 	e := json.NewEncoder(w)
 	return e.Encode(rh)

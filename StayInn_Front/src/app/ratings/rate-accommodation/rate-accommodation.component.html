@@ -1,1 +1,10 @@
-<h1>Rate this accommodation:</h1>
+<div class="rating">
+    <span class="star" (click)="setRating(1)" [class.filled]="ratingA >= 1">&#9733;</span>
+    <span class="star" (click)="setRating(2)" [class.filled]="ratingA >= 2">&#9733;</span>
+    <span class="star" (click)="setRating(3)" [class.filled]="ratingA >= 3">&#9733;</span>
+    <span class="star" (click)="setRating(4)" [class.filled]="ratingA >= 4">&#9733;</span>
+    <span class="star" (click)="setRating(5)" [class.filled]="ratingA >= 5">&#9733;</span>
+</div>
+  
+<button (click)="addRating()">Submit Rating</button>
+  

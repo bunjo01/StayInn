@@ -103,7 +103,6 @@ func main() {
 	profileServiceURI := os.Getenv("PROFILE_SERVICE_URI")
 	profile := clients.NewProfileClient(profileClient, profileServiceURI, profileBreaker)
 
-
 	// Uncomment after adding router methods
 	notificationsHandler := handlers.NewNotificationsHandler(logger, store, reservation, profile)
 
@@ -120,6 +119,9 @@ func main() {
 
 	getAllAccommodationRatings := router.Methods(http.MethodGet).Path("/ratings/accommodation").Subrouter()
 	getAllAccommodationRatings.HandleFunc("", notificationsHandler.GetAllAccommodationRatings)
+
+	getAllAccommodationRatingsByUser := router.Methods(http.MethodGet).Path("/ratings/accommodationByUser").Subrouter()
+	getAllAccommodationRatingsByUser.HandleFunc("", notificationsHandler.GetAllAccommodationRatingsByUser)
 
 	getAllHostRatings := router.Methods(http.MethodGet).Path("/ratings/host").Subrouter()
 	getAllHostRatings.HandleFunc("", notificationsHandler.GetAllHostRatings)
