@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -42,38 +43,38 @@ func New(ctx context.Context, logger *log.Logger) (*NotificationsRepo, error) {
 }
 
 // Disconnect
-func (nr *NotificationsRepo) Disconnect(ctx context.Context) error {
-	err := nr.cli.Disconnect(ctx)
+func (ar *NotificationsRepo) Disconnect(ctx context.Context) error {
+	err := ar.cli.Disconnect(ctx)
 	if err != nil {
-		nr.logger.Fatal(err.Error())
+		ar.logger.Fatal(err.Error())
 		return err
 	}
 	return nil
 }
 
 // Check database connection
-func (nr *NotificationsRepo) Ping() {
+func (ar *NotificationsRepo) Ping() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	// Check connection -> if no error, connection is established
-	err := nr.cli.Ping(ctx, readpref.Primary())
+	err := ar.cli.Ping(ctx, readpref.Primary())
 	if err != nil {
-		nr.logger.Println(err)
+		ar.logger.Println(err)
 	}
 
 	// Print available databases
-	databases, err := nr.cli.ListDatabaseNames(ctx, bson.M{})
+	databases, err := ar.cli.ListDatabaseNames(ctx, bson.M{})
 	if err != nil {
-		nr.logger.Println(err)
+		ar.logger.Println(err)
 	}
-	nr.logger.Println(databases)
+	ar.logger.Println(databases)
 }
 
 // Repo methods
 
-func (nr *NotificationsRepo) AddRating(rating *RatingAccommodation) error {
-	ratingsCollection := nr.getRatingsCollection()
+func (ar *NotificationsRepo) AddRating(rating *RatingAccommodation) error {
+	ratingsCollection := ar.getRatingsCollection()
 
 	_, err := ratingsCollection.InsertOne(context.Background(), rating)
 	if err != nil {
@@ -83,8 +84,8 @@ func (nr *NotificationsRepo) AddRating(rating *RatingAccommodation) error {
 	return nil
 }
 
-func (nr *NotificationsRepo) AddHostRating(rating *RatingHost) error {
-	ratingsCollection := nr.getHostRatingsCollection()
+func (ar *NotificationsRepo) AddHostRating(rating *RatingHost) error {
+	ratingsCollection := ar.getHostRatingsCollection()
 
 	_, err := ratingsCollection.InsertOne(context.Background(), rating)
 	if err != nil {
@@ -94,8 +95,8 @@ func (nr *NotificationsRepo) AddHostRating(rating *RatingHost) error {
 	return nil
 }
 
-func (nr *NotificationsRepo) UpdateHostRating(id primitive.ObjectID, newRating *RatingHost) error {
-	ratingsCollection := nr.getHostRatingsCollection()
+func (ar *NotificationsRepo) UpdateHostRating(id primitive.ObjectID, newRating *RatingHost) error {
+	ratingsCollection := ar.getHostRatingsCollection()
 	filter := bson.M{"_id": id}
 
 	update := bson.M{
@@ -113,8 +114,8 @@ func (nr *NotificationsRepo) UpdateHostRating(id primitive.ObjectID, newRating *
 	return nil
 }
 
-func (nr *NotificationsRepo) DeleteHostRating(id primitive.ObjectID, idUser primitive.ObjectID) error {
-	ratingsCollection := nr.getHostRatingsCollection()
+func (ar *NotificationsRepo) DeleteHostRating(id primitive.ObjectID, idUser primitive.ObjectID) error {
+	ratingsCollection := ar.getHostRatingsCollection()
 	filter := bson.M{"_id": id}
 
 	var rating RatingHost
@@ -156,8 +157,39 @@ func (ar *NotificationsRepo) FindRatingById(ctx context.Context, id primitive.Ob
 	return &rating, nil
 }
 
-func (nr *NotificationsRepo) GetAllAccommodationRatings(ctx context.Context) ([]RatingAccommodation, error) {
-	ratingsCollection := nr.getRatingsCollection()
+func (ar *NotificationsRepo) FindAccommodationRatingByGuest(ctx context.Context, accommodationId primitive.ObjectID, guestId primitive.ObjectID) (*RatingAccommodation, error) {
+	collection := ar.getRatingsCollection()
+
+	query := bson.M{"idAccommodation": accommodationId, "idGuest": guestId}
+	var rating RatingAccommodation
+	err := collection.FindOne(ctx, query).Decode(&rating)
+
+	if err != nil {
+		ar.logger.Println(err)
+		return nil, err
+	}
+
+	return &rating, nil
+}
+
+func (ar *NotificationsRepo) FindHostRatingByGuest(ctx context.Context, idHost primitive.ObjectID, guestId primitive.ObjectID) (*RatingHost, error) {
+	collection := ar.getHostRatingsCollection()
+
+	query := bson.M{"idHost": idHost, "idGuest": guestId}
+	fmt.Println(query)
+	var rating RatingHost
+	err := collection.FindOne(ctx, query).Decode(&rating)
+
+	if err != nil {
+		ar.logger.Println(err)
+		return nil, err
+	}
+
+	return &rating, nil
+}
+
+func (ar *NotificationsRepo) GetAllAccommodationRatings(ctx context.Context) ([]RatingAccommodation, error) {
+	ratingsCollection := ar.getRatingsCollection()
 
 	cursor, err := ratingsCollection.Find(ctx, bson.M{})
 	if err != nil {
@@ -177,8 +209,8 @@ func (nr *NotificationsRepo) GetAllAccommodationRatings(ctx context.Context) ([]
 	return ratings, nil
 }
 
-func (nr *NotificationsRepo) GetAllAccommodationRatingsByUser(ctx context.Context, userID primitive.ObjectID) ([]RatingAccommodation, error) {
-	ratingsCollection := nr.getRatingsCollection()
+func (ar *NotificationsRepo) GetAllAccommodationRatingsByUser(ctx context.Context, userID primitive.ObjectID) ([]RatingAccommodation, error) {
+	ratingsCollection := ar.getRatingsCollection()
 
 	cursor, err := ratingsCollection.Find(ctx, bson.M{"idGuest": userID})
 	if err != nil {
@@ -211,8 +243,8 @@ func (ar *NotificationsRepo) FindHostRatingById(ctx context.Context, id primitiv
 	return &rating, nil
 }
 
-func (nr *NotificationsRepo) GetAllHostRatings(ctx context.Context) ([]RatingHost, error) {
-	ratingsCollection := nr.getHostRatingsCollection()
+func (ar *NotificationsRepo) GetAllHostRatings(ctx context.Context) ([]RatingHost, error) {
+	ratingsCollection := ar.getHostRatingsCollection()
 
 	cursor, err := ratingsCollection.Find(ctx, bson.M{})
 	if err != nil {
@@ -232,8 +264,8 @@ func (nr *NotificationsRepo) GetAllHostRatings(ctx context.Context) ([]RatingHos
 	return ratings, nil
 }
 
-func (nr *NotificationsRepo) GetAllHostRatingsByUser(ctx context.Context, userID primitive.ObjectID) ([]RatingHost, error) {
-	ratingsCollection := nr.getHostRatingsCollection()
+func (ar *NotificationsRepo) GetAllHostRatingsByUser(ctx context.Context, userID primitive.ObjectID) ([]RatingHost, error) {
+	ratingsCollection := ar.getHostRatingsCollection()
 
 	cursor, err := ratingsCollection.Find(ctx, bson.M{"idHost": userID})
 	if err != nil {
@@ -253,8 +285,8 @@ func (nr *NotificationsRepo) GetAllHostRatingsByUser(ctx context.Context, userID
 	return ratings, nil
 }
 
-func (nr *NotificationsRepo) GetHostRatings(ctx context.Context, hostUsername string) ([]RatingHost, error) {
-	ratingsCollection := nr.getHostRatingsCollection()
+func (ar *NotificationsRepo) GetHostRatings(ctx context.Context, hostUsername string) ([]RatingHost, error) {
+	ratingsCollection := ar.getHostRatingsCollection()
 
 	filter := bson.M{"hostUsername": hostUsername}
 
@@ -276,8 +308,8 @@ func (nr *NotificationsRepo) GetHostRatings(ctx context.Context, hostUsername st
 	return ratings, nil
 }
 
-func (r *NotificationsRepo) GetRatingsByAccommodationID(accommodationID primitive.ObjectID) ([]RatingAccommodation, error) {
-	ratingsCollection := r.getRatingsCollection()
+func (ar *NotificationsRepo) GetRatingsByAccommodationID(accommodationID primitive.ObjectID) ([]RatingAccommodation, error) {
+	ratingsCollection := ar.getRatingsCollection()
 	var ratings []RatingAccommodation
 
 	filter := bson.M{"idAccommodation": accommodationID}
@@ -299,8 +331,8 @@ func (r *NotificationsRepo) GetRatingsByAccommodationID(accommodationID primitiv
 	return ratings, nil
 }
 
-func (r *NotificationsRepo) GetRatingsByHostUsername(username string) ([]RatingHost, error) {
-	ratingsCollection := r.getHostRatingsCollection()
+func (ar *NotificationsRepo) GetRatingsByHostUsername(username string) ([]RatingHost, error) {
+	ratingsCollection := ar.getHostRatingsCollection()
 	var ratings []RatingHost
 
 	filter := bson.M{"hostUsername": username}
@@ -322,8 +354,8 @@ func (r *NotificationsRepo) GetRatingsByHostUsername(username string) ([]RatingH
 	return ratings, nil
 }
 
-func (nr *NotificationsRepo) UpdateRatingAccommodationByID(id primitive.ObjectID, newRate int) error {
-	ratingsCollection := nr.getRatingsCollection()
+func (ar *NotificationsRepo) UpdateRatingAccommodationByID(id primitive.ObjectID, newRate int) error {
+	ratingsCollection := ar.getRatingsCollection()
 
 	filter := bson.M{"_id": id}
 	update := bson.M{
@@ -345,8 +377,8 @@ func (nr *NotificationsRepo) UpdateRatingAccommodationByID(id primitive.ObjectID
 	return nil
 }
 
-func (nr *NotificationsRepo) DeleteRatingAccommodationByID(id primitive.ObjectID, idUser primitive.ObjectID) error {
-	ratingsCollection := nr.getRatingsCollection()
+func (ar *NotificationsRepo) DeleteRatingAccommodationByID(id primitive.ObjectID, idUser primitive.ObjectID) error {
+	ratingsCollection := ar.getRatingsCollection()
 
 	filter := bson.M{"_id": id}
 
@@ -378,20 +410,20 @@ func (nr *NotificationsRepo) DeleteRatingAccommodationByID(id primitive.ObjectID
 
 // Getting DB collections
 
-func (nr *NotificationsRepo) getNotificationsCollection() *mongo.Collection {
-	notificationDatabase := nr.cli.Database("notificationDB")
+func (ar *NotificationsRepo) getNotificationsCollection() *mongo.Collection {
+	notificationDatabase := ar.cli.Database("notificationDB")
 	notificationsCollection := notificationDatabase.Collection("notifications")
 	return notificationsCollection
 }
 
-func (nr *NotificationsRepo) getRatingsCollection() *mongo.Collection {
-	notificationDatabase := nr.cli.Database("notificationDB")
+func (ar *NotificationsRepo) getRatingsCollection() *mongo.Collection {
+	notificationDatabase := ar.cli.Database("notificationDB")
 	ratingsCollection := notificationDatabase.Collection("ratings")
 	return ratingsCollection
 }
 
-func (nr *NotificationsRepo) getHostRatingsCollection() *mongo.Collection {
-	notificationDatabase := nr.cli.Database("notificationDB")
+func (ar *NotificationsRepo) getHostRatingsCollection() *mongo.Collection {
+	notificationDatabase := ar.cli.Database("notificationDB")
 	hostRatingsCollection := notificationDatabase.Collection("hostRatings")
 	return hostRatingsCollection
 }

@@ -111,7 +111,7 @@ func (rh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request
 	for _, r := range ratings {
 		if r.IDAccommodation == rating.IDAccommodation {
 			rh.repo.UpdateRatingAccommodationByID(r.ID, rating.Rate)
-			http.Error(w, "User already rated this accommodation", http.StatusBadRequest)
+			http.Error(w, "Rating successfully added", http.StatusCreated)
 			return
 		}
 	}
@@ -140,6 +140,115 @@ func (rh *NotificationsHandler) FindRatingById(rw http.ResponseWriter, h *http.R
 	}
 
 	rating, err := rh.repo.FindRatingById(ctx, objectID)
+	if err != nil {
+		rh.logger.Println("Database exception: ", err)
+		http.Error(rw, "Database exception", http.StatusInternalServerError)
+		return
+	}
+
+	if rating == nil {
+		rh.logger.Println("No period with given ID in accommodation")
+		http.Error(rw, "Rating not found", http.StatusNotFound)
+		return
+	}
+
+	err = rating.ToJSON(rw)
+	if err != nil {
+		http.Error(rw, "Unable to convert to json", http.StatusInternalServerError)
+		rh.logger.Fatal("Unable to convert to json:", err)
+		return
+	}
+}
+
+func (rh *NotificationsHandler) FindAccommodationRatingByGuest(rw http.ResponseWriter, h *http.Request) {
+	vars := mux.Vars(h)
+	ratingID := vars["idAccommodation"]
+
+	ctx := h.Context()
+
+	objectID, err := primitive.ObjectIDFromHex(ratingID)
+	if err != nil {
+		http.Error(rw, "Invalid rating ID", http.StatusBadRequest)
+		rh.logger.Println("Invalid rating ID:", err)
+		return
+	}
+
+	tokenStr := rh.extractTokenFromHeader(h)
+	guestUsername, err := rh.getUsername(tokenStr)
+	if err != nil {
+		rh.logger.Println("Failed to read username from token:", err)
+		http.Error(rw, "Failed to read username from token", http.StatusBadRequest)
+		return
+	}
+
+	guestId, err := rh.profileClient.GetUserId(ctx, guestUsername)
+	if err != nil {
+		rh.logger.Println("Failed to retrive user id from profile service:", err)
+		http.Error(rw, "Failed to retrive user id from profile service", http.StatusBadRequest)
+		return
+	}
+
+	guestIdObject, err := primitive.ObjectIDFromHex(guestId)
+	if err != nil {
+		rh.logger.Println("Failed to parse id to primitive object id:", err)
+		http.Error(rw, "Failed to parse id to primitive object id", http.StatusBadRequest)
+		return
+	}
+
+	rating, err := rh.repo.FindAccommodationRatingByGuest(ctx, objectID, guestIdObject)
+	if err != nil {
+		rh.logger.Println("Database exception: ", err)
+		http.Error(rw, "Database exception", http.StatusInternalServerError)
+		return
+	}
+
+	if rating == nil {
+		rh.logger.Println("No period with given ID in accommodation")
+		http.Error(rw, "Rating not found", http.StatusNotFound)
+		return
+	}
+
+	err = rating.ToJSON(rw)
+	if err != nil {
+		http.Error(rw, "Unable to convert to json", http.StatusInternalServerError)
+		rh.logger.Fatal("Unable to convert to json:", err)
+		return
+	}
+}
+
+func (rh *NotificationsHandler) FindHostRatingByGuest(rw http.ResponseWriter, h *http.Request) {
+	var userId data.UserId
+	err := json.NewDecoder(h.Body).Decode(&userId)
+	if err != nil {
+		http.Error(rw, fmt.Sprintf("Error parsing data: %s", err), http.StatusBadRequest)
+		return
+	}
+
+	ctx := h.Context()
+
+	tokenStr := rh.extractTokenFromHeader(h)
+	guestUsername, err := rh.getUsername(tokenStr)
+	if err != nil {
+		rh.logger.Println("Failed to read username from token:", err)
+		http.Error(rw, "Failed to read username from token", http.StatusBadRequest)
+		return
+	}
+
+	guestId, err := rh.profileClient.GetUserId(ctx, guestUsername)
+	if err != nil {
+		rh.logger.Println("Failed to retrive user id from profile service:", err)
+		http.Error(rw, "Failed to retrive user id from profile service", http.StatusBadRequest)
+		return
+	}
+
+	guestIdObject, err := primitive.ObjectIDFromHex(guestId)
+	if err != nil {
+		rh.logger.Println("Failed to parse id to primitive object id:", err)
+		http.Error(rw, "Failed to parse id to primitive object id", http.StatusBadRequest)
+		return
+	}
+
+	rating, err := rh.repo.FindHostRatingByGuest(ctx, userId.ID, guestIdObject)
 	if err != nil {
 		rh.logger.Println("Database exception: ", err)
 		http.Error(rw, "Database exception", http.StatusInternalServerError)

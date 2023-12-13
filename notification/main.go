@@ -144,6 +144,12 @@ func main() {
 	findRatingForHost := router.Methods(http.MethodGet).Path("/rating/host/{id}").Subrouter()
 	findRatingForHost.HandleFunc("", notificationsHandler.FindHostRatingById)
 
+	findRatingForAccommodationByGuest := router.Methods(http.MethodGet).Path("/rating/accommodation/{idAccommodation}/byGuest").Subrouter()
+	findRatingForAccommodationByGuest.HandleFunc("", notificationsHandler.FindAccommodationRatingByGuest)
+
+	findRatingForHostByGuest := router.Methods(http.MethodPost).Path("/rating/host/byGuest").Subrouter()
+	findRatingForHostByGuest.HandleFunc("", notificationsHandler.FindHostRatingByGuest)
+
 	updateRatingForHost := router.Methods(http.MethodPut).Path("/rating/host/{id}").Subrouter()
 	updateRatingForHost.HandleFunc("", notificationsHandler.UpdateHostRating)
 
