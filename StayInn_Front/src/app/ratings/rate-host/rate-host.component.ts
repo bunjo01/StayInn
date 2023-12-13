@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { Accommodation } from 'src/app/model/accommodation';
 import { RatingHost } from 'src/app/model/ratings';
+import { AuthService } from 'src/app/services/auth.service';
 import { RatingService } from 'src/app/services/rating.service';
 
 @Component({
@@ -16,14 +17,23 @@ export class RateHostComponent implements OnInit{
   currentRating: RatingHost | null = null;
   guestsRate: any;
   averageHostRate: any;
+  userRole:any;
 
-  constructor(private ratingService: RatingService, private toastr: ToastrService, private router: Router) {}
+  constructor(private ratingService: RatingService, 
+              private toastr: ToastrService, 
+              private router: Router,
+              private authService: AuthService) {}
 
   ngOnInit(): void {
     if (this.hostId){
       this.getHostsRateByGuest()
       this.getHostsAverageRate()
+      this.setUserRole()
     }
+  }
+
+  setUserRole(){
+    this.userRole = this.authService.getRoleFromToken()
   }
 
   setRating(value: number) {

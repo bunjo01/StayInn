@@ -4,6 +4,7 @@ import { ToastrService } from 'ngx-toastr';
 import { Observable } from 'rxjs';
 import { Accommodation } from 'src/app/model/accommodation';
 import { AccommodationService } from 'src/app/services/accommodation.service';
+import { AuthService } from 'src/app/services/auth.service';
 import { RatingService } from 'src/app/services/rating.service';
 
 @Component({
@@ -18,12 +19,14 @@ export class RateAccommodationComponent implements OnInit {
   ratingA: number = 0;
   guestsRatingOfAccommodation: any;
   averageRating:any;
+  userRole:any;
 
   constructor(
     private ratingService: RatingService,
     private toastr: ToastrService,
     private router: Router,
-    private accommodationService: AccommodationService
+    private accommodationService: AccommodationService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -31,6 +34,7 @@ export class RateAccommodationComponent implements OnInit {
       this.accommodation$ = this.accommodationService.getAccommodationById(this.accommodationID);
       this.setGuestsRatingOfAccommodation()
       this.setAverageRatingForAccommodation()
+      this.setUserRole()
     }
   }
 
@@ -58,6 +62,10 @@ export class RateAccommodationComponent implements OnInit {
     if(this.accommodationID != null){
       this.ratingService.deleteRatingsAccommodationByUser(this.guestsRatingOfAccommodation.id).subscribe((result) => {})      
     }
+  }
+
+  setUserRole(){
+    this.userRole = this.authService.getRoleFromToken()
   }
 
   addRating() {
