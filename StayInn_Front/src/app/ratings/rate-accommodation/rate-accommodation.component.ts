@@ -13,6 +13,7 @@ import { RatingService } from 'src/app/services/rating.service';
 })
 export class RateAccommodationComponent implements OnInit {
   @Input() accommodationID: string | null = null;
+  @Input() hostId: string | null = null;
   accommodation$: Observable<Accommodation> | undefined;
   ratingA: number = 0;
 
@@ -31,13 +32,13 @@ export class RateAccommodationComponent implements OnInit {
 
   setRating(value: number) {
     this.ratingA = value;
-    console.log('Selected rating:', this.ratingA);
   }
 
   addRating() {
-    if (this.accommodationID !== null) {
+    if (this.accommodationID !== null && this.hostId !== null) {
       const ratingData = {
         idAccommodation: this.accommodationID,
+        idHost: this.hostId,
         rate: this.ratingA
       };
 
