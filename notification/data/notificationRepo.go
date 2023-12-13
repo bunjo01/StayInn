@@ -230,6 +230,27 @@ func (ar *NotificationsRepo) GetAllAccommodationRatingsByUser(ctx context.Contex
 	return ratings, nil
 }
 
+func (ar *NotificationsRepo) GetAllAccommodationRatingsForLoggedHost(ctx context.Context, userID primitive.ObjectID) ([]RatingAccommodation, error) {
+	ratingsCollection := ar.getRatingsCollection()
+
+	cursor, err := ratingsCollection.Find(ctx, bson.M{"idHost": userID})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var ratings []RatingAccommodation
+	for cursor.Next(ctx) {
+		var rating RatingAccommodation
+		if err := cursor.Decode(&rating); err != nil {
+			return nil, err
+		}
+		ratings = append(ratings, rating)
+	}
+
+	return ratings, nil
+}
+
 func (ar *NotificationsRepo) FindHostRatingById(ctx context.Context, id primitive.ObjectID) (*RatingHost, error) {
 	collection := ar.getHostRatingsCollection()
 

@@ -318,6 +318,45 @@ func (rh *NotificationsHandler) GetAllAccommodationRatings(w http.ResponseWriter
 	}
 }
 
+func (rh *NotificationsHandler) GetAllAccommodationRatingsForLoggedHost(w http.ResponseWriter, r *http.Request) {
+	tokenStr := rh.extractTokenFromHeader(r)
+	hostUsername, err := rh.getUsername(tokenStr)
+	if err != nil {
+		rh.logger.Println("Failed to read username from token:", err)
+		http.Error(w, "Failed to read username from token", http.StatusBadRequest)
+		return
+	}
+
+	ctx := r.Context()
+
+	hostId, err := rh.profileClient.GetUserId(ctx, hostUsername)
+	if err != nil {
+		rh.logger.Println("Failed to retrive user id from profile service:", err)
+		http.Error(w, "Failed to retrive user id from profile service", http.StatusBadRequest)
+		return
+	}
+
+	hostIdObject, err := primitive.ObjectIDFromHex(hostId)
+	if err != nil {
+		rh.logger.Println("Failed to parse id to primitive object:", err)
+		http.Error(w, "Failed to parse id to primitive object", http.StatusBadRequest)
+		return
+	}
+
+	ratings, err := rh.repo.GetAllAccommodationRatingsForLoggedHost(r.Context(), hostIdObject)
+	if err != nil {
+		rh.logger.Println("Error fetching all host ratings:", err)
+		http.Error(w, "Error fetching host ratings", http.StatusInternalServerError)
+		return
+	}
+
+	if err := json.NewEncoder(w).Encode(ratings); err != nil {
+		rh.logger.Println("Error encoding host ratings:", err)
+		http.Error(w, "Error encoding host ratings", http.StatusInternalServerError)
+		return
+	}
+}
+
 func (rh *NotificationsHandler) GetAllAccommodationRatingsByUser(w http.ResponseWriter, r *http.Request) {
 	tokenStr := rh.extractTokenFromHeader(r)
 	username, err := rh.getUsername(tokenStr)
@@ -589,10 +628,22 @@ func (rh *NotificationsHandler) GetAverageAccommodationRating(w http.ResponseWri
 }
 
 func (rh *NotificationsHandler) GetAverageHostRating(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	username := params["username"]
+	var userId data.UserId
+	err := json.NewDecoder(r.Body).Decode(&userId)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error parsing data: %s", err), http.StatusBadRequest)
+		return
+	}
 
-	ratings, err := rh.repo.GetRatingsByHostUsername(username)
+	ctx := r.Context()
+
+	host, err := rh.profileClient.GetUsernameById(ctx, userId.ID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error trying to find user by id", err), http.StatusBadRequest)
+		return
+	}
+
+	ratings, err := rh.repo.GetRatingsByHostUsername(host.Username)
 	if err != nil {
 		http.Error(w, "Failed to fetch ratings", http.StatusBadRequest)
 		return
@@ -612,7 +663,7 @@ func (rh *NotificationsHandler) GetAverageHostRating(w http.ResponseWriter, r *h
 	averageRating := float64(sum) / float64(totalRatings)
 
 	avgRatingAccommodation := data.AverageRatingHost{
-		Username:      username,
+		Username:      host.Username,
 		AverageRating: averageRating,
 	}
 
