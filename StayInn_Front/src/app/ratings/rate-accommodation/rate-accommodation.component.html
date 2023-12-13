@@ -3,7 +3,9 @@
         <h2>Accommodation</h2>
         <p>Name: {{ accommodation.name }}</p>
         <p>Description: {{ accommodation.location }} </p>
-
+        <button (click)="deleteAccommodationRating()">remove your rating</button>
+        <p>Average accommodation rating : {{averageRating.averageRating}}</p>
+        <p>You rated this accommodation : {{guestsRatingOfAccommodation.rate}}</p>
     </div>
 
     <div class="rating">

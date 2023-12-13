@@ -47,13 +47,40 @@ export class RatingService {
     return this.http.get<RatingAccommodation>(this.baseUrl + '/rating/accommodation/getByAccommodationId' + accommodationId, { headers });
   }
 
+  getUsersRatingForAccommodation(accommodationId: string): Observable<any> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+    return this.http.get<any>(this.baseUrl + `/rating/accommodation/${accommodationId}/byGuest`, {headers: headers});
+  }
+
+  getAverageRatingForAccommodation(accommodationId: string): Observable<any> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+    return this.http.get<any>(this.baseUrl + `/ratings/average/${accommodationId}`, {headers: headers});
+  }
+
+  getUsersRatingForHost(body: any): Observable<any[]> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+    return this.http.post<any[]>(this.baseUrl + `/rating/host/byGuest`,JSON.stringify(body), {headers: headers});
+  }
+
   deleteRatingsAccommodationByUser(idRating: string) {
     const token = localStorage.getItem('token');
     const headers = new HttpHeaders({
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
     });
-
+    console.log("DELETE URL:", this.baseUrl + `/rating/accommodation/${idRating}` )
     return this.http.delete(this.baseUrl + `/rating/accommodation/${idRating}`, { headers });
   }
 
@@ -79,13 +106,13 @@ export class RatingService {
     });
   }
 
-  getRatingHostByUser(host: any): Observable<RatingHost> {
+  getRatingHostByUser(idAccommodation: any): Observable<RatingHost> {
     const token = localStorage.getItem('token');
     const headers = new HttpHeaders({
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
     });
-    return this.http.get<RatingHost>(this.baseUrl + '/rating/host/getByHost', { headers });
+    return this.http.get<RatingHost>(this.baseUrl + `/rating/accommodation/${idAccommodation}`, { headers });
   }
 
   deleteRatingHostByUser(idRating: string) {

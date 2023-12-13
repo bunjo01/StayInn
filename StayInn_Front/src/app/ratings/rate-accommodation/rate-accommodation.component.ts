@@ -16,6 +16,8 @@ export class RateAccommodationComponent implements OnInit {
   @Input() hostId: string | null = null;
   accommodation$: Observable<Accommodation> | undefined;
   ratingA: number = 0;
+  guestsRatingOfAccommodation: any;
+  averageRating:any;
 
   constructor(
     private ratingService: RatingService,
@@ -27,11 +29,35 @@ export class RateAccommodationComponent implements OnInit {
   ngOnInit(): void {
     if (this.accommodationID) {
       this.accommodation$ = this.accommodationService.getAccommodationById(this.accommodationID);
+      this.setGuestsRatingOfAccommodation()
+      this.setAverageRatingForAccommodation()
     }
   }
 
   setRating(value: number) {
     this.ratingA = value;
+  }
+
+  setGuestsRatingOfAccommodation(){
+    if(this.accommodationID != null){
+      this.ratingService.getUsersRatingForAccommodation(this.accommodationID).subscribe((result) => {
+        this.guestsRatingOfAccommodation = result
+      })
+    }
+  }
+
+  setAverageRatingForAccommodation(){
+    if(this.accommodationID != null){
+      this.ratingService.getAverageRatingForAccommodation(this.accommodationID).subscribe((result) => {
+        this.averageRating = result
+      })
+    }
+  }
+
+  deleteAccommodationRating(){
+    if(this.accommodationID != null){
+      this.ratingService.deleteRatingsAccommodationByUser(this.guestsRatingOfAccommodation.id).subscribe((result) => {})      
+    }
   }
 
   addRating() {
