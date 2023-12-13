@@ -54,7 +54,7 @@ func (rh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request
 	rating.GuestUsername = guestUsername
 	rating.Time = time.Now()
 
-	host, err := rh.profileClient.GetUsernameById(ctx, rating.HostID)
+	host, err := rh.profileClient.GetUsernameById(ctx, rating.HostID, tokenStr)
 	if err != nil {
 		rh.logger.Println(err)
 		http.Error(w, "Failed to get host", http.StatusBadRequest)
@@ -68,7 +68,7 @@ func (rh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	userID, err := rh.profileClient.GetUserId(r.Context(), guestUsername)
+	userID, err := rh.profileClient.GetUserId(r.Context(), guestUsername, tokenStr)
 	if err != nil {
 		rh.logger.Println("Failed to get HostID from username:", err)
 		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
@@ -181,7 +181,7 @@ func (rh *NotificationsHandler) FindAccommodationRatingByGuest(rw http.ResponseW
 		return
 	}
 
-	guestId, err := rh.profileClient.GetUserId(ctx, guestUsername)
+	guestId, err := rh.profileClient.GetUserId(ctx, guestUsername, tokenStr)
 	if err != nil {
 		rh.logger.Println("Failed to retrive user id from profile service:", err)
 		http.Error(rw, "Failed to retrive user id from profile service", http.StatusBadRequest)
@@ -234,7 +234,7 @@ func (rh *NotificationsHandler) FindHostRatingByGuest(rw http.ResponseWriter, h 
 		return
 	}
 
-	guestId, err := rh.profileClient.GetUserId(ctx, guestUsername)
+	guestId, err := rh.profileClient.GetUserId(ctx, guestUsername, tokenStr)
 	if err != nil {
 		rh.logger.Println("Failed to retrive user id from profile service:", err)
 		http.Error(rw, "Failed to retrive user id from profile service", http.StatusBadRequest)
@@ -329,7 +329,7 @@ func (rh *NotificationsHandler) GetAllAccommodationRatingsForLoggedHost(w http.R
 
 	ctx := r.Context()
 
-	hostId, err := rh.profileClient.GetUserId(ctx, hostUsername)
+	hostId, err := rh.profileClient.GetUserId(ctx, hostUsername, tokenStr)
 	if err != nil {
 		rh.logger.Println("Failed to retrive user id from profile service:", err)
 		http.Error(w, "Failed to retrive user id from profile service", http.StatusBadRequest)
@@ -366,7 +366,7 @@ func (rh *NotificationsHandler) GetAllAccommodationRatingsByUser(w http.Response
 		return
 	}
 
-	userID, err := rh.profileClient.GetUserId(r.Context(), username)
+	userID, err := rh.profileClient.GetUserId(r.Context(), username, tokenStr)
 	if err != nil {
 		rh.logger.Println("Failed to get HostID from username:", err)
 		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
@@ -417,7 +417,7 @@ func (rh *NotificationsHandler) GetAllHostRatingsByUser(w http.ResponseWriter, r
 		return
 	}
 
-	userID, err := rh.profileClient.GetUserId(r.Context(), username)
+	userID, err := rh.profileClient.GetUserId(r.Context(), username, tokenStr)
 	if err != nil {
 		rh.logger.Println("Failed to get HostID from username:", err)
 		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
@@ -444,6 +444,7 @@ func (rh *NotificationsHandler) GetAllHostRatingsByUser(w http.ResponseWriter, r
 }
 
 func (rh *NotificationsHandler) GetHostRatings(w http.ResponseWriter, r *http.Request) {
+	tokenStr := rh.extractTokenFromHeader(r)
 	vars := mux.Vars(r)
 	hostUsername, ok := vars["hostUsername"]
 	if !ok {
@@ -451,7 +452,7 @@ func (rh *NotificationsHandler) GetHostRatings(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	_, err := rh.profileClient.GetUserId(r.Context(), hostUsername)
+	_, err := rh.profileClient.GetUserId(r.Context(), hostUsername, tokenStr)
 	if err != nil {
 		rh.logger.Println("Failed to get HostID from username:", err)
 		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
@@ -499,14 +500,14 @@ func (rh *NotificationsHandler) AddHostRating(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	host, err := rh.profileClient.GetUsernameById(ctx, rating.HostID)
+	host, err := rh.profileClient.GetUsernameById(ctx, rating.HostID, tokenStr)
 	if err != nil {
 		rh.logger.Println(err)
 		http.Error(w, "Failed to get host", http.StatusBadRequest)
 		return
 	}
 
-	guestId, err := rh.profileClient.GetUserId(ctx, guestUsername)
+	guestId, err := rh.profileClient.GetUserId(ctx, guestUsername, tokenStr)
 	if err != nil {
 		rh.logger.Println(err)
 		http.Error(w, "Failed to get guest", http.StatusBadRequest)
@@ -628,6 +629,7 @@ func (rh *NotificationsHandler) GetAverageAccommodationRating(w http.ResponseWri
 }
 
 func (rh *NotificationsHandler) GetAverageHostRating(w http.ResponseWriter, r *http.Request) {
+	tokenStr := rh.extractTokenFromHeader(r)
 	var userId data.UserId
 	err := json.NewDecoder(r.Body).Decode(&userId)
 	if err != nil {
@@ -637,9 +639,9 @@ func (rh *NotificationsHandler) GetAverageHostRating(w http.ResponseWriter, r *h
 
 	ctx := r.Context()
 
-	host, err := rh.profileClient.GetUsernameById(ctx, userId.ID)
+	host, err := rh.profileClient.GetUsernameById(ctx, userId.ID, tokenStr)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Error trying to find user by id", err), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Error trying to find user by id: %s", err), http.StatusBadRequest)
 		return
 	}
 
@@ -709,7 +711,7 @@ func (rh *NotificationsHandler) UpdateHostRating(w http.ResponseWriter, r *http.
 		return
 	}
 
-	userID, err := rh.profileClient.GetUserId(r.Context(), username)
+	userID, err := rh.profileClient.GetUserId(r.Context(), username, tokenStr)
 	if err != nil {
 		rh.logger.Println("Failed to get HostID from username:", err)
 		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
@@ -759,7 +761,7 @@ func (rh *NotificationsHandler) UpdateAccommodationRating(w http.ResponseWriter,
 		return
 	}
 
-	userID, err := rh.profileClient.GetUserId(r.Context(), username)
+	userID, err := rh.profileClient.GetUserId(r.Context(), username, tokenStr)
 	if err != nil {
 		rh.logger.Println("Failed to get HostID from username:", err)
 		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
@@ -804,7 +806,7 @@ func (rh *NotificationsHandler) DeleteHostRating(w http.ResponseWriter, r *http.
 		return
 	}
 
-	userID, err := rh.profileClient.GetUserId(r.Context(), username)
+	userID, err := rh.profileClient.GetUserId(r.Context(), username, tokenStr)
 	if err != nil {
 		rh.logger.Println("Failed to get HostID from username:", err)
 		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
@@ -850,7 +852,7 @@ func (rh *NotificationsHandler) DeleteRatingAccommodationHandler(w http.Response
 		return
 	}
 
-	userID, err := rh.profileClient.GetUserId(r.Context(), username)
+	userID, err := rh.profileClient.GetUserId(r.Context(), username, tokenStr)
 	if err != nil {
 		rh.logger.Println("Failed to get HostID from username:", err)
 		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)

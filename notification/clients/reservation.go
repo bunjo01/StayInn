@@ -27,7 +27,7 @@ func NewReservationClient(client *http.Client, address string, cb *gobreaker.Cir
 	}
 }
 
-func (rc ReservationClient) GetReservationsByUserIDExp(ctx context.Context, accID primitive.ObjectID) (data.Reservations, error) {
+func (rc ReservationClient) GetReservationsByUserIDExp(ctx context.Context, accID primitive.ObjectID, token string) (data.Reservations, error) {
 	var timeout time.Duration
 	deadline, reqHasDeadline := ctx.Deadline()
 	if reqHasDeadline {
@@ -39,6 +39,7 @@ func (rc ReservationClient) GetReservationsByUserIDExp(ctx context.Context, accI
 		if err != nil {
 			return nil, err
 		}
+		req.Header.Set("Authorization", "Bearer "+token)
 		resp, err := rc.client.Do(req)
 		if err != nil {
 			return nil, err

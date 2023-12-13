@@ -220,7 +220,6 @@ func (r *ReservationHandler) FindAccommodationIdsByDates(rw http.ResponseWriter,
 }
 
 func (r *ReservationHandler) FindAllReservationsByUserIDExpiredHandler(rw http.ResponseWriter, h *http.Request) {
-
 	tokenStr := r.extractTokenFromHeader(h)
 	username, err := r.getUsername(tokenStr)
 	if err != nil {
@@ -229,7 +228,7 @@ func (r *ReservationHandler) FindAllReservationsByUserIDExpiredHandler(rw http.R
 		return
 	}
 
-	userID, err := r.profile.GetUserId(h.Context(), username)
+	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
 		r.logger.Println("Failed to get HostID from username:", err)
 		http.Error(rw, "Failed to get HostID from username", http.StatusBadRequest)
