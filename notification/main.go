@@ -162,6 +162,10 @@ func main() {
 	notifyForReservation := router.Methods(http.MethodPost).Subrouter()
 	notifyForReservation.HandleFunc("/reservation", notificationsHandler.NotifyForReservation)
 
+	// Get all notifications
+	getAllNotifications := router.Methods(http.MethodGet).Path("/{username}").Subrouter()
+	getAllNotifications.HandleFunc("", notificationsHandler.GetAllNotifications)
+
 	// CORS middleware
 	cors := gorillaHandlers.CORS(
 		gorillaHandlers.AllowedOrigins([]string{"*"}),

@@ -949,6 +949,29 @@ func (nh *NotificationsHandler) NotifyForReservation(w http.ResponseWriter, r *h
 	}
 }
 
+func (nh *NotificationsHandler) GetAllNotifications(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	username, ok := vars["username"]
+
+	if !ok {
+		http.Error(w, "Missing username parameter", http.StatusBadRequest)
+		return
+	}
+
+	ratings, err := nh.repo.GetAllNotifications(r.Context(), username)
+	if err != nil {
+		nh.logger.Println("Error fetching all host ratings:", err)
+		http.Error(w, "Error fetching host ratings", http.StatusInternalServerError)
+		return
+	}
+
+	if err := json.NewEncoder(w).Encode(ratings); err != nil {
+		nh.logger.Println("Error encoding host ratings:", err)
+		http.Error(w, "Error encoding host ratings", http.StatusInternalServerError)
+		return
+	}
+}
+
 func (nh *NotificationsHandler) extractTokenFromHeader(rr *http.Request) string {
 	token := rr.Header.Get("Authorization")
 	if token != "" {

@@ -85,6 +85,27 @@ func (nr *NotificationsRepo) CreateNotification(ctx context.Context, notificatio
 	return nil
 }
 
+func (nr *NotificationsRepo) GetAllNotifications(ctx context.Context, username string) ([]Notification, error) {
+	notificationsCollection := nr.getNotificationsCollection()
+
+	cursor, err := notificationsCollection.Find(ctx, bson.M{"hostUsername": username})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var notifications []Notification
+	for cursor.Next(ctx) {
+		var notification Notification
+		if err := cursor.Decode(&notification); err != nil {
+			return nil, err
+		}
+		notifications = append(notifications, notification)
+	}
+
+	return notifications, nil
+}
+
 func (nr *NotificationsRepo) AddRating(rating *RatingAccommodation) error {
 	ratingsCollection := nr.getRatingsCollection()
 
