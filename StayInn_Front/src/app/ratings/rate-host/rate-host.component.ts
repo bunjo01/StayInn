@@ -1,6 +1,8 @@
 import { Component, Input } from '@angular/core';
 import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
+import { Accommodation } from 'src/app/model/accommodation';
+import { RatingHost } from 'src/app/model/ratings';
 import { RatingService } from 'src/app/services/rating.service';
 
 @Component({
@@ -9,21 +11,22 @@ import { RatingService } from 'src/app/services/rating.service';
   styleUrls: ['./rate-host.component.css']
 })
 export class RateHostComponent {
-  @Input() hostUsername: string | null = null;
-  ratingA: number = 0;
+  @Input() hostId: string | null = null;
+  ratingH: number = 0;
+  currentRating: RatingHost | null = null;
 
   constructor(private ratingService: RatingService, private toastr: ToastrService, private router: Router) {}
 
   setRating(value: number) {
-    this.ratingA = value;
-    console.log('Selected rating:', this.ratingA);
+    this.ratingH = value;
+    console.log('Selected rating:', this.ratingH);
   }
 
   addRating() {
-    if (this.hostUsername !== null) {
+    if (this.hostId !== null) {
       const ratingData = {
-        hostUsername: this.hostUsername,
-        rate: this.ratingA
+        idHost: this.hostId,
+        rate: this.ratingH
       };
 
       this.ratingService.addRatingHost(ratingData).subscribe(
@@ -39,6 +42,20 @@ export class RateHostComponent {
       );
     } else {
       console.error('Host username is null');
+    }
+  }
+
+  getRating() {
+    if (this.hostId !== null) {
+      this.ratingService.getRatingHostByUser(this.hostId).subscribe(
+        (rating) => {
+          this.currentRating = rating;
+          console.log('Current host rating:', this.currentRating);
+        },
+        (error) => {
+          console.error('Error fetching host rating:', error);
+        }
+      );
     }
   }
 

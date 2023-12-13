@@ -45,7 +45,7 @@ export class RateAccommodationComponent implements OnInit {
         (response) => {
           console.log('Rating added successfully:', response);
           this.toastr.success('Rating added successfully');
-          this.router.navigate(['/history-reservation']);
+          this.router.navigate(['']);
         },
         (error) => {
           console.error('Error adding rating:', error);

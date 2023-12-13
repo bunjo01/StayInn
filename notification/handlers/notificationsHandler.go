@@ -397,13 +397,13 @@ func (rh *NotificationsHandler) AddHostRating(w http.ResponseWriter, r *http.Req
 
 	ratings, err := rh.repo.GetAllHostRatingsByUser(r.Context(), rating.HostID)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Error fetching user ratings accommodation: %s", err), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Error fetching user ratings host: %s", err), http.StatusBadRequest)
 		return
 	}
 
 	for _, r := range ratings {
 		if r.HostUsername == rating.GuestUsername {
-			http.Error(w, "User already rated this accommodation", http.StatusBadRequest)
+			http.Error(w, "User already rated this host", http.StatusBadRequest)
 			return
 		}
 	}

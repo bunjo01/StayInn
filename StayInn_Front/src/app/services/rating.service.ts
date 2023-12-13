@@ -3,7 +3,7 @@ import { HttpClient, HttpHeaders, HttpResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
-import { RatingAccommodation } from '../model/ratings';
+import { RatingAccommodation, RatingHost } from '../model/ratings';
 
 @Injectable({
   providedIn: 'root'
@@ -54,7 +54,7 @@ export class RatingService {
       'Authorization': `Bearer ${token}`
     });
 
-    return this.http.delete(this.baseUrl + `/rating/${idRating}`, { headers });
+    return this.http.delete(this.baseUrl + `/rating/accommodation/${idRating}`, { headers });
   }
 
   sendAccommodationID(data: string) {
@@ -65,13 +65,36 @@ export class RatingService {
     return this.dataSubject.asObservable();
   }
 
-  addRatingHost(ratingHost: any): Observable<any> {
+  addRatingHost(ratingHost: any): Observable<HttpResponse<any>> {
     const token = localStorage.getItem('token');
     const headers = new HttpHeaders({
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
     });
   
-    return this.http.post<any>(this.baseUrl + '/rating/host', JSON.stringify(ratingHost), { headers });
+    return this.http.post(this.baseUrl + '/rating/host', JSON.stringify(ratingHost), {
+      headers,
+      responseType: 'text',
+      observe: 'response'
+    });
+  }
+
+  getRatingHostByUser(host: any): Observable<RatingHost> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+    return this.http.get<RatingHost>(this.baseUrl + '/rating/host/getByHost', { headers });
+  }
+
+  deleteRatingHostByUser(idRating: string) {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+
+    return this.http.delete(this.baseUrl + `/rating/host/${idRating}`, { headers });
   }
 }
