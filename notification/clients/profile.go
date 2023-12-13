@@ -105,16 +105,12 @@ func (pc ProfileClient) GetUsernameById(ctx context.Context, id primitive.Object
 		}
 	}
 
-	fmt.Println("112")
-
 	// Parse the JSON response
 	var serviceResponse data.User
 	decoder := json.NewDecoder(resp.Body)
 	if err := decoder.Decode(&serviceResponse); err != nil {
 		return data.User{}, fmt.Errorf("failed to decode JSON response: %v", err)
 	}
-
-	fmt.Println("121")
 
 	return serviceResponse, nil
 }

@@ -235,7 +235,7 @@ func (nr *NotificationsRepo) GetAllHostRatings(ctx context.Context) ([]RatingHos
 func (nr *NotificationsRepo) GetAllHostRatingsByUser(ctx context.Context, userID primitive.ObjectID) ([]RatingHost, error) {
 	ratingsCollection := nr.getHostRatingsCollection()
 
-	cursor, err := ratingsCollection.Find(ctx, bson.M{"idGuest": userID})
+	cursor, err := ratingsCollection.Find(ctx, bson.M{"idHost": userID})
 	if err != nil {
 		return nil, err
 	}

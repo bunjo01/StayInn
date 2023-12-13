@@ -402,8 +402,9 @@ func (rh *NotificationsHandler) AddHostRating(w http.ResponseWriter, r *http.Req
 	}
 
 	for _, r := range ratings {
-		if r.HostUsername == rating.GuestUsername {
-			http.Error(w, "User already rated this host", http.StatusBadRequest)
+		if r.HostUsername == rating.HostUsername && r.GuestUsername == rating.GuestUsername {
+			rh.repo.UpdateHostRating(r.ID, &rating)
+			http.Error(w, "Host rating successfully added", http.StatusCreated)
 			return
 		}
 	}
