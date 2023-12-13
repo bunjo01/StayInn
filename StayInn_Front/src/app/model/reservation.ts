@@ -1,6 +1,7 @@
 
 export interface ReservationFormData {
   IDAccommodation: string;
+  IDUser: string;
   StartDate: string;
   EndDate: string;
   Price: number;
@@ -10,6 +11,7 @@ export interface ReservationFormData {
 export interface AvailablePeriodByAccommodation {
   ID: string;
   IDAccommodation: string;
+  IDUser: string;
   StartDate: string;
   EndDate: string;
   Price: number;

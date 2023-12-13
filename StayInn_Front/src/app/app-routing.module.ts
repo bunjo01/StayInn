@@ -16,6 +16,10 @@ import { ForgetPasswordComponent } from './forget-password/forget-password.compo
 import { ResetPasswordComponent } from './reset-password/reset-password.component';
 import { CreateAccommodationComponent } from './create-accommodation/create-accommodation.component';
 import { EditPeriodTemplateComponent } from './reservations/edit-period-template/edit-period-template.component';
+import { AccommodationDetailsComponent } from './accommodation-details/accommodation-details.component';
+import { EditAccommodationComponent } from './edit-accommodation/edit-accommodation.component';
+import { HistoryReservationComponent } from './history-reservation/history-reservation.component';
+import { RateAccommodationComponent } from './ratings/rate-accommodation/rate-accommodation.component';
 
 const routes: Routes = [
   { path: '', component: EntryComponent },
@@ -30,12 +34,17 @@ const routes: Routes = [
   { path: 'availablePeriods', component: AvailablePeriodsComponent, canActivate: [AuthGuardService] },
   { path: 'addReservation', component: AddReservationComponent, canActivate: [AuthGuardService]},
   { path: 'reservations', component: ReservationsComponent, canActivate: [AuthGuardService]},
+  { path: 'history-reservation', component: HistoryReservationComponent, canActivate: [AuthGuardService]},
   { path: 'notFound', component: UnauthorizedComponent},
   { path: 'profile', component: ProfileDetailsComponent},
   { path: 'create-accommodation', component: CreateAccommodationComponent, canActivate : [RoleGuardService], data: { 
     expectedRole: 'HOST' }},
+  { path: 'update-accommodation', component: EditAccommodationComponent, canActivate : [RoleGuardService], data: { 
+    expectedRole: 'HOST' }},
   { path: 'editAvailablePeriod', component: EditPeriodTemplateComponent, canActivate : [RoleGuardService], data: { 
-    expectedRole: 'HOST' }}
+    expectedRole: 'HOST' }},
+  {path: 'accommodation-details', component: AccommodationDetailsComponent},
+  {path: 'rate-accommodation', component: RateAccommodationComponent},
 ];
 
 @NgModule({

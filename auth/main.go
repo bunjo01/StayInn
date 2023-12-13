@@ -74,7 +74,7 @@ func main() {
 		},
 	)
 
-	profile := clients.NewProfileClient(profileClient, os.Getenv("PROFILE_SERVICE_URI")+"/users", profileBreaker)
+	profile := clients.NewProfileClient(profileClient, os.Getenv("PROFILE_SERVICE_URI"), profileBreaker)
 
 	//Initialize the handler and inject logger and other services clients
 	credentialsHandler := handlers.NewCredentialsHandler(logger, store, profile)
@@ -92,6 +92,11 @@ func main() {
 	router.HandleFunc("/recovery-password", credentialsHandler.UpdatePasswordWithRecoveryUUID).Methods("POST")
 	router.HandleFunc("/getAllUsers", credentialsHandler.GetAllUsers).Methods("GET")
 	router.HandleFunc("/update-username/{oldUsername}/{username}", credentialsHandler.UpdateUsername).Methods("PUT")
+	router.HandleFunc("/update-email/{oldEmail}/{email}", credentialsHandler.UpdateEmail).Methods("PUT")
+
+	deleteUserRouter := router.Methods(http.MethodDelete).Path("/delete/{username}").Subrouter()
+	deleteUserRouter.HandleFunc("", credentialsHandler.DeleteUser)
+	deleteUserRouter.Use(credentialsHandler.AuthorizeRoles("HOST", "GUEST"))
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 

@@ -13,11 +13,11 @@
   .card {
     width: 350px;
     max-height: 700px;
-    margin-bottom: 20px;
+    margin: 12px;
     background-color: goldenrod;
-    border: 1px solid #ddd;
     border-radius: 6px;
     padding: 10px;
+    border: 3px solid black;
   }
   
   .card-image {
@@ -63,7 +63,8 @@
   .btnAvailablePeriods {
     font-weight: bold;
     margin-top: 20px;
-    background-color: rgb(0, 255, 238);
+    color: white;
+    background-color: #007BFF;
     padding: 10px;
     cursor: pointer;
     border: 2px solid black;
@@ -72,7 +73,7 @@
   }
 
   .btnAvailablePeriods:hover {
-    background-color: rgb(0, 220, 206);
+    background-color: #004ea2;
   }
 
   .btnCreateAccommodation {
@@ -92,4 +93,20 @@
 
   .btnCreateAccommodation:hover {
     background-color: rgb(140, 140, 140);
+  }
+
+  .btnAccommodationDetails {
+    margin: 10px;
+    padding: 10px;
+    font-weight: bold;
+    border: 3px solid black;
+    background-color: goldenrod;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background-color 0.3s;
+  }
+
+  .btnAccommodationDetails:hover {
+    background-color: black;
+    color: goldenrod;
   }

@@ -11,7 +11,7 @@
           <strong>Guest number:</strong> {{ reservation.GuestNumber }}<br>
           <strong>Price :</strong> {{ reservation.Price }}<br>
           <br><br>
-          <button (click)="deleteReservation(reservation)">Delete reservation</button>
+          <button *ngIf="isOwnerOfReservation(reservation.IDUser)" (click)="deleteReservation(reservation)">Delete reservation</button>
         </li>
       </ul>
     </ng-container>

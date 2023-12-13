@@ -13,7 +13,7 @@ import { ReservationService } from 'src/app/services/reservation.service';
 })
 export class EditPeriodTemplateComponent {
   currentAvailablePeriod: any;
-  formData: AvailablePeriodByAccommodation = { ID: '', IDAccommodation: '', StartDate: '', EndDate: '', Price: 0, PricePerGuest: false };
+  formData: AvailablePeriodByAccommodation = { ID: '', IDUser:'',IDAccommodation: '', StartDate: '', EndDate: '', Price: 0, PricePerGuest: false };
 
   constructor(private reservationService: ReservationService,
               private router:Router,
@@ -28,10 +28,11 @@ export class EditPeriodTemplateComponent {
   submitForm() {
     this.formData.IDAccommodation = this.currentAvailablePeriod.IDAccommodation;
     this.formData.ID = this.currentAvailablePeriod.ID;
+    this.formData.IDUser = this.currentAvailablePeriod.IDUser;
     this.reservationService.updateAvailablePeriod(this.formData)
       .subscribe(response => {
         console.log('Period updated successfully:', response);
-        this.formData = { ID: '', IDAccommodation: '', StartDate: '', EndDate: '', Price: 0, PricePerGuest: false };
+        this.formData = { ID: '', IDAccommodation: '', IDUser:'', StartDate: '', EndDate: '', Price: 0, PricePerGuest: false };
         this.router.navigateByUrl('/').then(() => {
           window.location.reload();
         });

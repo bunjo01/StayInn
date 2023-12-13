@@ -11,50 +11,97 @@ import { environment } from 'src/environments/environment';
 export class ReservationService {
   private baseUrl = environment.baseUrl + '/api/reservations';
   private dataSubject = new BehaviorSubject<AvailablePeriodByAccommodation | null>(null);
-
-  jwtToken = localStorage.getItem('token');
-  headers = new HttpHeaders({
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${this.jwtToken}`
-  });
   
   constructor(private http: HttpClient,
     private datePipe: DatePipe) {}
 
   createReservation(reservationData: AvailablePeriodByAccommodation): Observable<any> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
 
     reservationData.StartDate = this.formatDate(reservationData.StartDate);
     reservationData.EndDate = this.formatDate(reservationData.EndDate);
 
-    return this.http.post(this.baseUrl + '/period', JSON.stringify(reservationData), { headers: this.headers });
+    return this.http.post(this.baseUrl + '/period', JSON.stringify(reservationData), { headers });
   }
 
   getAvailablePeriods(id: string): Observable<AvailablePeriodByAccommodation[]> {
-    return this.http.get<AvailablePeriodByAccommodation[]>(`${this.baseUrl}/${id}/periods`, { headers: this.headers });
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+
+    return this.http.get<AvailablePeriodByAccommodation[]>(`${this.baseUrl}/${id}/periods`, { headers });
   }
 
   getReservationByAvailablePeriod(id: string): Observable<ReservationByAvailablePeriod[]> {
-    return this.http.get<ReservationByAvailablePeriod[]>(`${this.baseUrl}/${id}/reservations`, { headers: this.headers });
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+
+    return this.http.get<ReservationByAvailablePeriod[]>(`${this.baseUrl}/${id}/reservations`, { headers });
+  }
+
+  getReservationByUser(username: string): Observable<ReservationByAvailablePeriod[]> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+
+    return this.http.get<ReservationByAvailablePeriod[]>(`${this.baseUrl}/user/${username}/reservations`, { headers });
+  }
+
+  getReservationByUserExp(): Observable<ReservationByAvailablePeriod[]> {
+    const token = localStorage.getItem('token')
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+
+    return this.http.get<ReservationByAvailablePeriod[]>(`${this.baseUrl}/expired`, { headers });
   }
 
   createReservationByAccommodation(reservationData: ReservationByAvailablePeriod): Observable<any> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
 
     reservationData.StartDate = this.formatDate(reservationData.StartDate);
     reservationData.EndDate = this.formatDate(reservationData.EndDate);
 
-    return this.http.post(this.baseUrl + '/reservation', JSON.stringify(reservationData), { headers: this.headers });
+    return this.http.post(this.baseUrl + '/reservation', JSON.stringify(reservationData), { headers });
   }
 
   updateAvailablePeriod(periodData: AvailablePeriodByAccommodation): Observable<any> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
 
     periodData.StartDate = this.formatDate(periodData.StartDate);
     periodData.EndDate = this.formatDate(periodData.EndDate);
 
-    return this.http.patch(this.baseUrl + '/period', JSON.stringify(periodData), { headers: this.headers });
+    return this.http.patch(this.baseUrl + '/period', JSON.stringify(periodData), { headers });
   }
 
-  deleteReservation(idPeriod: string , idReservations : string){
-    return this.http.delete(this.baseUrl + `/${idPeriod}/${idReservations}`, {headers : this.headers});
+  deleteReservation(idPeriod: string , idReservations : string) {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+
+    return this.http.delete(this.baseUrl + `/${idPeriod}/${idReservations}`, { headers });
   }
 
   sendAvailablePeriod(data: AvailablePeriodByAccommodation) {
@@ -81,5 +128,4 @@ export class ReservationService {
 
     return formattedDate;
   }
-  
 }

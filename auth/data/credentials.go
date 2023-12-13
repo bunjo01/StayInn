@@ -26,6 +26,13 @@ type ActivatioModel struct {
 	Confirmed      bool               `bson:"confirmed" json:"confirmed"`
 }
 
+type RecoveryModel struct {
+	ID           primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	RecoveryUUID string             `bson:"recoveryUUID" json:"recoveryUUID"`
+	Time         time.Time          `bson:"time" json:"time"`
+	Confirmed    bool               `bson:"confirmed" json:"confirmed"`
+}
+
 type ChangePasswordRequest struct {
 	Username        string `json:"username"`
 	CurrentPassword string `json:"currentPassword"`
@@ -33,7 +40,7 @@ type ChangePasswordRequest struct {
 }
 
 type ChangeUsernameRequest struct {
-	Username string `json:"username"`
+	Username    string `json:"username"`
 	NewUsername string `json:"newUsername"`
 }
 

@@ -1,5 +1,8 @@
+import { ReservationByAvailablePeriod } from "./reservation";
+
 export interface Accommodation {
     id?: string;
+    hostID?: string;
     name?: string;
     location?: string;
     amenities: AmenityEnum[];
@@ -28,4 +31,11 @@ export interface Accommodation {
     Gym = 16,
     SmokingAllowed = 17,
   }
+
+  export interface DisplayedAccommodation {
+    reservationInfo: ReservationByAvailablePeriod;
+    accommodationInfo: Accommodation;
+  }
+  
+  
   

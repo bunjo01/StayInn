@@ -1,4 +1,4 @@
-<button class="btnStyle" *ngIf="isHost()" (click)="navigateToAddReservationPeriod()">Add available period</button>
+<button class="btnStyle" *ngIf="isOwnerOfAccommodation()" (click)="navigateToAddReservationPeriod()">Add available period</button>
 
 <div class="card-container">
   <div *ngIf="availablePeriods" class="card">
@@ -11,7 +11,7 @@
         <strong>Price Per Guest:</strong> {{ period.PricePerGuest ? 'Yes' : 'No' }}<br>
         <button class="btnStyle" *ngIf="isGuest()" (click)="navigateToAddReservation(period)">Add Reservation</button>
         <button class="btnStyle" (click)="navigateToReservations(period)">View reservations for period</button>
-        <button class="btnStyle" *ngIf="isHost()" (click)="navigateToEditAvailablePeriod(period)">Edit period</button>
+        <button class="btnStyle" *ngIf="isOwnerOfAvailablePeriod(period.IDUser)" (click)="navigateToEditAvailablePeriod(period)">Edit period</button>
         <br><br>
       </li>
     </ul>

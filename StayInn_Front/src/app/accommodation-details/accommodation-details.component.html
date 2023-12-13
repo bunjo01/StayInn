@@ -1,0 +1,39 @@
+<div *ngIf="accommodation">
+  <h1>{{ accommodation.name }}</h1>
+  <img src="../../assets/images/stay-inn.jpg" alt="{{ accommodation.name }} image" class="detail-image">
+  <p><strong>Location:</strong> {{ accommodation.location }}</p>
+  <table>
+    <tr>
+      <th>Min guests:</th>
+      <td> {{ accommodation.minGuests}} </td>
+    </tr>
+    <tr>
+      <th>Max guests:</th>
+      <td> {{ accommodation.maxGuests}} </td>
+    </tr>
+  </table>
+  <p><strong>Amenities:</strong></p>
+  <ul>
+    <li *ngFor="let amenity of accommodation.amenities">
+      <img [src]="amenityIcons[amenity]" alt="{{ amenity }}" class="amenity-icon">
+      {{ getAmenityName(amenity) }}
+    </li>
+  </ul>
+  <div *ngIf="images && images.length > 0; else noImages">
+    <div class="image-container" *ngFor="let image of images">
+      <img [src]="getSafeImage(image.data)" alt="Image {{ image.id }}">
+    </div>
+  </div>
+  <ng-template #noImages>
+    <h3>No images available</h3>
+  </ng-template> 
+  <button class="btnAccommodationUpdate" (click)="navigateToUpdateAccommodation(accommodation.id)">Update accommodation</button>
+  <button class="btnAccommodationDelete" (click)="navigateToDeleteAccommodation(accommodation.id)">Delete accommodation</button>
+ 
+  <div class="rating-wrap">
+    <h2>Ratings:</h2>
+    <app-rate-accommodation [accommodationID]="accommodation?.id" [hostId]="accommodation?.hostID"></app-rate-accommodation>
+    <app-rate-host [hostId]="accommodation?.hostID"></app-rate-host>
+  </div>
+
+</div>

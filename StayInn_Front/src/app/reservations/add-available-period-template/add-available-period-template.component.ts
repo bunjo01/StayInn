@@ -14,7 +14,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 })
 export class AddAvailablePeriodTemplateComponent {
   accommodation: any;
-  formData: AvailablePeriodByAccommodation = { ID: '', IDAccommodation: '', StartDate: '', EndDate: '', Price: 0, PricePerGuest: false };
+  formData: AvailablePeriodByAccommodation = { ID: '', IDAccommodation: '', IDUser: '', StartDate: '', EndDate: '', Price: 0, PricePerGuest: false };
 
   constructor(private reservationService: ReservationService,
               private accommodationService: AccommodationService,
@@ -28,18 +28,18 @@ export class AddAvailablePeriodTemplateComponent {
 
   submitForm() {
     let id = '5d353bef-f1e4-4d4e-ad21-f6e084cd96e2'
+    let idUser = '656e4f2f1cef0b331e349d33'
 
     this.formData.IDAccommodation = this.accommodation.id;
     this.formData.ID = id;
+    this.formData.IDUser = idUser;
 
     this.reservationService.createReservation(this.formData)
       .subscribe(response => {
         console.log('Period created successfully:', response);
         this.toastr.success('Available period created successfully');
-        this.formData = { ID: '', IDAccommodation: '', StartDate: '', EndDate: '', Price: 0, PricePerGuest: false };
-        this.router.navigateByUrl('/availablePeriods').then(() => {
-          window.location.reload();
-        });
+        this.formData = { ID: '', IDAccommodation: '', IDUser:'',StartDate: '', EndDate: '', Price: 0, PricePerGuest: false };
+        this.router.navigateByUrl('');
       }, error => {
         console.error('Error creating available period:', error);
         if (error instanceof HttpErrorResponse) {

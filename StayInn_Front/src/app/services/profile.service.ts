@@ -40,5 +40,14 @@ export class ProfileService {
   
     return this.http.put<User>(`${this.apiUrl}/users/${username}`, updatedUser, { headers });
   }
-  
+
+  deleteUser(username: string) {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+
+    return this.http.delete(`${this.apiUrl}/users/${username}`, { headers });
+  }
 }

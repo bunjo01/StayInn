@@ -1,13 +1,18 @@
 package handlers
 
 import (
+	"accommodation/cache"
 	"accommodation/clients"
 	"accommodation/data"
+	"accommodation/storage"
 	"context"
 	"encoding/json"
+	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -21,16 +26,20 @@ type AccommodationHandler struct {
 	logger      *log.Logger
 	repo        *data.AccommodationRepository
 	reservation clients.ReservationClient
+	profile     clients.ProfileClient
+	imageCache  *cache.ImageCache
+	images      *storage.FileStorage
 }
 
 var secretKey = []byte("stayinn_secret")
 
-func NewAccommodationsHandler(l *log.Logger, r *data.AccommodationRepository, rc clients.ReservationClient) *AccommodationHandler {
-	return &AccommodationHandler{l, r, rc}
+func NewAccommodationsHandler(l *log.Logger, r *data.AccommodationRepository,
+	rc clients.ReservationClient, p clients.ProfileClient,
+	ic *cache.ImageCache, i *storage.FileStorage) *AccommodationHandler {
+	return &AccommodationHandler{l, r, rc, p, ic, i}
 }
 
 func (ah *AccommodationHandler) GetAllAccommodations(rw http.ResponseWriter, r *http.Request) {
-	ah.logger.Printf("Usli smo u GetAllAccommodations funkciju")
 	ctx := r.Context()
 
 	accommodations, err := ah.repo.GetAllAccommodations(ctx)
@@ -80,7 +89,29 @@ func (ah *AccommodationHandler) CreateAccommodation(rw http.ResponseWriter, r *h
 		return
 	}
 
-	// Dodajemo smeštaj
+	tokenStr := ah.extractTokenFromHeader(r)
+	username, err := ah.getUsername(tokenStr)
+	if err != nil {
+		ah.logger.Println("Failed to read username from token:", err)
+		http.Error(rw, "Failed to read username from token", http.StatusBadRequest)
+		return
+	}
+
+	hostID, err := ah.profile.GetUserId(r.Context(), username, tokenStr)
+	if err != nil {
+		ah.logger.Println("Failed to get HostID from username:", err)
+		http.Error(rw, "Failed to get HostID from username", http.StatusBadRequest)
+		return
+	}
+
+	accommodation.HostID, err = primitive.ObjectIDFromHex(hostID)
+	if err != nil {
+		ah.logger.Println("Failed to set HostID for accommodation:", err)
+		http.Error(rw, "Failed to set HostID for accommodation", http.StatusBadRequest)
+		return
+	}
+
+	// Adding accommodation
 	accommodation.ID = primitive.NewObjectID()
 	if err := ah.repo.CreateAccommodation(r.Context(), &accommodation); err != nil {
 		ah.logger.Println("Failed to create accommodation:", err)
@@ -93,6 +124,58 @@ func (ah *AccommodationHandler) CreateAccommodation(rw http.ResponseWriter, r *h
 	if err := json.NewEncoder(rw).Encode(accommodation); err != nil {
 		ah.logger.Println("Failed to encode accommodation:", err)
 		http.Error(rw, "Failed to encode accommodation", http.StatusInternalServerError)
+	}
+}
+
+func (ah *AccommodationHandler) CreateAccommodationImages(rw http.ResponseWriter, r *http.Request) {
+	var images cache.Images
+	var accID string
+	if err := json.NewDecoder(r.Body).Decode(&images); err != nil {
+		http.Error(rw, "Failed to decode request body", http.StatusBadRequest)
+		return
+	}
+
+	for _, image := range images {
+		ah.images.WriteFileBytes(image.Data, image.AccID+"-image-"+image.ID)
+		accID = image.AccID
+	}
+	ah.imageCache.PostAll(accID, images)
+
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(http.StatusCreated)
+}
+
+func (ah *AccommodationHandler) GetAccommodationImages(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	accID := vars["id"]
+
+	var images []*cache.Image
+
+	for i := 0; i < 10; i++ {
+		filename := fmt.Sprintf("%s-image-%d", accID, i)
+		data, err := ah.images.ReadFileBytes(filename, false)
+		if err != nil {
+			break
+		}
+		image := &cache.Image{
+			ID:   strconv.Itoa(i),
+			Data: data,
+		}
+		images = append(images, image)
+	}
+
+	if len(images) > 0 {
+		err := ah.imageCache.PostAll(accID, images)
+		if err != nil {
+			ah.logger.Println("Unable to write to cache:", err)
+		}
+	}
+
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(rw).Encode(images); err != nil {
+		ah.logger.Println("Failed to encode images: ", err)
+		http.Error(rw, "Failed to encode images", http.StatusInternalServerError)
 	}
 }
 
@@ -126,10 +209,23 @@ func (ah *AccommodationHandler) UpdateAccommodation(rw http.ResponseWriter, r *h
 }
 
 func (ah *AccommodationHandler) DeleteAccommodation(rw http.ResponseWriter, r *http.Request) {
+	tokenStr := ah.extractTokenFromHeader(r)
 	vars := mux.Vars(r)
 	id, err := primitive.ObjectIDFromHex(vars["id"])
 	if err != nil {
 		http.Error(rw, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+
+	var accIDs []primitive.ObjectID
+	accIDs = append(accIDs, id)
+
+	ctx, cancel := context.WithTimeout(r.Context(), 4000*time.Millisecond)
+	defer cancel()
+	_, err = ah.reservation.CheckAndDeletePeriods(ctx, accIDs, tokenStr)
+	if err != nil {
+		ah.logger.Println("Error checking and deleting periods:", err)
+		writeResp(err, http.StatusServiceUnavailable, rw)
 		return
 	}
 
@@ -140,6 +236,97 @@ func (ah *AccommodationHandler) DeleteAccommodation(rw http.ResponseWriter, r *h
 	}
 
 	rw.WriteHeader(http.StatusNoContent)
+}
+
+func (ah *AccommodationHandler) GetAccommodationsForUser(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	username := vars["username"]
+
+	tokenStr := ah.extractTokenFromHeader(r)
+	userIDStr, err := ah.profile.GetUserId(r.Context(), username, tokenStr)
+	if err != nil {
+		ah.logger.Println("Failed to get UserID from username:", err)
+		http.Error(rw, "Failed to get UserID from username", http.StatusBadRequest)
+		return
+	}
+
+	userID, err := primitive.ObjectIDFromHex(userIDStr)
+	if err != nil {
+		http.Error(rw, "Invalid userID", http.StatusBadRequest)
+		return
+	}
+
+	accommodations, err := ah.repo.GetAccommodationsForUser(r.Context(), userID)
+	if err != nil {
+		ah.logger.Println("Failed to get accommodations for userID:", err)
+		http.Error(rw, "Failed to get accommodations for userID: "+userID.Hex(), http.StatusInternalServerError)
+		return
+	}
+
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(rw).Encode(accommodations); err != nil {
+		http.Error(rw, "Failed to encode accommodations", http.StatusInternalServerError)
+	}
+}
+
+func (ah *AccommodationHandler) DeleteUserAccommodations(rw http.ResponseWriter, r *http.Request) {
+	tokenStr := ah.extractTokenFromHeader(r)
+	vars := mux.Vars(r)
+	userID, err := primitive.ObjectIDFromHex(vars["id"])
+	if err != nil {
+		http.Error(rw, "Invalid userID", http.StatusBadRequest)
+		return
+	}
+
+	accommodations, err := ah.repo.GetAccommodationsForUser(r.Context(), userID)
+	if err != nil {
+		ah.logger.Println("Failed to get accommodations for userID:", err)
+		http.Error(rw, "Failed to get accommodations for userID: "+userID.Hex(), http.StatusInternalServerError)
+		return
+	}
+
+	var accIDs []primitive.ObjectID
+	for _, accommodation := range accommodations {
+		accIDs = append(accIDs, accommodation.ID)
+	}
+
+	// 4000 ms because it's second in chain of service calls
+	ctx, cancel := context.WithTimeout(r.Context(), 4000*time.Millisecond)
+	defer cancel()
+	_, err = ah.reservation.CheckAndDeletePeriods(ctx, accIDs, tokenStr)
+	if err != nil {
+		ah.logger.Println(err)
+		writeResp(err, http.StatusServiceUnavailable, rw)
+		return
+	}
+
+	if err := ah.repo.DeleteAccommodationsForUser(r.Context(), userID); err != nil {
+		ah.logger.Println("Failed to delete accommodations for userID:", err)
+		http.Error(rw, "Failed to delete accommodations for userID: "+userID.Hex(), http.StatusInternalServerError)
+		return
+	}
+
+	rw.WriteHeader(http.StatusNoContent)
+}
+
+func (ah *AccommodationHandler) getUsername(tokenString string) (string, error) {
+	claims := jwt.MapClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		return secretKey, nil
+	})
+
+	if err != nil || !token.Valid {
+		return "", err
+	}
+
+	username, ok1 := claims["username"].(string)
+	_, ok2 := claims["role"].(string)
+	if !ok1 || !ok2 {
+		return "", err
+	}
+
+	return username, nil
 }
 
 func (ah *AccommodationHandler) AuthorizeRoles(allowedRoles ...string) mux.MiddlewareFunc {
@@ -155,11 +342,13 @@ func (ah *AccommodationHandler) AuthorizeRoles(allowedRoles ...string) mux.Middl
 			token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 				return secretKey, nil
 			})
+			ah.logger.Println("claims ok, token:", token.Valid)
 
 			if err != nil || !token.Valid {
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
+			ah.logger.Println("token valid")
 
 			_, ok1 := claims["username"].(string)
 			role, ok2 := claims["role"].(string)
@@ -167,6 +356,7 @@ func (ah *AccommodationHandler) AuthorizeRoles(allowedRoles ...string) mux.Middl
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
+			ah.logger.Println("username and role ok")
 
 			for _, allowedRole := range allowedRoles {
 				if allowedRole == role {
@@ -189,38 +379,38 @@ func (ah *AccommodationHandler) extractTokenFromHeader(rr *http.Request) string 
 }
 
 func (ah *AccommodationHandler) SearchAccommodations(rw http.ResponseWriter, r *http.Request) {
+	tokenStr := ah.extractTokenFromHeader(r)
 	ah.logger.Printf("Entering SearchAccommodations function")
-
-	// Parse start and end dates
-	startDateStr := r.URL.Query().Get("startDate")
-	endDateStr := r.URL.Query().Get("endDate")
-
-	startDate, err := time.Parse("2006-01-02T15:04:05Z", startDateStr)
-	if err != nil {
-		ah.logger.Println(err)
-		http.Error(rw, "Invalid startDate format", http.StatusBadRequest)
-		return
-	}
-
-	endDate, err := time.Parse("2006-01-02T15:04:05Z", endDateStr)
-	if err != nil {
-		ah.logger.Println(err)
-		http.Error(rw, "Invalid endDate format", http.StatusBadRequest)
-		return
-	}
-
-	// Get the list of IDs from the reservation service
 	ctx, cancel := context.WithTimeout(r.Context(), 5000*time.Millisecond)
 	defer cancel()
 
-	ids, err := ah.reservation.PassDatesToReservationService(ctx, startDate, endDate)
-	if err != nil {
-		ah.logger.Println(err)
-		writeResp(err, http.StatusServiceUnavailable, rw)
-		return
+	var accommodationIDs []primitive.ObjectID
+
+	startDateStr := r.URL.Query().Get("startDate")
+	endDateStr := r.URL.Query().Get("endDate")
+
+	var startDate time.Time
+	if startDateStr != "" {
+		startDateTemp, err := time.Parse("2006-01-02T15:04:05Z", startDateStr)
+		if err != nil {
+			ah.logger.Println(err)
+			http.Error(rw, "Invalid startDate format", http.StatusBadRequest)
+			return
+		}
+		startDate = startDateTemp
 	}
 
-	// Parse other query parameters
+	var endDate time.Time
+	if endDateStr != "" {
+		endDateTemp, err := time.Parse("2006-01-02T15:04:05Z", endDateStr)
+		if err != nil {
+			ah.logger.Println(err)
+			http.Error(rw, "Invalid endDate format", http.StatusBadRequest)
+			return
+		}
+		endDate = endDateTemp
+	}
+
 	location := r.URL.Query().Get("location")
 	numberOfGuests := r.URL.Query().Get("numberOfGuests")
 
@@ -230,10 +420,7 @@ func (ah *AccommodationHandler) SearchAccommodations(rw http.ResponseWriter, r *
 		return
 	}
 
-	// Create a filter based on the parsed parameters
-	filter := bson.M{
-		"_id": bson.M{"$in": ids}, // Filter by reservation service IDs
-	}
+	filter := make(bson.M)
 
 	if location != "" {
 		filter["location"] = location
@@ -246,17 +433,112 @@ func (ah *AccommodationHandler) SearchAccommodations(rw http.ResponseWriter, r *
 		}
 	}
 
-	// Retrieve accommodations based on the filter
 	accommodations, err := ah.repo.GetFilteredAccommodations(ctx, filter)
 	if err != nil {
 		http.Error(rw, "Failed to retrieve accommodations", http.StatusInternalServerError)
 		return
 	}
 
-	// Return the filtered accommodations as JSON response
-	rw.Header().Set("Content-Type", "application/json")
-	rw.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(rw).Encode(accommodations); err != nil {
-		http.Error(rw, "Failed to encode accommodations", http.StatusInternalServerError)
+	if startDateStr == "" && endDateStr != "" {
+		http.Error(rw, "You forgot to select start date", http.StatusBadRequest)
+		return
 	}
+
+	if endDateStr == "" && startDateStr != "" {
+		http.Error(rw, "You forgot to select end date", http.StatusBadRequest)
+		return
+	}
+
+	if endDateStr != "" && startDateStr != "" {
+		if startDate.Before(time.Now()) {
+			http.Error(rw, "Start date must be in future", http.StatusBadRequest)
+			return
+		}
+
+		if endDate.Before(time.Now()) {
+			http.Error(rw, "End date must be in future", http.StatusBadRequest)
+			return
+		}
+
+		if startDate.After(endDate) {
+			http.Error(rw, "Start date must be before end date", http.StatusBadRequest)
+			return
+		}
+
+		for _, accommodation := range accommodations {
+			accommodationIDs = append(accommodationIDs, accommodation.ID)
+		}
+
+		ids, err := ah.reservation.PassDatesToReservationService(ctx, accommodationIDs, startDate, endDate, tokenStr)
+		if err != nil {
+			ah.logger.Println(err)
+			writeResp(err, http.StatusServiceUnavailable, rw)
+			return
+		}
+
+		accommodationForReturn, err := ah.repo.FindAccommodationsByIDs(ctx, ids)
+		if err != nil {
+			ah.logger.Println(err)
+			writeResp(err, http.StatusServiceUnavailable, rw)
+			return
+		}
+
+		rw.Header().Set("Content-Type", "application/json")
+		rw.WriteHeader(http.StatusOK)
+		if err := json.NewEncoder(rw).Encode(accommodationForReturn); err != nil {
+			http.Error(rw, "Failed to encode accommodations", http.StatusInternalServerError)
+		}
+	} else {
+		rw.Header().Set("Content-Type", "application/json")
+		rw.WriteHeader(http.StatusOK)
+		if err := json.NewEncoder(rw).Encode(accommodations); err != nil {
+			http.Error(rw, "Failed to encode accommodations", http.StatusInternalServerError)
+		}
+	}
+}
+
+func (ah *AccommodationHandler) WalkRoot(rw http.ResponseWriter, r *http.Request) {
+	pathsArray := ah.images.WalkDirectories()
+	paths := strings.Join(pathsArray, "\n")
+	io.WriteString(rw, paths)
+}
+
+func (ah *AccommodationHandler) MiddlewareCacheHit(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, h *http.Request) {
+		vars := mux.Vars(h)
+		accID := vars["accID"]
+		imageID := vars["imageID"]
+
+		image, err := ah.imageCache.Get(accID, imageID)
+		if err != nil {
+			next.ServeHTTP(rw, h)
+		} else {
+			err = image.ToJSON(rw)
+			if err != nil {
+				http.Error(rw, "Unable to convert image to JSON", http.StatusInternalServerError)
+				ah.logger.Fatal("Unable to convert image to JSON: ", err)
+				return
+			}
+		}
+	})
+}
+
+func (ah *AccommodationHandler) MiddlewareCacheAllHit(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, h *http.Request) {
+		vars := mux.Vars(h)
+		accID := vars["id"]
+
+		images, err := ah.imageCache.GetAll(accID)
+		if err != nil {
+			ah.logger.Println("Cache not found:", err)
+			next.ServeHTTP(rw, h)
+		} else {
+			err = images.ToJSON(rw)
+			if err != nil {
+				http.Error(rw, "Unable to convert image to JSON", http.StatusInternalServerError)
+				ah.logger.Fatal("Unable to convert image to JSON: ", err)
+				return
+			}
+		}
+	})
 }

@@ -3,18 +3,20 @@
     <div class="header">
       <h1 routerLink="">StayInn</h1>
       <div class="header-buttons">
-        <ng-container *ngIf="!isUserLoggedIn(); else logoutButton">
+        <ng-container *ngIf="!isUserLoggedIn()">
           <button class="btnLogin" routerLink="/login">Login</button>
           <button class="btnRegister" routerLink="/register">Register</button>
         </ng-container>
-        <ng-template #logoutButton>
+        <!-- <ng-template #logoutButton>
           <select #dropdownMenu class="dropdown-menu" (change)="handleDropdownChange($event)">
             <option value="" disabled selected style="display: none;">Menu</option>
             <option value="profile" class="profile-option">Profile</option>
+            <option value="history-reservation" class="history-reservation">History Reservation</option>
             <option value="changePassword" class="change-password-option">Change Password</option>
             <option value="logout" class="logout-option">Logout</option>
           </select>
-        </ng-template>
+        </ng-template> -->
+        <app-profile-menu *ngIf="isUserLoggedIn()"></app-profile-menu>
         <!-- <button routerLink="/change-password">Change Password</button> -->
       </div>
     </div>

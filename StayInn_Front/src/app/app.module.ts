@@ -30,6 +30,12 @@ import { ResetPasswordComponent } from './reset-password/reset-password.componen
 import { ForgetPasswordComponent } from './forget-password/forget-password.component';
 import { CreateAccommodationComponent } from './create-accommodation/create-accommodation.component';
 import { EditPeriodTemplateComponent } from './reservations/edit-period-template/edit-period-template.component';
+import { AccommodationDetailsComponent } from './accommodation-details/accommodation-details.component';
+import { EditAccommodationComponent } from './edit-accommodation/edit-accommodation.component';
+import { HistoryReservationComponent } from './history-reservation/history-reservation.component';
+import { RateAccommodationComponent } from './ratings/rate-accommodation/rate-accommodation.component';
+import { RateHostComponent } from './ratings/rate-host/rate-host.component';
+import { ProfileMenuComponent } from './profile-menu/profile-menu.component';
 
 @NgModule({
   declarations: [
@@ -51,6 +57,12 @@ import { EditPeriodTemplateComponent } from './reservations/edit-period-template
     ForgetPasswordComponent,
     CreateAccommodationComponent,
     EditPeriodTemplateComponent,
+    AccommodationDetailsComponent,
+    EditAccommodationComponent,
+    HistoryReservationComponent,
+    RateAccommodationComponent,
+    RateHostComponent,
+    ProfileMenuComponent,
   ],
   imports: [
     BrowserModule,

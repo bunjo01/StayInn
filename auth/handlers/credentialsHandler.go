@@ -10,8 +10,11 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
 )
+
+var secretKey = []byte("stayinn_secret")
 
 type KeyProduct struct{}
 
@@ -95,8 +98,24 @@ func (ch *CredentialsHandler) UpdateUsername(w http.ResponseWriter, r *http.Requ
 	w.WriteHeader(http.StatusOK)
 }
 
+func (ch *CredentialsHandler) UpdateEmail(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	oldEmail := vars["oldEmail"]
+	email := vars["email"]
+
+	ch.logger.Printf("Received request to update email from %s to %s\n", oldEmail, email)
+
+	if err := ch.repo.ChangeEmail(r.Context(), oldEmail, email); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to change email: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 // Handler method for registration
 func (ch *CredentialsHandler) Register(w http.ResponseWriter, r *http.Request) {
+	tokenStr := ch.extractTokenFromHeader(r)
 	var newUser data.NewUser
 	if err := json.NewDecoder(r.Body).Decode(&newUser); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -105,7 +124,7 @@ func (ch *CredentialsHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	ctx, cancel := context.WithTimeout(r.Context(), 5000*time.Millisecond)
 	defer cancel()
-	_, err := ch.profile.PassInfoToProfileService(ctx, newUser)
+	_, err := ch.profile.PassInfoToProfileService(ctx, newUser, tokenStr)
 	if err != nil {
 		ch.logger.Println(err)
 		writeResp(err, http.StatusServiceUnavailable, w)
@@ -202,9 +221,68 @@ func (ch *CredentialsHandler) UpdatePasswordWithRecoveryUUID(w http.ResponseWrit
 
 	err := ch.repo.UpdatePasswordWithRecoveryUUID(reqBody.RecoveryUUID, reqBody.NewPassword)
 	if err != nil {
-		http.Error(w, "Failed to update password with recoveryUUID", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error: %s", err), http.StatusBadRequest)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (ch *CredentialsHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	username := vars["username"]
+
+	if err := ch.repo.DeleteUser(r.Context(), username); err != nil {
+		ch.logger.Println("Failed to delete user: ", err)
+		http.Error(w, "Failed to delete user", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (ch *CredentialsHandler) AuthorizeRoles(allowedRoles ...string) mux.MiddlewareFunc {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, rr *http.Request) {
+			tokenString := ch.extractTokenFromHeader(rr)
+			if tokenString == "" {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+
+			claims := jwt.MapClaims{}
+			token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+				return secretKey, nil
+			})
+
+			if err != nil || !token.Valid {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+
+			_, ok1 := claims["username"].(string)
+			role, ok2 := claims["role"].(string)
+			if !ok1 || !ok2 {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+
+			for _, allowedRole := range allowedRoles {
+				if allowedRole == role {
+					next.ServeHTTP(w, rr)
+					return
+				}
+			}
+
+			http.Error(w, "Forbidden", http.StatusForbidden)
+		})
+	}
+}
+
+func (ch *CredentialsHandler) extractTokenFromHeader(rr *http.Request) string {
+	token := rr.Header.Get("Authorization")
+	if token != "" {
+		return token[len("Bearer "):]
+	}
+	return ""
 }

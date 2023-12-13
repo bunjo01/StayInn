@@ -194,7 +194,7 @@ func main() {
 	// TODO: Change second param accordingly after implementing methods on notification service
 	notification := clients.NewNotificationClient(notificationClient, os.Getenv("NOTIFICATION_SERVICE_URI"), notificationBreaker)
 	// TODO: Change second param in methods when sending request
-	profile := clients.NewProfileClient(profileClient, os.Getenv("PROFILE_SERVICE_URI")+"/users", profileBreaker)
+	profile := clients.NewProfileClient(profileClient, os.Getenv("PROFILE_SERVICE_URI"), profileBreaker)
 	// TODO: Change second param or add it in method
 	accommodation := clients.NewAccommodationClient(accommodationClient, os.Getenv("ACCOMMODATION_SERVICE_URI"), accommodationBreaker)
 
@@ -221,6 +221,9 @@ func main() {
 	findAvailablePeriodByIdAndByAccommodationId.HandleFunc("", reservationHandler.FindAvailablePeriodByIdAndByAccommodationId)
 	findAvailablePeriodByIdAndByAccommodationId.Use(reservationHandler.AuthorizeRoles("HOST", "GUEST"))
 
+	FindAllReservationsByUserIDExpired := router.Methods(http.MethodGet).Path("/expired").Subrouter()
+	FindAllReservationsByUserIDExpired.HandleFunc("", reservationHandler.FindAllReservationsByUserIDExpiredHandler)
+
 	postAvailablePeriodsByAccommodationRouter := router.Methods(http.MethodPost).Path("/period").Subrouter()
 	postAvailablePeriodsByAccommodationRouter.HandleFunc("", reservationHandler.CreateAvailablePeriod)
 	postAvailablePeriodsByAccommodationRouter.Use(reservationHandler.MiddlewareAvailablePeriodDeserialization)
@@ -239,6 +242,17 @@ func main() {
 	deleteReservation := router.Methods(http.MethodDelete).Path("/{periodID}/{reservationID}").Subrouter()
 	deleteReservation.HandleFunc("", reservationHandler.DeleteReservation)
 	deleteReservation.Use(reservationHandler.AuthorizeRoles("GUEST"))
+
+	deletePeriodsByAccommodationRouter := router.Methods(http.MethodPost).Path("/check-acc").Subrouter()
+	deletePeriodsByAccommodationRouter.HandleFunc("", reservationHandler.DeletePeriodsForAccommodations)
+	deletePeriodsByAccommodationRouter.Use(reservationHandler.AuthorizeRoles("HOST"))
+
+	getReservationsByUserIdRouter := router.Methods(http.MethodGet).Path("/user/{username}/reservations").Subrouter()
+	getReservationsByUserIdRouter.HandleFunc("", reservationHandler.GetAllReservationsByUser)
+
+	checkReservationsByUserIdRouter := router.Methods(http.MethodDelete).Path("/user/{id}/reservations").Subrouter()
+	checkReservationsByUserIdRouter.HandleFunc("", reservationHandler.CheckAndDeleteReservationsForUser)
+	checkReservationsByUserIdRouter.Use(reservationHandler.AuthorizeRoles("GUEST"))
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 

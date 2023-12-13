@@ -29,7 +29,7 @@ func NewProfileClient(client *http.Client, address string, cb *gobreaker.Circuit
 
 // Sends user data to profile service, for persistence in profile_db
 // Returns error if it fails
-func (c ProfileClient) PassInfoToProfileService(ctx context.Context, info data.NewUser) (interface{}, error) {
+func (c ProfileClient) PassInfoToProfileService(ctx context.Context, info data.NewUser, token string) (interface{}, error) {
 	newUser := data.NewUser{
 		Username:    info.Username,
 		FirstName:   info.FirstName,
@@ -53,10 +53,11 @@ func (c ProfileClient) PassInfoToProfileService(ctx context.Context, info data.N
 	}
 
 	cbResp, err := c.cb.Execute(func() (interface{}, error) {
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.address, bytes.NewBuffer(requestBody))
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.address+"/users", bytes.NewBuffer(requestBody))
 		if err != nil {
 			return nil, err
 		}
+		req.Header.Set("Authorization", "Bearer "+token)
 		return c.client.Do(req)
 	})
 	if err != nil {

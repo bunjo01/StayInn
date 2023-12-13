@@ -4,6 +4,10 @@ import { ProfileService } from '../services/profile.service';
 import { AuthService } from '../services/auth.service';
 import { ToastrService } from 'ngx-toastr';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ReservationService } from '../services/reservation.service';
+import { ReservationByAvailablePeriod } from '../model/reservation';
+import { AccommodationService } from '../services/accommodation.service';
+import { Accommodation } from '../model/accommodation';
 
 @Component({
   selector: 'app-profile-details',
@@ -13,10 +17,20 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 export class ProfileDetailsComponent implements OnInit {
   form!: FormGroup;
   userProfile?: User;
+  role: string = "";
+  reservations?: ReservationByAvailablePeriod[] = [];
+  accommodations?: Accommodation[] = [];
   username: string = this.authService.getUsernameFromToken() || '';
   updateSuccess: boolean = false;
 
-  constructor(private profileService: ProfileService, private authService: AuthService, private toastr: ToastrService, private fb: FormBuilder) {}
+  constructor(
+    private profileService: ProfileService,
+    private authService: AuthService,
+    private reservationService: ReservationService,
+    private accommodationService: AccommodationService,
+    private toastr: ToastrService,
+    private fb: FormBuilder
+    ) { }
 
   ngOnInit(): void {
     this.loadUserProfile();
@@ -28,12 +42,30 @@ export class ProfileDetailsComponent implements OnInit {
       email: [null, Validators.email],
       address: [null, Validators.required],
     });
+
+    this.role = this.authService.getRoleFromToken() || "";
   }
 
   loadUserProfile() {
     this.profileService.getUser(this.username).subscribe(
       (data) => {
         this.userProfile = data;
+
+        if (this.role === "GUEST" && this.userProfile.id) {
+          this.reservationService.getReservationByUser(this.username).subscribe( data => {
+            this.reservations = data;
+          }, error => {
+            console.log("Error getting reservations for guest: ", error);
+          });
+        } 
+        else if (this.role === "HOST" && this.userProfile.id) {
+          this.accommodationService.getAccommodationsByUser(this.username).subscribe( data => {
+            this.accommodations = data;
+          }, error => { 
+            console.log("Error getting accommodations for host", error) 
+          });
+        }
+
       },
       (error) => {
         console.error('Error fetching user profile: ', error);
@@ -100,5 +132,37 @@ export class ProfileDetailsComponent implements OnInit {
     } else {
       console.error('User profile is undefined. Cannot update.');
     }
+  }
+
+  deleteProfile() {
+    const username: string = this.authService.getUsernameFromToken() || "";
+
+    const hasActiveReservations = this.reservations?.some((reservation: ReservationByAvailablePeriod) => {
+      return new Date(reservation.EndDate).getTime() > new Date().getTime();
+    });
+
+    if (hasActiveReservations) {
+      this.toastr.warning('Cannot delete user profile while you have active reservations', 'Unable to delete');
+      return;
+    }
+
+    this.profileService.deleteUser(username).subscribe(
+      (response) => {
+        this.toastr.success('Profile deleted successfully', 'Profile delete');
+        this.authService.logout();
+      },
+      (error) => {
+        if (error.error.StatusCode === 400) {
+          this.toastr.error('There are active reservations', 'Unable to delete profile');
+          return;
+        }
+        if (error.status === 503) {
+          this.toastr.error('Unable to contact auth service. Please try again later',
+           'Auth service offline');
+        } else {
+          this.toastr.error('There was an error while deleting your profile', 'Delete failed');
+        }
+        console.error('Error deleting user profile: ', error);
+      });
   }
 }
