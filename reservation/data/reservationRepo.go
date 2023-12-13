@@ -198,6 +198,11 @@ func (rr *ReservationRepo) InsertReservationByAvailablePeriod(reservation *Reser
 		return errors.New("reservation is not within the appropriate range of the available period")
 	}
 
+	if reservation.EndDate.Sub(reservation.StartDate) < 24*time.Hour {
+		rr.logger.Println("EndDate must be at least one day after StartDate")
+		return errors.New("EndDate must be at least one day after StartDate")
+	}
+
 	// Retrieve existing reservations for the available period
 	existingReservations, err := rr.FindAllReservationsByAvailablePeriod(availablePeriod.ID.String())
 	if err != nil {
@@ -217,8 +222,8 @@ func (rr *ReservationRepo) InsertReservationByAvailablePeriod(reservation *Reser
 	calculatedPrice := rr.calculatePrice(availablePeriod.Price, availablePeriod.PricePerGuest, reservation.StartDate, reservation.EndDate, int16(reservation.GuestNumber))
 	err = rr.session.Query(
 		`INSERT INTO reservations_by_available_period 
-		(id, id_accommodation, id_available_period, id_user, start_date, end_date, guest_number, price) 
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+			(id, id_accommodation, id_available_period, id_user, start_date, end_date, guest_number, price) 
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 		reservationId, reservation.IDAccommodation.Hex(), reservation.IDAvailablePeriod, reservation.IDUser.Hex(),
 		reservation.StartDate, reservation.EndDate, reservation.GuestNumber, calculatedPrice).Exec()
 	if err != nil {

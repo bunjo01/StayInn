@@ -95,9 +95,21 @@ func (ar *NotificationsRepo) AddHostRating(rating *RatingHost) error {
 	return nil
 }
 
-func (ar *NotificationsRepo) UpdateHostRating(id primitive.ObjectID, newRating *RatingHost) error {
+func (ar *NotificationsRepo) UpdateHostRating(id, idUser primitive.ObjectID, newRating *RatingHost) error {
 	ratingsCollection := ar.getHostRatingsCollection()
+
 	filter := bson.M{"_id": id}
+
+	var rating RatingHost
+
+	err := ratingsCollection.FindOne(context.Background(), filter).Decode(&rating)
+	if err != nil {
+		return err
+	}
+
+	if rating.GuestID != idUser {
+		return errors.New("cannot update rating: user does not match the rating creator")
+	}
 
 	update := bson.M{
 		"$set": bson.M{
@@ -106,7 +118,7 @@ func (ar *NotificationsRepo) UpdateHostRating(id primitive.ObjectID, newRating *
 		},
 	}
 
-	_, err := ratingsCollection.UpdateOne(context.Background(), filter, update)
+	_, err = ratingsCollection.UpdateOne(context.Background(), filter, update)
 	if err != nil {
 		return err
 	}
@@ -375,10 +387,20 @@ func (ar *NotificationsRepo) GetRatingsByHostUsername(username string) ([]Rating
 	return ratings, nil
 }
 
-func (ar *NotificationsRepo) UpdateRatingAccommodationByID(id primitive.ObjectID, newRate int) error {
+func (ar *NotificationsRepo) UpdateRatingAccommodationByID(id, idUser primitive.ObjectID, newRate int) error {
 	ratingsCollection := ar.getRatingsCollection()
 
 	filter := bson.M{"_id": id}
+	var rating RatingAccommodation
+	err := ratingsCollection.FindOne(context.Background(), filter).Decode(&rating)
+	if err != nil {
+		return err
+	}
+
+	if rating.GuestID != idUser {
+		return errors.New("cannot update rating: user does not match the rating creator")
+	}
+
 	update := bson.M{
 		"$set": bson.M{
 			"rate": newRate,
