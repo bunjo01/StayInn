@@ -74,6 +74,33 @@ func (uh *UserHandler) GetUser(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (uh *UserHandler) GetUserById(rw http.ResponseWriter, r *http.Request) {
+	var id data.UserId
+	if err := json.NewDecoder(r.Body).Decode(&id); err != nil {
+		uh.logger.Println("Failed to decode body:", err)
+		http.Error(rw, "Failed to decode request body", http.StatusBadRequest)
+		return
+	}
+
+	ctx := r.Context()
+	user, err := uh.repo.GetUserById(ctx, id.ID)
+	if err != nil {
+		http.Error(rw, "Failed to retrieve user", http.StatusInternalServerError)
+		return
+	}
+
+	if user == nil {
+		http.NotFound(rw, r)
+		return
+	}
+
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(rw).Encode(user); err != nil {
+		http.Error(rw, "Failed to encode user", http.StatusInternalServerError)
+	}
+}
+
 func (uh *UserHandler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 	var user data.NewUser
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {

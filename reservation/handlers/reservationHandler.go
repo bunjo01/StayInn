@@ -219,6 +219,45 @@ func (r *ReservationHandler) FindAccommodationIdsByDates(rw http.ResponseWriter,
 	rw.WriteHeader(http.StatusOK)
 }
 
+func (r *ReservationHandler) FindAllReservationsByUserIDExpiredHandler(rw http.ResponseWriter, h *http.Request) {
+
+	tokenStr := r.extractTokenFromHeader(h)
+	username, err := r.getUsername(tokenStr)
+	if err != nil {
+		r.logger.Println("Failed to read username from token:", err)
+		http.Error(rw, "Failed to read username from token", http.StatusBadRequest)
+		return
+	}
+
+	userID, err := r.profile.GetUserId(h.Context(), username)
+	if err != nil {
+		r.logger.Println("Failed to get HostID from username:", err)
+		http.Error(rw, "Failed to get HostID from username", http.StatusBadRequest)
+		return
+	}
+
+	objectUserID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		http.Error(rw, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	reservations, err := r.repo.FindAllReservationsByUserIDExpired(objectUserID.Hex())
+	if err != nil {
+		r.logger.Println("Database exception: ", err)
+		http.Error(rw, "Failed to fetch expired reservations", http.StatusBadRequest)
+		return
+	}
+
+	err = reservations.ToJSON(rw)
+	if err != nil {
+		http.Error(rw, "Unable to convert to JSON", http.StatusBadRequest)
+		r.logger.Fatal("Unable to convert to JSON:", err)
+		return
+	}
+
+}
+
 func (r *ReservationHandler) UpdateAvailablePeriodByAccommodation(rw http.ResponseWriter, h *http.Request) {
 	availablePeriod := h.Context().Value(KeyProduct{}).(*data.AvailablePeriodByAccommodation)
 	tokenStr := r.extractTokenFromHeader(h)

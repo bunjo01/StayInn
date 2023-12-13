@@ -1,0 +1,40 @@
+<nav>
+    <div class="menu-icon" (click)="toggleMenu()">
+        <img src="../../assets/images/user.png" class="user-pic">
+        <ng-container *ngIf="!isMenuOpen">
+            <h2>Menu</h2>
+        </ng-container>
+    </div>
+
+    <div class="sub-menu-wrap" [ngClass]="{'open-menu': isMenuOpen}">
+        <div class="sub-menu">
+            <div class="user-info">
+                <img src="../../assets/images/user.png">
+                <h3>{{ getUsername() }}</h3>
+            </div>
+            <hr>
+
+            <a (click)="navigateTo('/profile')" class="sub-menu-link">
+                <img src="../../assets/images/profile-details.png">
+                <p>Profile details</p>
+                <span>></span>
+            </a>
+            <a (click)="navigateTo('/history-reservation')" class="sub-menu-link">
+                <img src="../../assets/images/reservations.png">
+                <p>Reservations</p>
+                <span>></span>
+            </a>
+            <a (click)="navigateTo('/change-password')" class="sub-menu-link">
+                <img src="../../assets/images/change-password.png">
+                <p>Change password</p>
+                <span>></span>
+            </a>
+            <a (click)="navigateTo('/logout')" class="sub-menu-link">
+                <img src="../../assets/images/logout.png">
+                <p>Logout</p>
+                <span>></span>
+            </a>
+
+        </div>
+    </div>
+</nav>

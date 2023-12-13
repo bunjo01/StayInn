@@ -1,0 +1,18 @@
+<div class="rate-host-wrap">
+    <div class="accommodation-info">
+        <h2>Host</h2>
+    </div>
+
+    <div class="rating">
+        <span class="star" (click)="setRating(1)" [class.filled]="ratingH >= 1">&#9733;</span>
+        <span class="star" (click)="setRating(2)" [class.filled]="ratingH >= 2">&#9733;</span>
+        <span class="star" (click)="setRating(3)" [class.filled]="ratingH >= 3">&#9733;</span>
+        <span class="star" (click)="setRating(4)" [class.filled]="ratingH >= 4">&#9733;</span>
+        <span class="star" (click)="setRating(5)" [class.filled]="ratingH >= 5">&#9733;</span>
+    </div>
+    <button class="btnSubmit" (click)="addRating()">Submit rate (H)</button>
+
+    <div *ngIf="currentRating">
+        <p>Current Rating: {{ currentRating.Rate }}</p>
+      </div>
+</div>

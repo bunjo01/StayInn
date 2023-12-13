@@ -94,3 +94,37 @@ h1 {
   width: 100%;
   height: auto;
 }
+.btnAccommodationUpdate {
+  background-color: yellow;
+  border: 2px solid black;
+  border-radius: 6px;
+  padding: 10px;
+  margin: 10px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.btnAccommodationDelete {
+  background-color: red;
+  border: 2px solid black;
+  border-radius: 6px;
+  padding: 10px;
+  margin: 10px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.rating-wrap {
+  width: 90%;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  background-color: #727272;
+}
+
+.rating-wrap h2 {
+  flex: 0 0 100%;
+  color: white;
+  margin-bottom: 20px;
+}

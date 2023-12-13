@@ -93,3 +93,6 @@ button {
 .card-location {
   margin-bottom: 10px;
 }
+#btnDelete {
+  background-color: red;
+}

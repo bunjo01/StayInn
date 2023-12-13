@@ -58,6 +58,16 @@ export class ReservationService {
     return this.http.get<ReservationByAvailablePeriod[]>(`${this.baseUrl}/user/${username}/reservations`, { headers });
   }
 
+  getReservationByUserExp(): Observable<ReservationByAvailablePeriod[]> {
+    const token = localStorage.getItem('token')
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+
+    return this.http.get<ReservationByAvailablePeriod[]>(`${this.baseUrl}/expired`, { headers });
+  }
+
   createReservationByAccommodation(reservationData: ReservationByAvailablePeriod): Observable<any> {
     const token = localStorage.getItem('token');
     const headers = new HttpHeaders({

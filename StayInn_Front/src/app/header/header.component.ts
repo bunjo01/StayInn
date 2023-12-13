@@ -37,6 +37,8 @@ export class HeaderComponent implements OnInit {
     } else if (selectedOption === 'logout') {
       this.toastr.info("Logged out");
       this.authService.logout();
+    } else if(selectedOption === 'history-reservation'){
+      this.router.navigate(['/history-reservation'])
     }
     
     this.dropdownMenu.nativeElement.value = '';

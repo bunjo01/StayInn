@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log"
 
 	"os"
@@ -123,6 +124,18 @@ func (ur *UserRepo) GetUser(ctx context.Context, username string) (*NewUser, err
 	return &user, nil
 }
 
+func (ur *UserRepo) GetUserById(ctx context.Context, id primitive.ObjectID) (*NewUser, error) {
+	collection := ur.getUserCollection()
+	var user NewUser
+	err := collection.FindOne(ctx, bson.M{"_id": id}).Decode(&user)
+	if err != nil {
+		ur.logger.Println(err)
+		return nil, err
+	}
+
+	return &user, nil
+}
+
 func (ur *UserRepo) CheckUsernameAvailability(ctx context.Context, username string) (bool, error) {
 	collection := ur.getUserCollection()
 	filter := bson.M{"username": username}
@@ -153,14 +166,14 @@ func (ur *UserRepo) UpdateUser(ctx context.Context, username string, user *NewUs
 	}
 
 	emailAvailable, err := ur.CheckEmailAvailability(ctx, user.Email)
-    if err != nil {
-        ur.logger.Println("Error checking email availability:", err)
-        return err
-    }
+	if err != nil {
+		ur.logger.Println("Error checking email availability:", err)
+		return err
+	}
 
-    if !emailAvailable {
-        return fmt.Errorf("email %s is already taken", user.Email)
-    }
+	if !emailAvailable {
+		return fmt.Errorf("email %s is already taken", user.Email)
+	}
 
 	collection := ur.getUserCollection()
 

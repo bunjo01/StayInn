@@ -37,7 +37,7 @@ export class AccommodationService {
       'Authorization': `Bearer ${token}`
     });
 
-    return this.http.put<any>(this.apiUrl + `/accommodation/${id}`, accommodation, { headers });
+    return this.http.put<any>(this.apiUrl + `/accommodation/${id}`, accommodation, { headers: headers });
   }
 
   sendAccommodation(data: Accommodation) {
@@ -103,5 +103,15 @@ export class AccommodationService {
     });
 
     return this.http.get<Image[]>(this.apiUrl + '/accommodation/' + accID + '/images');
+  }
+
+  deleteAccommodation(id: string): Observable<any> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+
+    return this.http.delete<any>(this.apiUrl + `/accommodation/${id}`, { headers });
   }
 }
