@@ -29,7 +29,7 @@ func NewAccommodationClient(client *http.Client, address string, cb *gobreaker.C
 // Checks accommodation service if host has active reservations on his accommodation
 // If host has no reservations, deletes accommodations and it's periods
 // Otherwise returns erorr
-func (c AccommodationClient) CheckAndDeleteUserAccommodations(ctx context.Context, userID primitive.ObjectID) (interface{}, error) {
+func (c AccommodationClient) CheckAndDeleteUserAccommodations(ctx context.Context, userID primitive.ObjectID, token string) (interface{}, error) {
 	var timeout time.Duration
 	deadline, reqHasDeadline := ctx.Deadline()
 	if reqHasDeadline {
@@ -42,6 +42,7 @@ func (c AccommodationClient) CheckAndDeleteUserAccommodations(ctx context.Contex
 		if err != nil {
 			return nil, err
 		}
+		req.Header.Set("Authorization", "Bearer "+token)
 		return c.client.Do(req)
 	})
 	if err != nil {

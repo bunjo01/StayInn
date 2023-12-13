@@ -5,11 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 	"notification/data"
 	"notification/domain"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/sony/gobreaker"
 )
@@ -30,7 +31,7 @@ func NewProfileClient(client *http.Client, address string, cb *gobreaker.Circuit
 
 // TODO: Client methods
 
-func (pc ProfileClient) GetUserId(ctx context.Context, username string) (string, error) {
+func (pc ProfileClient) GetUserId(ctx context.Context, username, token string) (string, error) {
 	var timeout time.Duration
 	deadline, reqHasDeadline := ctx.Deadline()
 	if reqHasDeadline {
@@ -43,6 +44,7 @@ func (pc ProfileClient) GetUserId(ctx context.Context, username string) (string,
 		if err != nil {
 			return "", err
 		}
+		req.Header.Set("Authorization", "Bearer "+token)
 		return pc.client.Do(req)
 	})
 	if err != nil {
@@ -69,7 +71,7 @@ func (pc ProfileClient) GetUserId(ctx context.Context, username string) (string,
 	return serviceResponse.ID.Hex(), nil
 }
 
-func (pc ProfileClient) GetUsernameById(ctx context.Context, id primitive.ObjectID) (data.User, error) {
+func (pc ProfileClient) GetUsernameById(ctx context.Context, id primitive.ObjectID, token string) (data.User, error) {
 	var timeout time.Duration
 	deadline, reqHasDeadline := ctx.Deadline()
 	if reqHasDeadline {
@@ -89,6 +91,7 @@ func (pc ProfileClient) GetUsernameById(ctx context.Context, id primitive.Object
 		if err != nil {
 			return "", err
 		}
+		req.Header.Set("Authorization", "Bearer "+token)
 		return pc.client.Do(req)
 	})
 	if err != nil {
@@ -105,16 +108,12 @@ func (pc ProfileClient) GetUsernameById(ctx context.Context, id primitive.Object
 		}
 	}
 
-	fmt.Println("112")
-
 	// Parse the JSON response
 	var serviceResponse data.User
 	decoder := json.NewDecoder(resp.Body)
 	if err := decoder.Decode(&serviceResponse); err != nil {
 		return data.User{}, fmt.Errorf("failed to decode JSON response: %v", err)
 	}
-
-	fmt.Println("121")
 
 	return serviceResponse, nil
 }

@@ -29,7 +29,10 @@ func NewReservationClient(client *http.Client, address string, cb *gobreaker.Cir
 	}
 }
 
-func (rc ReservationClient) PassDatesToReservationService(ctx context.Context, accommodationIds []primitive.ObjectID, startDate, endDate time.Time) ([]primitive.ObjectID, error) {
+func (rc ReservationClient) PassDatesToReservationService(ctx context.Context,
+	accommodationIds []primitive.ObjectID, startDate, endDate time.Time,
+	token string) ([]primitive.ObjectID, error) {
+
 	dates := data.Dates{
 		AccommodationIds: accommodationIds,
 		StartDate:        startDate,
@@ -52,6 +55,7 @@ func (rc ReservationClient) PassDatesToReservationService(ctx context.Context, a
 		if err != nil {
 			return nil, err
 		}
+		req.Header.Set("Authorization", "Bearer "+token)
 		return rc.client.Do(req)
 	})
 	if err != nil {
@@ -76,7 +80,7 @@ func (rc ReservationClient) PassDatesToReservationService(ctx context.Context, a
 	return serviceResponse.ObjectIds, nil
 }
 
-func (rc ReservationClient) CheckAndDeletePeriods(ctx context.Context, accIDs []primitive.ObjectID) (interface{}, error) {
+func (rc ReservationClient) CheckAndDeletePeriods(ctx context.Context, accIDs []primitive.ObjectID, token string) (interface{}, error) {
 	requestBody, err := json.Marshal(accIDs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal accommodation IDs: %v", err)
@@ -93,6 +97,7 @@ func (rc ReservationClient) CheckAndDeletePeriods(ctx context.Context, accIDs []
 		if err != nil {
 			return nil, err
 		}
+		req.Header.Set("Authorization", "Bearer "+token)
 		return rc.client.Do(req)
 	})
 	if err != nil {

@@ -39,24 +39,36 @@ func (rh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	ctx, cancel := context.WithTimeout(r.Context(), 5000*time.Millisecond)
+	defer cancel()
+
 	// idAccommodation := rating.IDAccommodation
 
 	tokenStr := rh.extractTokenFromHeader(r)
-	username, err := rh.getUsername(tokenStr)
+	guestUsername, err := rh.getUsername(tokenStr)
 	if err != nil {
 		rh.logger.Println("Failed to read username from token:", err)
 		http.Error(w, "Failed to read username from token", http.StatusBadRequest)
 		return
 	}
-	rating.GuestUsername = username
+	rating.GuestUsername = guestUsername
 	rating.Time = time.Now()
+
+	host, err := rh.profileClient.GetUsernameById(ctx, rating.HostID, tokenStr)
+	if err != nil {
+		rh.logger.Println(err)
+		http.Error(w, "Failed to get host", http.StatusBadRequest)
+		return
+	}
+
+	rating.HostUsername = host.Username
 
 	if rating.Rate < 1 || rating.Rate > 5 {
 		http.Error(w, "Rating must be between 1 and 5", http.StatusBadRequest)
 		return
 	}
 
-	userID, err := rh.profileClient.GetUserId(r.Context(), username)
+	userID, err := rh.profileClient.GetUserId(r.Context(), guestUsername, tokenStr)
 	if err != nil {
 		rh.logger.Println("Failed to get HostID from username:", err)
 		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
@@ -98,7 +110,8 @@ func (rh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request
 
 	for _, r := range ratings {
 		if r.IDAccommodation == rating.IDAccommodation {
-			http.Error(w, "User already rated this accommodation", http.StatusBadRequest)
+			rh.repo.UpdateRatingAccommodationByID(r.ID, id, rating.Rate)
+			http.Error(w, "Rating successfully added", http.StatusCreated)
 			return
 		}
 	}
@@ -127,6 +140,115 @@ func (rh *NotificationsHandler) FindRatingById(rw http.ResponseWriter, h *http.R
 	}
 
 	rating, err := rh.repo.FindRatingById(ctx, objectID)
+	if err != nil {
+		rh.logger.Println("Database exception: ", err)
+		http.Error(rw, "Database exception", http.StatusInternalServerError)
+		return
+	}
+
+	if rating == nil {
+		rh.logger.Println("No period with given ID in accommodation")
+		http.Error(rw, "Rating not found", http.StatusNotFound)
+		return
+	}
+
+	err = rating.ToJSON(rw)
+	if err != nil {
+		http.Error(rw, "Unable to convert to json", http.StatusInternalServerError)
+		rh.logger.Fatal("Unable to convert to json:", err)
+		return
+	}
+}
+
+func (rh *NotificationsHandler) FindAccommodationRatingByGuest(rw http.ResponseWriter, h *http.Request) {
+	vars := mux.Vars(h)
+	ratingID := vars["idAccommodation"]
+
+	ctx := h.Context()
+
+	objectID, err := primitive.ObjectIDFromHex(ratingID)
+	if err != nil {
+		http.Error(rw, "Invalid rating ID", http.StatusBadRequest)
+		rh.logger.Println("Invalid rating ID:", err)
+		return
+	}
+
+	tokenStr := rh.extractTokenFromHeader(h)
+	guestUsername, err := rh.getUsername(tokenStr)
+	if err != nil {
+		rh.logger.Println("Failed to read username from token:", err)
+		http.Error(rw, "Failed to read username from token", http.StatusBadRequest)
+		return
+	}
+
+	guestId, err := rh.profileClient.GetUserId(ctx, guestUsername, tokenStr)
+	if err != nil {
+		rh.logger.Println("Failed to retrive user id from profile service:", err)
+		http.Error(rw, "Failed to retrive user id from profile service", http.StatusBadRequest)
+		return
+	}
+
+	guestIdObject, err := primitive.ObjectIDFromHex(guestId)
+	if err != nil {
+		rh.logger.Println("Failed to parse id to primitive object id:", err)
+		http.Error(rw, "Failed to parse id to primitive object id", http.StatusBadRequest)
+		return
+	}
+
+	rating, err := rh.repo.FindAccommodationRatingByGuest(ctx, objectID, guestIdObject)
+	if err != nil {
+		rh.logger.Println("Database exception: ", err)
+		http.Error(rw, "Database exception", http.StatusInternalServerError)
+		return
+	}
+
+	if rating == nil {
+		rh.logger.Println("No period with given ID in accommodation")
+		http.Error(rw, "Rating not found", http.StatusNotFound)
+		return
+	}
+
+	err = rating.ToJSON(rw)
+	if err != nil {
+		http.Error(rw, "Unable to convert to json", http.StatusInternalServerError)
+		rh.logger.Fatal("Unable to convert to json:", err)
+		return
+	}
+}
+
+func (rh *NotificationsHandler) FindHostRatingByGuest(rw http.ResponseWriter, h *http.Request) {
+	var userId data.UserId
+	err := json.NewDecoder(h.Body).Decode(&userId)
+	if err != nil {
+		http.Error(rw, fmt.Sprintf("Error parsing data: %s", err), http.StatusBadRequest)
+		return
+	}
+
+	ctx := h.Context()
+
+	tokenStr := rh.extractTokenFromHeader(h)
+	guestUsername, err := rh.getUsername(tokenStr)
+	if err != nil {
+		rh.logger.Println("Failed to read username from token:", err)
+		http.Error(rw, "Failed to read username from token", http.StatusBadRequest)
+		return
+	}
+
+	guestId, err := rh.profileClient.GetUserId(ctx, guestUsername, tokenStr)
+	if err != nil {
+		rh.logger.Println("Failed to retrive user id from profile service:", err)
+		http.Error(rw, "Failed to retrive user id from profile service", http.StatusBadRequest)
+		return
+	}
+
+	guestIdObject, err := primitive.ObjectIDFromHex(guestId)
+	if err != nil {
+		rh.logger.Println("Failed to parse id to primitive object id:", err)
+		http.Error(rw, "Failed to parse id to primitive object id", http.StatusBadRequest)
+		return
+	}
+
+	rating, err := rh.repo.FindHostRatingByGuest(ctx, userId.ID, guestIdObject)
 	if err != nil {
 		rh.logger.Println("Database exception: ", err)
 		http.Error(rw, "Database exception", http.StatusInternalServerError)
@@ -196,6 +318,45 @@ func (rh *NotificationsHandler) GetAllAccommodationRatings(w http.ResponseWriter
 	}
 }
 
+func (rh *NotificationsHandler) GetAllAccommodationRatingsForLoggedHost(w http.ResponseWriter, r *http.Request) {
+	tokenStr := rh.extractTokenFromHeader(r)
+	hostUsername, err := rh.getUsername(tokenStr)
+	if err != nil {
+		rh.logger.Println("Failed to read username from token:", err)
+		http.Error(w, "Failed to read username from token", http.StatusBadRequest)
+		return
+	}
+
+	ctx := r.Context()
+
+	hostId, err := rh.profileClient.GetUserId(ctx, hostUsername, tokenStr)
+	if err != nil {
+		rh.logger.Println("Failed to retrive user id from profile service:", err)
+		http.Error(w, "Failed to retrive user id from profile service", http.StatusBadRequest)
+		return
+	}
+
+	hostIdObject, err := primitive.ObjectIDFromHex(hostId)
+	if err != nil {
+		rh.logger.Println("Failed to parse id to primitive object:", err)
+		http.Error(w, "Failed to parse id to primitive object", http.StatusBadRequest)
+		return
+	}
+
+	ratings, err := rh.repo.GetAllAccommodationRatingsForLoggedHost(r.Context(), hostIdObject)
+	if err != nil {
+		rh.logger.Println("Error fetching all host ratings:", err)
+		http.Error(w, "Error fetching host ratings", http.StatusInternalServerError)
+		return
+	}
+
+	if err := json.NewEncoder(w).Encode(ratings); err != nil {
+		rh.logger.Println("Error encoding host ratings:", err)
+		http.Error(w, "Error encoding host ratings", http.StatusInternalServerError)
+		return
+	}
+}
+
 func (rh *NotificationsHandler) GetAllAccommodationRatingsByUser(w http.ResponseWriter, r *http.Request) {
 	tokenStr := rh.extractTokenFromHeader(r)
 	username, err := rh.getUsername(tokenStr)
@@ -205,7 +366,7 @@ func (rh *NotificationsHandler) GetAllAccommodationRatingsByUser(w http.Response
 		return
 	}
 
-	userID, err := rh.profileClient.GetUserId(r.Context(), username)
+	userID, err := rh.profileClient.GetUserId(r.Context(), username, tokenStr)
 	if err != nil {
 		rh.logger.Println("Failed to get HostID from username:", err)
 		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
@@ -256,7 +417,7 @@ func (rh *NotificationsHandler) GetAllHostRatingsByUser(w http.ResponseWriter, r
 		return
 	}
 
-	userID, err := rh.profileClient.GetUserId(r.Context(), username)
+	userID, err := rh.profileClient.GetUserId(r.Context(), username, tokenStr)
 	if err != nil {
 		rh.logger.Println("Failed to get HostID from username:", err)
 		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
@@ -283,6 +444,7 @@ func (rh *NotificationsHandler) GetAllHostRatingsByUser(w http.ResponseWriter, r
 }
 
 func (rh *NotificationsHandler) GetHostRatings(w http.ResponseWriter, r *http.Request) {
+	tokenStr := rh.extractTokenFromHeader(r)
 	vars := mux.Vars(r)
 	hostUsername, ok := vars["hostUsername"]
 	if !ok {
@@ -290,7 +452,7 @@ func (rh *NotificationsHandler) GetHostRatings(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	_, err := rh.profileClient.GetUserId(r.Context(), hostUsername)
+	_, err := rh.profileClient.GetUserId(r.Context(), hostUsername, tokenStr)
 	if err != nil {
 		rh.logger.Println("Failed to get HostID from username:", err)
 		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
@@ -338,14 +500,14 @@ func (rh *NotificationsHandler) AddHostRating(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	host, err := rh.profileClient.GetUsernameById(ctx, rating.HostID)
+	host, err := rh.profileClient.GetUsernameById(ctx, rating.HostID, tokenStr)
 	if err != nil {
 		rh.logger.Println(err)
 		http.Error(w, "Failed to get host", http.StatusBadRequest)
 		return
 	}
 
-	guestId, err := rh.profileClient.GetUserId(ctx, guestUsername)
+	guestId, err := rh.profileClient.GetUserId(ctx, guestUsername, tokenStr)
 	if err != nil {
 		rh.logger.Println(err)
 		http.Error(w, "Failed to get guest", http.StatusBadRequest)
@@ -397,13 +559,14 @@ func (rh *NotificationsHandler) AddHostRating(w http.ResponseWriter, r *http.Req
 
 	ratings, err := rh.repo.GetAllHostRatingsByUser(r.Context(), rating.HostID)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Error fetching user ratings accommodation: %s", err), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Error fetching user ratings host: %s", err), http.StatusBadRequest)
 		return
 	}
 
 	for _, r := range ratings {
-		if r.HostUsername == rating.GuestUsername {
-			http.Error(w, "User already rated this accommodation", http.StatusBadRequest)
+		if r.HostUsername == rating.HostUsername && r.GuestUsername == rating.GuestUsername {
+			rh.repo.UpdateHostRating(r.ID, rating.GuestID, &rating)
+			http.Error(w, "Host rating successfully added", http.StatusCreated)
 			return
 		}
 	}
@@ -466,10 +629,23 @@ func (rh *NotificationsHandler) GetAverageAccommodationRating(w http.ResponseWri
 }
 
 func (rh *NotificationsHandler) GetAverageHostRating(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	username := params["username"]
+	tokenStr := rh.extractTokenFromHeader(r)
+	var userId data.UserId
+	err := json.NewDecoder(r.Body).Decode(&userId)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error parsing data: %s", err), http.StatusBadRequest)
+		return
+	}
 
-	ratings, err := rh.repo.GetRatingsByHostUsername(username)
+	ctx := r.Context()
+
+	host, err := rh.profileClient.GetUsernameById(ctx, userId.ID, tokenStr)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error trying to find user by id: %s", err), http.StatusBadRequest)
+		return
+	}
+
+	ratings, err := rh.repo.GetRatingsByHostUsername(host.Username)
 	if err != nil {
 		http.Error(w, "Failed to fetch ratings", http.StatusBadRequest)
 		return
@@ -489,7 +665,7 @@ func (rh *NotificationsHandler) GetAverageHostRating(w http.ResponseWriter, r *h
 	averageRating := float64(sum) / float64(totalRatings)
 
 	avgRatingAccommodation := data.AverageRatingHost{
-		Username:      username,
+		Username:      host.Username,
 		AverageRating: averageRating,
 	}
 
@@ -527,7 +703,28 @@ func (rh *NotificationsHandler) UpdateHostRating(w http.ResponseWriter, r *http.
 
 	newRating.Time = time.Now()
 
-	if err := rh.repo.UpdateHostRating(id, &newRating); err != nil {
+	tokenStr := rh.extractTokenFromHeader(r)
+	username, err := rh.getUsername(tokenStr)
+	if err != nil {
+		rh.logger.Println("Failed to read username from token:", err)
+		http.Error(w, "Failed to read username from token", http.StatusBadRequest)
+		return
+	}
+
+	userID, err := rh.profileClient.GetUserId(r.Context(), username, tokenStr)
+	if err != nil {
+		rh.logger.Println("Failed to get HostID from username:", err)
+		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
+		return
+	}
+
+	idUser, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		http.Error(w, "Invalid userID", http.StatusBadRequest)
+		return
+	}
+
+	if err := rh.repo.UpdateHostRating(id, idUser, &newRating); err != nil {
 		http.Error(w, "Error updating host rating", http.StatusBadRequest)
 		return
 	}
@@ -556,7 +753,28 @@ func (rh *NotificationsHandler) UpdateAccommodationRating(w http.ResponseWriter,
 		return
 	}
 
-	if err := rh.repo.UpdateRatingAccommodationByID(id, newRating.Rate); err != nil {
+	tokenStr := rh.extractTokenFromHeader(r)
+	username, err := rh.getUsername(tokenStr)
+	if err != nil {
+		rh.logger.Println("Failed to read username from token:", err)
+		http.Error(w, "Failed to read username from token", http.StatusBadRequest)
+		return
+	}
+
+	userID, err := rh.profileClient.GetUserId(r.Context(), username, tokenStr)
+	if err != nil {
+		rh.logger.Println("Failed to get HostID from username:", err)
+		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
+		return
+	}
+
+	idUser, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		http.Error(w, "Invalid userID", http.StatusBadRequest)
+		return
+	}
+
+	if err := rh.repo.UpdateRatingAccommodationByID(id, idUser, newRating.Rate); err != nil {
 		http.Error(w, "Error updating host rating", http.StatusBadRequest)
 		return
 	}
@@ -588,7 +806,7 @@ func (rh *NotificationsHandler) DeleteHostRating(w http.ResponseWriter, r *http.
 		return
 	}
 
-	userID, err := rh.profileClient.GetUserId(r.Context(), username)
+	userID, err := rh.profileClient.GetUserId(r.Context(), username, tokenStr)
 	if err != nil {
 		rh.logger.Println("Failed to get HostID from username:", err)
 		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
@@ -634,7 +852,7 @@ func (rh *NotificationsHandler) DeleteRatingAccommodationHandler(w http.Response
 		return
 	}
 
-	userID, err := rh.profileClient.GetUserId(r.Context(), username)
+	userID, err := rh.profileClient.GetUserId(r.Context(), username, tokenStr)
 	if err != nil {
 		rh.logger.Println("Failed to get HostID from username:", err)
 		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)

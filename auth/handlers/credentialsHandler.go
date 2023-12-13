@@ -115,6 +115,7 @@ func (ch *CredentialsHandler) UpdateEmail(w http.ResponseWriter, r *http.Request
 
 // Handler method for registration
 func (ch *CredentialsHandler) Register(w http.ResponseWriter, r *http.Request) {
+	tokenStr := ch.extractTokenFromHeader(r)
 	var newUser data.NewUser
 	if err := json.NewDecoder(r.Body).Decode(&newUser); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -123,7 +124,7 @@ func (ch *CredentialsHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	ctx, cancel := context.WithTimeout(r.Context(), 5000*time.Millisecond)
 	defer cancel()
-	_, err := ch.profile.PassInfoToProfileService(ctx, newUser)
+	_, err := ch.profile.PassInfoToProfileService(ctx, newUser, tokenStr)
 	if err != nil {
 		ch.logger.Println(err)
 		writeResp(err, http.StatusServiceUnavailable, w)

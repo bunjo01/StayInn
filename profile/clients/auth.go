@@ -30,7 +30,7 @@ func NewAuthClient(client *http.Client, address string, cb *gobreaker.CircuitBre
 
 // Send changed username to auth service
 // Returns error if it fails
-func (c AuthClient) PassUsernameToAuthService(ctx context.Context, oldUsername, username string) (interface{}, error) {
+func (c AuthClient) PassUsernameToAuthService(ctx context.Context, oldUsername, username, token string) (interface{}, error) {
 	reqBody := map[string]string{"username": username}
 	requestBody, err := json.Marshal(reqBody)
 	if err != nil {
@@ -50,6 +50,7 @@ func (c AuthClient) PassUsernameToAuthService(ctx context.Context, oldUsername, 
 		if err != nil {
 			return nil, err
 		}
+		req.Header.Set("Authorization", "Bearer "+token)
 		return c.client.Do(req)
 	})
 	if err != nil {
@@ -68,7 +69,7 @@ func (c AuthClient) PassUsernameToAuthService(ctx context.Context, oldUsername, 
 	return true, nil
 }
 
-func (c AuthClient) PassEmailToAuthService(ctx context.Context, oldEmail, email string) (interface{}, error) {
+func (c AuthClient) PassEmailToAuthService(ctx context.Context, oldEmail, email, token string) (interface{}, error) {
 	reqBody := map[string]string{"email": email}
 	requestBody, err := json.Marshal(reqBody)
 	if err != nil {
@@ -88,6 +89,7 @@ func (c AuthClient) PassEmailToAuthService(ctx context.Context, oldEmail, email 
 		if err != nil {
 			return nil, err
 		}
+		req.Header.Set("Authorization", "Bearer "+token)
 		return c.client.Do(req)
 	})
 	if err != nil {
@@ -108,7 +110,7 @@ func (c AuthClient) PassEmailToAuthService(ctx context.Context, oldEmail, email 
 
 // Delete user in auth service.
 // Returns error if it fails
-func (c AuthClient) DeleteUserInAuthService(ctx context.Context, username string) (interface{}, error) {
+func (c AuthClient) DeleteUserInAuthService(ctx context.Context, username, token string) (interface{}, error) {
 	var timeout time.Duration
 	deadline, reqHasDeadline := ctx.Deadline()
 	if reqHasDeadline {
@@ -121,6 +123,7 @@ func (c AuthClient) DeleteUserInAuthService(ctx context.Context, username string
 		if err != nil {
 			return nil, err
 		}
+		req.Header.Set("Authorization", "Bearer "+token)
 		return c.client.Do(req)
 	})
 	if err != nil {

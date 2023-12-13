@@ -48,4 +48,35 @@
   <div *ngIf="!userProfile">
     <p>Error loading user profile.</p>
   </div>
+
+  <div class="container-main">
+    <div class="card-container">
+      <div class="card">
+        <ng-container *ngIf="reservations && reservations.length > 0 && role == 'GUEST'; else noReservations">
+          <h2>User Reservations</h2>
+          <ul>
+            <li *ngFor="let reservation of reservations">
+              <strong>Start Date:</strong> {{ reservation.StartDate | date: 'dd. MMMM y.' }}<br>
+              <strong>End Date:</strong> {{ reservation.EndDate | date: 'dd. MMMM y.' }}<br>
+              <strong>Guest number:</strong> {{ reservation.GuestNumber }}<br>
+              <strong>Price :</strong> {{ reservation.Price }}<br>
+            </li>
+          </ul>
+        </ng-container>
+        <ng-template #noReservations>
+          <h3>You have no reservations</h3>
+        </ng-template>
+      </div>
+    </div>
+    
+    <div class="card-container" *ngIf="role == 'HOST'">
+      <div *ngFor="let accommodation of accommodations" class="card">
+          <img src="../../assets/images/stay-inn.jpg" alt="{{ accommodation.name }} image" class="card-image">
+          <div class="card-title">{{ accommodation.name }}</div>
+          <h1 class="card-location">{{accommodation.location}}</h1>
+          <h3>Minimal number of guests: {{accommodation.minGuests}}</h3>
+          <h3>Maximal number of guests: {{accommodation.maxGuests}}</h3>
+      </div>
+    </div>
+  </div>
 </div>

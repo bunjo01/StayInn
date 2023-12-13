@@ -1,10 +1,12 @@
 package main
 
 import (
+	"accommodation/cache"
 	"accommodation/clients"
 	"accommodation/data"
 	"accommodation/domain"
 	"accommodation/handlers"
+	"accommodation/storage"
 	"context"
 	"log"
 	"net/http"
@@ -30,6 +32,8 @@ func main() {
 	// Logger initialization
 	logger := log.New(os.Stdout, "[accommodation-service] ", log.LstdFlags)
 	storeLogger := log.New(os.Stdout, "[accommodation-store] ", log.LstdFlags)
+	cacheLogger := log.New(os.Stdout, "[accommodation-cache] ", log.LstdFlags)
+	hdfsLogger := log.New(os.Stdout, "[accommodation-hdfs] ", log.LstdFlags)
 
 	// Initializing repo for accommodations
 	store, err := data.NewAccommodationRepository(timeoutContext, storeLogger)
@@ -39,6 +43,21 @@ func main() {
 	defer store.Disconnect(timeoutContext)
 	store.Ping()
 
+	// Redis
+	imageCache := cache.New(cacheLogger)
+	imageCache.Ping()
+
+	// HDFS
+	images, err := storage.New(hdfsLogger)
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	defer images.Close()
+
+	_ = images.CreateDirectories()
+
+	// CBs
 	reservationClient := &http.Client{
 		Transport: &http.Transport{
 			MaxIdleConns:        10,
@@ -99,18 +118,25 @@ func main() {
 		},
 	)
 
-	// TODO: Change second param accordingly after implementing method in client or set it in client method
 	reservation := clients.NewReservationClient(reservationClient, os.Getenv("RESERVATION_SERVICE_URI"), reservationBreaker)
 	profile := clients.NewProfileClient(profileClient, os.Getenv("PROFILE_SERVICE_URI"), profileBreaker)
 
-	accommodationsHandler := handlers.NewAccommodationsHandler(logger, store, reservation, profile)
+	accommodationsHandler := handlers.NewAccommodationsHandler(logger, store, reservation, profile, imageCache, images)
 
 	// Router init
 	router := mux.NewRouter()
 
 	createAccommodationRouter := router.Methods(http.MethodPost).Path("/accommodation").Subrouter()
 	createAccommodationRouter.HandleFunc("", accommodationsHandler.CreateAccommodation)
-	// createAccommodationRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
+	createAccommodationRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
+
+	createAccommodationImagesRouter := router.Methods(http.MethodPost).Path("/accommodation/images").Subrouter()
+	createAccommodationImagesRouter.HandleFunc("", accommodationsHandler.CreateAccommodationImages)
+	createAccommodationImagesRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
+
+	getAccommodationImagesRouter := router.Methods(http.MethodGet).Path("/accommodation/{id}/images").Subrouter()
+	getAccommodationImagesRouter.HandleFunc("", accommodationsHandler.GetAccommodationImages)
+	getAccommodationImagesRouter.Use(accommodationsHandler.MiddlewareCacheAllHit)
 
 	getAllAccommodationRouter := router.Methods(http.MethodGet).Path("/accommodation").Subrouter()
 	getAllAccommodationRouter.HandleFunc("", accommodationsHandler.GetAllAccommodations)
@@ -118,17 +144,20 @@ func main() {
 	getAccommodationRouter := router.Methods(http.MethodGet).Path("/accommodation/{id}").Subrouter()
 	getAccommodationRouter.HandleFunc("", accommodationsHandler.GetAccommodation)
 
+	getAccommodationsForUserRouter := router.Methods(http.MethodGet).Path("/user/{username}/accommodations").Subrouter()
+	getAccommodationsForUserRouter.HandleFunc("", accommodationsHandler.GetAccommodationsForUser)
+
 	updateAccommodationRouter := router.Methods(http.MethodPut).Path("/accommodation/{id}").Subrouter()
 	updateAccommodationRouter.HandleFunc("", accommodationsHandler.UpdateAccommodation)
-	// updateAccommodationRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
+	updateAccommodationRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
 
 	deleteAccommodationRouter := router.Methods(http.MethodDelete).Path("/accommodation/{id}").Subrouter()
 	deleteAccommodationRouter.HandleFunc("", accommodationsHandler.DeleteAccommodation)
-	//deleteAccommodationRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
+	deleteAccommodationRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
 
 	deleteUserAccommodationsRouter := router.Methods(http.MethodDelete).Path("/user/{id}/accommodations").Subrouter()
 	deleteUserAccommodationsRouter.HandleFunc("", accommodationsHandler.DeleteUserAccommodations)
-	//deleteUserAccommodationsRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
+	deleteUserAccommodationsRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
 
 	// Search part
 

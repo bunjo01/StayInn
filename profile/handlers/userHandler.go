@@ -175,6 +175,7 @@ func (uh *UserHandler) CheckEmailAvailability(w http.ResponseWriter, r *http.Req
 }
 
 func (uh *UserHandler) UpdateUser(rw http.ResponseWriter, r *http.Request) {
+	tokenStr := uh.extractTokenFromHeader(r)
 	vars := mux.Vars(r)
 	username := vars["username"]
 
@@ -209,14 +210,14 @@ func (uh *UserHandler) UpdateUser(rw http.ResponseWriter, r *http.Request) {
 
 	ctx, cancel := context.WithTimeout(r.Context(), 5000*time.Millisecond)
 	defer cancel()
-	_, err = uh.auth.PassUsernameToAuthService(ctx, username, updatedUser.Username)
+	_, err = uh.auth.PassUsernameToAuthService(ctx, username, updatedUser.Username, tokenStr)
 	if err != nil {
 		uh.logger.Println(err)
 		writeResp(err, http.StatusServiceUnavailable, rw)
 		return
 	}
 
-	_, err = uh.auth.PassEmailToAuthService(ctx, email, updatedUser.Email)
+	_, err = uh.auth.PassEmailToAuthService(ctx, email, updatedUser.Email, tokenStr)
 	if err != nil {
 		uh.logger.Println(err)
 		writeResp(err, http.StatusServiceUnavailable, rw)
@@ -250,7 +251,7 @@ func (uh *UserHandler) DeleteUser(rw http.ResponseWriter, r *http.Request) {
 	if role == "GUEST" {
 		ctx, cancel := context.WithTimeout(r.Context(), 5000*time.Millisecond)
 		defer cancel()
-		_, err = uh.reservation.CheckUserReservations(ctx, user.ID)
+		_, err = uh.reservation.CheckUserReservations(ctx, user.ID, tokenString)
 		if err != nil {
 			uh.logger.Println(err)
 			writeResp(err, http.StatusServiceUnavailable, rw)
@@ -259,7 +260,7 @@ func (uh *UserHandler) DeleteUser(rw http.ResponseWriter, r *http.Request) {
 	} else if role == "HOST" {
 		ctx, cancel := context.WithTimeout(r.Context(), 5000*time.Millisecond)
 		defer cancel()
-		_, err = uh.accommodation.CheckAndDeleteUserAccommodations(ctx, user.ID)
+		_, err = uh.accommodation.CheckAndDeleteUserAccommodations(ctx, user.ID, tokenString)
 		if err != nil {
 			uh.logger.Println(err)
 			writeResp(err, http.StatusServiceUnavailable, rw)
@@ -271,7 +272,7 @@ func (uh *UserHandler) DeleteUser(rw http.ResponseWriter, r *http.Request) {
 
 	ctx, cancel := context.WithTimeout(r.Context(), 5000*time.Millisecond)
 	defer cancel()
-	_, err = uh.auth.DeleteUserInAuthService(ctx, username)
+	_, err = uh.auth.DeleteUserInAuthService(ctx, username, tokenString)
 	if err != nil {
 		uh.logger.Println(err)
 		writeResp(err, http.StatusServiceUnavailable, rw)

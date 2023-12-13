@@ -111,50 +111,70 @@ func main() {
 	router.Use(notificationsHandler.MiddlewareContentTypeSet)
 
 	// Router methods
-	createRatingForAccommodation := router.Methods(http.MethodPost).Path("/rating/accommodation").Subrouter()
-	createRatingForAccommodation.HandleFunc("", notificationsHandler.AddRating)
 
-	createRatingForHost := router.Methods(http.MethodPost).Path("/rating/host").Subrouter()
-	createRatingForHost.HandleFunc("", notificationsHandler.AddHostRating)
-
+	// vrati sve
 	getAllAccommodationRatings := router.Methods(http.MethodGet).Path("/ratings/accommodation").Subrouter()
 	getAllAccommodationRatings.HandleFunc("", notificationsHandler.GetAllAccommodationRatings)
 
-	getAllAccommodationRatingsByUser := router.Methods(http.MethodGet).Path("/ratings/accommodationByUser").Subrouter()
-	getAllAccommodationRatingsByUser.HandleFunc("", notificationsHandler.GetAllAccommodationRatingsByUser)
-
+	// vrati sve
 	getAllHostRatings := router.Methods(http.MethodGet).Path("/ratings/host").Subrouter()
 	getAllHostRatings.HandleFunc("", notificationsHandler.GetAllHostRatings)
 
-	getAllHostRatingsByUser := router.Methods(http.MethodGet).Path("/ratings/hostByUser").Subrouter()
+	//oceni smestaj, promena ocene
+	createRatingForAccommodation := router.Methods(http.MethodPost).Path("/rating/accommodation").Subrouter()
+	createRatingForAccommodation.HandleFunc("", notificationsHandler.AddRating)
+
+	//oceni hosta, promena ocene
+	createRatingForHost := router.Methods(http.MethodPost).Path("/rating/host").Subrouter()
+	createRatingForHost.HandleFunc("", notificationsHandler.AddHostRating)
+
+	//pronadji sve ocene za accommodacije jednog hosta
+	findAllAccommodationRatingsByHost := router.Methods(http.MethodGet).Path("/ratings/accommodation/byHost").Subrouter()
+	findAllAccommodationRatingsByHost.HandleFunc("", notificationsHandler.GetAllAccommodationRatingsForLoggedHost)
+
+	//vrati ocene od ulogovanog hosta
+	getAllHostRatingsByUser := router.Methods(http.MethodGet).Path("/ratings/hostByGuest").Subrouter()
 	getAllHostRatingsByUser.HandleFunc("", notificationsHandler.GetAllHostRatingsByUser)
 
-	getHostRatings := router.Methods(http.MethodGet).Path("/ratings/host/{hostUsername}").Subrouter()
-	getHostRatings.HandleFunc("", notificationsHandler.GetHostRatings)
-
+	//vrati srednju ocenu za acc
 	getAverageAccommodationRating := router.Methods(http.MethodGet).Path("/ratings/average/{accommodationID}").Subrouter()
 	getAverageAccommodationRating.HandleFunc("", notificationsHandler.GetAverageAccommodationRating)
 
-	getAverageHostRating := router.Methods(http.MethodGet).Path("/ratings/average/{username}").Subrouter()
+	//vrati srednju ocenu za hosta
+	getAverageHostRating := router.Methods(http.MethodPost).Path("/ratings/average/host").Subrouter()
 	getAverageHostRating.HandleFunc("", notificationsHandler.GetAverageHostRating)
 
-	findRatingForAccommodation := router.Methods(http.MethodGet).Path("/rating/accommodation/{id}").Subrouter()
-	findRatingForAccommodation.HandleFunc("", notificationsHandler.FindRatingById)
+	//vrati ocenu za tu acc
+	findRatingForAccommodationByGuest := router.Methods(http.MethodGet).Path("/rating/accommodation/{idAccommodation}/byGuest").Subrouter()
+	findRatingForAccommodationByGuest.HandleFunc("", notificationsHandler.FindAccommodationRatingByGuest)
 
-	findRatingForHost := router.Methods(http.MethodGet).Path("/rating/host/{id}").Subrouter()
-	findRatingForHost.HandleFunc("", notificationsHandler.FindHostRatingById)
+	//vrati ocenu za tog hosta
+	findRatingForHostByGuest := router.Methods(http.MethodPost).Path("/rating/host/byGuest").Subrouter()
+	findRatingForHostByGuest.HandleFunc("", notificationsHandler.FindHostRatingByGuest)
 
-	updateRatingForHost := router.Methods(http.MethodPut).Path("/rating/host/{id}").Subrouter()
-	updateRatingForHost.HandleFunc("", notificationsHandler.UpdateHostRating)
-
-	updateRatingForAccommodation := router.Methods(http.MethodPut).Path("/rating/accommodation/{id}").Subrouter()
-	updateRatingForAccommodation.HandleFunc("", notificationsHandler.UpdateAccommodationRating)
-
+	// obrisi rating za hosta
 	deleteRatingForHost := router.Methods(http.MethodDelete).Path("/rating/host/{id}").Subrouter()
 	deleteRatingForHost.HandleFunc("", notificationsHandler.DeleteHostRating)
 
+	// obrisi rating za acc
 	deleteRatingForAccommodation := router.Methods(http.MethodDelete).Path("/rating/accommodation/{id}").Subrouter()
 	deleteRatingForAccommodation.HandleFunc("", notificationsHandler.DeleteRatingAccommodationHandler)
+
+	//
+	//getAllAccommodationRatingsByUser := router.Methods(http.MethodGet).Path("/ratings/accommodationByUser").Subrouter()
+	//getAllAccommodationRatingsByUser.HandleFunc("", notificationsHandler.GetAllAccommodationRatingsByUser)
+
+	//getHostRatings := router.Methods(http.MethodGet).Path("/ratings/host/{hostUsername}").Subrouter()
+	//getHostRatings.HandleFunc("", notificationsHandler.GetHostRatings)
+
+	//findRatingForHost := router.Methods(http.MethodGet).Path("/rating/host/{id}").Subrouter()
+	//findRatingForHost.HandleFunc("", notificationsHandler.FindHostRatingById)
+
+	//updateRatingForHost := router.Methods(http.MethodPut).Path("/rating/host/{id}").Subrouter()
+	//updateRatingForHost.HandleFunc("", notificationsHandler.UpdateHostRating)
+	//
+	//updateRatingForAccommodation := router.Methods(http.MethodPut).Path("/rating/accommodation/{id}").Subrouter()
+	//updateRatingForAccommodation.HandleFunc("", notificationsHandler.UpdateAccommodationRating)
 
 	// CORS middleware
 	cors := gorillaHandlers.CORS(

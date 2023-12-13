@@ -108,7 +108,7 @@ func (r *ReservationHandler) CreateAvailablePeriod(rw http.ResponseWriter, h *ht
 		return
 	}
 
-	userID, err := r.profile.GetUserId(h.Context(), username)
+	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
 		r.logger.Println("Failed to get HostID from username:", err)
 		http.Error(rw, "Failed to get HostID from username", http.StatusBadRequest)
@@ -122,14 +122,14 @@ func (r *ReservationHandler) CreateAvailablePeriod(rw http.ResponseWriter, h *ht
 		return
 	}
 
-	_, err = r.accommodation.CheckAccommodationID(h.Context(), availablePeriod.IDAccommodation)
+	_, err = r.accommodation.CheckAccommodationID(h.Context(), availablePeriod.IDAccommodation, tokenStr)
 	if err != nil {
 		r.logger.Println("Failed to get accommodation by Id:", err)
 		http.Error(rw, "Failed to get accommodation by Id", http.StatusBadRequest)
 		return
 	}
 
-	exists, err := r.accommodation.CheckAccommodationID(h.Context(), availablePeriod.IDAccommodation)
+	exists, err := r.accommodation.CheckAccommodationID(h.Context(), availablePeriod.IDAccommodation, tokenStr)
 	if err != nil {
 		r.logger.Print("Failed to check accommodation existence: ", err)
 		http.Error(rw, "Failed to check accommodation existence", http.StatusInternalServerError)
@@ -163,7 +163,7 @@ func (r *ReservationHandler) CreateReservation(rw http.ResponseWriter, h *http.R
 		return
 	}
 
-	userID, err := r.profile.GetUserId(h.Context(), username)
+	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
 		r.logger.Println("Failed to get HostID from username:", err)
 		http.Error(rw, "Failed to get HostID from username", http.StatusBadRequest)
@@ -179,7 +179,7 @@ func (r *ReservationHandler) CreateReservation(rw http.ResponseWriter, h *http.R
 
 	r.logger.Printf("Checking accommodation existence for ID: %s", reservation.IDAccommodation.Hex())
 
-	exists, err := r.accommodation.CheckAccommodationID(h.Context(), reservation.IDAccommodation)
+	exists, err := r.accommodation.CheckAccommodationID(h.Context(), reservation.IDAccommodation, tokenStr)
 	if !exists {
 		r.logger.Print("Accommodation does not exist")
 		http.Error(rw, "Accommodation does not exist", http.StatusBadRequest)
@@ -215,10 +215,11 @@ func (r *ReservationHandler) FindAccommodationIdsByDates(rw http.ResponseWriter,
 		r.logger.Fatal("Unable to convert to json :", err)
 		return
 	}
+
+	rw.WriteHeader(http.StatusOK)
 }
 
 func (r *ReservationHandler) FindAllReservationsByUserIDExpiredHandler(rw http.ResponseWriter, h *http.Request) {
-
 	tokenStr := r.extractTokenFromHeader(h)
 	username, err := r.getUsername(tokenStr)
 	if err != nil {
@@ -227,7 +228,7 @@ func (r *ReservationHandler) FindAllReservationsByUserIDExpiredHandler(rw http.R
 		return
 	}
 
-	userID, err := r.profile.GetUserId(h.Context(), username)
+	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
 		r.logger.Println("Failed to get HostID from username:", err)
 		http.Error(rw, "Failed to get HostID from username", http.StatusBadRequest)
@@ -266,7 +267,7 @@ func (r *ReservationHandler) UpdateAvailablePeriodByAccommodation(rw http.Respon
 		return
 	}
 
-	userID, err := r.profile.GetUserId(h.Context(), username)
+	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
 		r.logger.Println("Failed to get HostID from username:", err)
 		http.Error(rw, "Failed to get HostID from username", http.StatusBadRequest)
@@ -304,6 +305,34 @@ func (r *ReservationHandler) DeletePeriodsForAccommodations(rw http.ResponseWrit
 	rw.WriteHeader(http.StatusNoContent)
 }
 
+func (r *ReservationHandler) GetAllReservationsByUser(rw http.ResponseWriter, h *http.Request) {
+	tokenStr := r.extractTokenFromHeader(h)
+	vars := mux.Vars(h)
+	username := vars["username"]
+
+	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
+	if err != nil {
+		r.logger.Println("Failed to get UserID from username:", err)
+		http.Error(rw, "Failed to get UserID from username", http.StatusBadRequest)
+		return
+	}
+
+	reservations, err := r.repo.FindAllReservationsByUserID(userID)
+	if err != nil {
+		r.logger.Println("Database exception: ", err)
+		rw.WriteHeader(http.StatusBadRequest)
+	}
+
+	err = reservations.ToJSON(rw)
+	if err != nil {
+		http.Error(rw, "Unable to convert to json:", http.StatusInternalServerError)
+		r.logger.Fatal("Unable to convert to json :", err)
+		return
+	}
+
+	rw.WriteHeader(http.StatusOK)
+}
+
 func (r *ReservationHandler) CheckAndDeleteReservationsForUser(rw http.ResponseWriter, h *http.Request) {
 	vars := mux.Vars(h)
 	userID, err := primitive.ObjectIDFromHex(vars["id"])
@@ -333,7 +362,7 @@ func (r *ReservationHandler) DeleteReservation(rw http.ResponseWriter, h *http.R
 		return
 	}
 
-	userID, err := r.profile.GetUserId(h.Context(), username)
+	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
 		r.logger.Println("Failed to get HostID from username:", err)
 		http.Error(rw, "Failed to get HostID from username", http.StatusBadRequest)

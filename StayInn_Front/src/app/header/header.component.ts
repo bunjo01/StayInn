@@ -24,8 +24,7 @@ export class HeaderComponent implements OnInit {
   ngOnInit() { }
 
   isUserLoggedIn() {
-    const token = localStorage.getItem('token');
-    return !!token;
+    return this.authService.isAuthenticated()
   }
 
   handleDropdownChange(event: any) {

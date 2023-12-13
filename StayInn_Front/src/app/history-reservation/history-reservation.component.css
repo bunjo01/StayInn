@@ -1,3 +1,14 @@
+.wrapper {
+    width: 1200px;
+    margin: 0 auto;
+    height: 100vh;
+}
+
+h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
 .reservation-cards {
     display: flex;
     flex-wrap: wrap;

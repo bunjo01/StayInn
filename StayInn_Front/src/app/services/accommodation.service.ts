@@ -3,6 +3,7 @@ import { HttpClient, HttpHeaders, HttpResponse } from '@angular/common/http';
 import { BehaviorSubject, Observable, Subject, of } from 'rxjs';
 import { Accommodation } from 'src/app/model/accommodation';
 import { environment } from 'src/environments/environment';
+import { Image } from '../model/image';
 
 @Injectable({
   providedIn: 'root'
@@ -23,6 +24,10 @@ export class AccommodationService {
 
   getAccommodationById(id: string): Observable<Accommodation> {
     return this.http.get<Accommodation>(this.apiUrl + `/accommodation/${id}`);
+  }
+
+  getAccommodationsByUser(username: string): Observable<Accommodation[]> {
+    return this.http.get<Accommodation[]>(this.apiUrl + `/user/${username}/accommodations`);
   }
 
   updateAccommodation(accommodation: Accommodation, id: string): Observable<any> {
@@ -78,6 +83,26 @@ export class AccommodationService {
     });
 
     return this.http.post<Accommodation>(this.apiUrl + '/accommodation', accommodation, { headers });
+  }
+
+  createAccommodationImages(images: Image[]): Observable<any> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+
+    return this.http.post<any>(this.apiUrl + '/accommodation/images', images, { headers });
+  }
+
+  getAccommodationImages(accID: string): Observable<Image[]> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+
+    return this.http.get<Image[]>(this.apiUrl + '/accommodation/' + accID + '/images');
   }
 
   deleteAccommodation(id: string): Observable<any> {

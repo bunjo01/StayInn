@@ -96,7 +96,7 @@ func main() {
 
 	deleteUserRouter := router.Methods(http.MethodDelete).Path("/delete/{username}").Subrouter()
 	deleteUserRouter.HandleFunc("", credentialsHandler.DeleteUser)
-	//deleteUserRouter.Use(credentialsHandler.AuthorizeRoles("HOST", "GUEST"))
+	deleteUserRouter.Use(credentialsHandler.AuthorizeRoles("HOST", "GUEST"))
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 
