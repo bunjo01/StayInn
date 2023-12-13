@@ -39,24 +39,36 @@ func (rh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	ctx, cancel := context.WithTimeout(r.Context(), 5000*time.Millisecond)
+	defer cancel()
+
 	// idAccommodation := rating.IDAccommodation
 
 	tokenStr := rh.extractTokenFromHeader(r)
-	username, err := rh.getUsername(tokenStr)
+	guestUsername, err := rh.getUsername(tokenStr)
 	if err != nil {
 		rh.logger.Println("Failed to read username from token:", err)
 		http.Error(w, "Failed to read username from token", http.StatusBadRequest)
 		return
 	}
-	rating.GuestUsername = username
+	rating.GuestUsername = guestUsername
 	rating.Time = time.Now()
+
+	host, err := rh.profileClient.GetUsernameById(ctx, rating.HostID)
+	if err != nil {
+		rh.logger.Println(err)
+		http.Error(w, "Failed to get host", http.StatusBadRequest)
+		return
+	}
+
+	rating.HostUsername = host.Username
 
 	if rating.Rate < 1 || rating.Rate > 5 {
 		http.Error(w, "Rating must be between 1 and 5", http.StatusBadRequest)
 		return
 	}
 
-	userID, err := rh.profileClient.GetUserId(r.Context(), username)
+	userID, err := rh.profileClient.GetUserId(r.Context(), guestUsername)
 	if err != nil {
 		rh.logger.Println("Failed to get HostID from username:", err)
 		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
@@ -98,6 +110,7 @@ func (rh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request
 
 	for _, r := range ratings {
 		if r.IDAccommodation == rating.IDAccommodation {
+			rh.repo.UpdateRatingAccommodationByID(r.ID, rating.Rate)
 			http.Error(w, "User already rated this accommodation", http.StatusBadRequest)
 			return
 		}
