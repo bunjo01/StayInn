@@ -22,6 +22,8 @@ export class AccommodationService {
     return this.http.get<Accommodation[]>(this.apiUrl + '/accommodation');
   }
 
+
+  //accommodation rating
   getAccommodationById(id: string): Observable<Accommodation> {
     return this.http.get<Accommodation>(this.apiUrl + `/accommodation/${id}`);
   }

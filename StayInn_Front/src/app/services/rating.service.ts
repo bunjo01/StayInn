@@ -14,6 +14,7 @@ export class RatingService {
 
   constructor(private http: HttpClient) {}
 
+  //used for rating accommodation
   addRatingAccommodation(ratingAccommodation: any): Observable<HttpResponse<any>> {
     const token = localStorage.getItem('token');
     const headers = new HttpHeaders({
@@ -26,25 +27,6 @@ export class RatingService {
       responseType: 'text',
       observe: 'response'
     });
-  }
-
-  getRatingsAccommodationByUser(): Observable<RatingAccommodation[]> {
-    const token = localStorage.getItem('token');
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    });
-
-    return this.http.get<RatingAccommodation[]>(this.baseUrl + '/ratings/accommodationByUser', { headers });
-  }
-
-  getRatingAccommodationByUser(accommodationId: string): Observable<RatingAccommodation> {
-    const token = localStorage.getItem('token');
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    });
-    return this.http.get<RatingAccommodation>(this.baseUrl + '/rating/accommodation/getByAccommodationId' + accommodationId, { headers });
   }
 
   getUsersRatingForAccommodation(accommodationId: string): Observable<any> {
@@ -65,6 +47,44 @@ export class RatingService {
     return this.http.get<any>(this.baseUrl + `/ratings/average/${accommodationId}`, {headers: headers});
   }
 
+  deleteRatingsAccommodationByUser(idRating: string) {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+    return this.http.delete(this.baseUrl + `/rating/accommodation/${idRating}`, { headers });
+  }
+
+  getRatingsAccommodationByUser(): Observable<RatingAccommodation[]> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+
+    return this.http.get<RatingAccommodation[]>(this.baseUrl + '/ratings/accommodationByUser', { headers });
+  }
+
+  getRatingAccommodationByUser(accommodationId: string): Observable<RatingAccommodation> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+    return this.http.get<RatingAccommodation>(this.baseUrl + '/rating/accommodation/getByAccommodationId' + accommodationId, { headers });
+  }
+  // end of use
+
+  getAverageRatingForUser(body: any): Observable<any> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+    return this.http.post<any>(this.baseUrl + `/ratings/average/host`,JSON.stringify(body) ,{headers: headers});
+  }
+
   getUsersRatingForHost(body: any): Observable<any[]> {
     const token = localStorage.getItem('token');
     const headers = new HttpHeaders({
@@ -74,22 +94,13 @@ export class RatingService {
     return this.http.post<any[]>(this.baseUrl + `/rating/host/byGuest`,JSON.stringify(body), {headers: headers});
   }
 
-  deleteRatingsAccommodationByUser(idRating: string) {
+  deleteRatingsHostByUser(idRating: string) {
     const token = localStorage.getItem('token');
     const headers = new HttpHeaders({
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
     });
-    console.log("DELETE URL:", this.baseUrl + `/rating/accommodation/${idRating}` )
-    return this.http.delete(this.baseUrl + `/rating/accommodation/${idRating}`, { headers });
-  }
-
-  sendAccommodationID(data: string) {
-    this.dataSubject.next(data);
-  }
-
-  getAccommodationID() {
-    return this.dataSubject.asObservable();
+    return this.http.delete(this.baseUrl + `/rating/host/${idRating}`, { headers });
   }
 
   addRatingHost(ratingHost: any): Observable<HttpResponse<any>> {
@@ -124,4 +135,14 @@ export class RatingService {
 
     return this.http.delete(this.baseUrl + `/rating/host/${idRating}`, { headers });
   }
+
+  sendAccommodationID(data: string) {
+    this.dataSubject.next(data);
+  }
+
+  getAccommodationID() {
+    return this.dataSubject.asObservable();
+  }
+
+  
 }
