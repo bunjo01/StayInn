@@ -158,6 +158,10 @@ func main() {
 	deleteRatingForAccommodation := router.Methods(http.MethodDelete).Path("/rating/accommodation/{id}").Subrouter()
 	deleteRatingForAccommodation.HandleFunc("", notificationsHandler.DeleteRatingAccommodationHandler)
 
+	// Notify on reservation
+	notifyForReservation := router.Methods(http.MethodPost).Subrouter()
+	notifyForReservation.HandleFunc("/reservation", notificationsHandler.NotifyForReservation)
+
 	// CORS middleware
 	cors := gorillaHandlers.CORS(
 		gorillaHandlers.AllowedOrigins([]string{"*"}),

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"notification/clients"
 	"notification/data"
+	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -42,7 +43,7 @@ func (rh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request
 	ctx, cancel := context.WithTimeout(r.Context(), 5000*time.Millisecond)
 	defer cancel()
 
-	// idAccommodation := rating.IDAccommodation
+	idAccommodation := rating.IDAccommodation
 
 	tokenStr := rh.extractTokenFromHeader(r)
 	guestUsername, err := rh.getUsername(tokenStr)
@@ -83,24 +84,24 @@ func (rh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request
 
 	rating.GuestID = id
 
-	// reservations, err := rh.reservationClient.GetReservationsByUserIDExp(r.Context(), id)
-	// if err != nil {
-	// 	http.Error(w, fmt.Sprintf("Error fetching user reservations: %s", err), http.StatusBadRequest)
-	// 	return
-	// }
+	reservations, err := rh.reservationClient.GetReservationsByUserIDExp(r.Context(), id, tokenStr)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error fetching user reservations: %s", err), http.StatusBadRequest)
+		return
+	}
 
-	// found := false
-	// for _, reservation := range reservations {
-	// 	if reservation.IDAccommodation == idAccommodation {
-	// 		found = true
-	// 		break
-	// 	}
-	// }
+	found := false
+	for _, reservation := range reservations {
+		if reservation.IDAccommodation == idAccommodation {
+			found = true
+			break
+		}
+	}
 
-	// if !found {
-	// 	http.Error(w, "Accommodation ID not found in user reservations", http.StatusBadRequest)
-	// 	return
-	// }
+	if !found {
+		http.Error(w, "Accommodation ID not found in user reservations", http.StatusBadRequest)
+		return
+	}
 
 	ratings, err := rh.repo.GetAllAccommodationRatingsByUser(r.Context(), id)
 	if err != nil {
@@ -459,12 +460,6 @@ func (rh *NotificationsHandler) GetHostRatings(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	// id, err := primitive.ObjectIDFromHex(hostID)
-	// if err != nil {
-	//     http.Error(w, "Invalid hostID", http.StatusBadRequest)
-	//     return
-	// }
-
 	ratings, err := rh.repo.GetHostRatings(r.Context(), hostUsername)
 	if err != nil {
 		rh.logger.Println("Error fetching host ratings:", err)
@@ -529,31 +524,31 @@ func (rh *NotificationsHandler) AddHostRating(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	//hostID, err := rh.profileClient.GetUserId(r.Context(), rating.HostUsername)
-	//if err != nil {
-	//	rh.logger.Println("Failed to get HostID from username:", err)
-	//	http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
-	//	return
-	//}
-	//
-	//id, err := primitive.ObjectIDFromHex(hostID)
-	//if err != nil {
-	//	http.Error(w, "Invalid hostID", http.StatusBadRequest)
-	//	return
-	//}
-	//
-	//rating.GuestID = id
+	hostID, err := rh.profileClient.GetUserId(r.Context(), rating.HostUsername, tokenStr)
+	if err != nil {
+		rh.logger.Println("Failed to get HostID from username:", err)
+		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
+		return
+	}
 
-	//hasExpiredReservations, err := rh.reservationClient.GetReservationsByUserIDExp(r.Context(), rating.GuestID)
-	//if err != nil {
-	//	http.Error(w, "Error checking expired reservations", http.StatusBadRequest)
-	//	return
-	//}
-	//
-	//if len(hasExpiredReservations) == 0 {
-	//	http.Error(w, "Guest does not have any expired reservations with the specified host", http.StatusBadRequest)
-	//	return
-	//}
+	id, err := primitive.ObjectIDFromHex(hostID)
+	if err != nil {
+		http.Error(w, "Invalid hostID", http.StatusBadRequest)
+		return
+	}
+
+	rating.GuestID = id
+
+	hasExpiredReservations, err := rh.reservationClient.GetReservationsByUserIDExp(r.Context(), rating.GuestID, tokenStr)
+	if err != nil {
+		http.Error(w, "Error checking expired reservations", http.StatusBadRequest)
+		return
+	}
+
+	if len(hasExpiredReservations) == 0 {
+		http.Error(w, "Guest does not have any expired reservations with the specified host", http.StatusBadRequest)
+		return
+	}
 
 	rating.Time = time.Now()
 
@@ -873,6 +868,41 @@ func (rh *NotificationsHandler) DeleteRatingAccommodationHandler(w http.Response
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Document deleted successfully"))
+}
+
+func (nh *NotificationsHandler) NotifyForReservation(w http.ResponseWriter, r *http.Request) {
+	var notification data.Notification
+	if err := json.NewDecoder(r.Body).Decode(&notification); err != nil {
+		nh.logger.Println("Failed to decode body:", err)
+		http.Error(w, "Failed to decode request body", http.StatusBadRequest)
+		return
+	}
+
+	err := nh.repo.CreateNotification(r.Context(), &notification)
+	if err != nil {
+		nh.logger.Println("Failed to create notification:", err)
+		http.Error(w, "Failed to create notification", http.StatusInternalServerError)
+		return
+	}
+
+	var intent string
+	if strings.Contains(notification.Text, "created") {
+		intent = "reservation-new"
+	} else {
+		intent = "reservation-deleted"
+	}
+
+	success, err := data.SendNotificationEmail(notification.HostEmail, intent)
+	if !success {
+		nh.logger.Println("Failed to send notification email:", err)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(notification); err != nil {
+		nh.logger.Println("Failed to encode notification:", err)
+		http.Error(w, "Failed to encode notification", http.StatusInternalServerError)
+	}
 }
 
 func (rh *NotificationsHandler) extractTokenFromHeader(rr *http.Request) string {
