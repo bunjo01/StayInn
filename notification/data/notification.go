@@ -10,6 +10,7 @@ import (
 
 type Notification struct {
 	ID           primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	HostID       primitive.ObjectID `bson:"hostID" json:"hostID"`
 	HostUsername string             `bson:"hostUsername" json:"hostUsername"`
 	Text         string             `bson:"text" json:"text"`
 	Time         time.Time          `bson:"time" json:"time"`
