@@ -62,6 +62,7 @@ export class RateAccommodationComponent implements OnInit {
     if(this.accommodationID != null){
       this.ratingService.deleteRatingsAccommodationByUser(this.guestsRatingOfAccommodation.id).subscribe((result) => {})      
     }
+    this.router.navigate(["/"])
   }
 
   setUserRole(){
