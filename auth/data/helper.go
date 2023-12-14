@@ -57,7 +57,6 @@ func SendEmail(providedEmail, activationUUID, intention string) (string, error) 
 }
 
 func generateActivationUUID() string {
-	//requestUUID := uuid.NewUUID()
 	requestUUID := uuid.New().String()
 	return requestUUID
 }

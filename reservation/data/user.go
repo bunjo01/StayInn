@@ -2,8 +2,9 @@ package data
 
 import (
 	"encoding/json"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"io"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 const (
@@ -19,6 +20,10 @@ type User struct {
 	Email     string             `bson:"email" json:"email"`
 	Address   string             `bson:"address" json:"address"`
 	Role      string             `bson:"role" json:"role"`
+}
+
+type UserId struct {
+	ID primitive.ObjectID `json:"id"`
 }
 
 func (u *User) ToJSON(w io.Writer) error {

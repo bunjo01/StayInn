@@ -14,7 +14,16 @@ export class RatingService {
 
   constructor(private http: HttpClient) {}
 
-  //used for rating accommodation
+  getNotifications(username: string): Observable<Notification[]> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+
+    return this.http.get<Notification[]>(this.baseUrl + '/' + username, { headers });
+  }
+
   addRatingAccommodation(ratingAccommodation: any): Observable<HttpResponse<any>> {
     const token = localStorage.getItem('token');
     const headers = new HttpHeaders({
