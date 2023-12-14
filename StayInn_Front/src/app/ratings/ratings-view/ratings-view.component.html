@@ -1,0 +1,48 @@
+<div class="ratings">
+    <h1>Ratings</h1>
+    <div class="host-ratings">
+        <h2>Host Ratings</h2>
+        <table>
+        <thead>
+            <tr>
+            <th>Username</th>
+            <th>Time</th>
+            <th>Rate</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr *ngFor="let rating of ratingHost">
+            <td>{{ rating.guestUsername }}</td>
+            <td>{{ formatDateTime(rating.time) }}</td>
+            <td>{{ rating.rate }}</td>
+            </tr>
+        </tbody>
+        </table>
+    </div>
+    <hr>
+    <div class="accommodation-rating-wrapper">
+        <h2>Accommodations Ratings</h2>
+        <div class="accommodation-ratings" *ngFor="let accommodation of accommodations">
+            <h3>{{ accommodation.name }}</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Time</th>
+                        <th>Rate</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let rating of ratingAccommodation">
+                        <ng-container *ngIf="rating.idAccommodation === accommodation.id">
+                            <td>{{ rating.guestUsername }}</td>
+                            <td>{{ formatDateTime(rating.time) }}</td>
+                            <td>{{ rating.rate }}</td>
+                        </ng-container>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+</div>

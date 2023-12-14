@@ -144,5 +144,23 @@ export class RatingService {
     return this.dataSubject.asObservable();
   }
 
-  
+  getAllHostRatingsByUser(): Observable<RatingHost[]> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+    return this.http.get<RatingHost[]>(this.baseUrl + '/ratings/hostByGuest', { headers });
+  }
+
+  getAllAccommodationRatingsByUser(): Observable<RatingAccommodation[]> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+
+    return this.http.get<RatingAccommodation[]>(this.baseUrl + '/ratings/accommodation/byHost', { headers });
+  }
+
 }
