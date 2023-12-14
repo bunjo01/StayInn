@@ -1,32 +1,54 @@
 .wrapper {
-    width: 1200px;
-    margin: 0 auto;
-    height: 100vh;
-}
-
-h2 {
-    text-align: center;
     margin-bottom: 20px;
-}
-
-.reservation-cards {
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  
+  .reservation-cards {
     display: flex;
     flex-wrap: wrap;
     gap: 20px;
-    justify-content: space-between;
-}
+  }
   
-.reservation-card {
-    border: 1px solid #ccc;
-    border-radius: 8px;
+  .reservation-card {
+    flex: 0 0 calc(33.33% - 20px);
     padding: 15px;
-    width: 300px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    background-color: #fff;
-}
+    border: 1px solid #ddd;
+    border-radius: 5px;
+  }
   
-.accommodation-id {
-    font-weight: bold;
-    margin-bottom: 8px;
-}
+  .rating-section {
+    margin-top: 20px;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  
+  .rating-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  
+  .rating-card {
+    flex: 0 0 calc(33.33% - 20px);
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+  }
+  
+  .rating-list {
+    list-style: none;
+    padding: 0;
+  }
+  
+  .rating-item {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  .rating-item:last-child {
+    border-bottom: none;
+  }
   

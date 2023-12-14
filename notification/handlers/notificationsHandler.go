@@ -32,58 +32,58 @@ func NewNotificationsHandler(l *log.Logger, r *data.NotificationsRepo, rc client
 // TODO Handler methods
 
 func (rh *NotificationsHandler) GetAccommodationRatings(w http.ResponseWriter, r *http.Request) {
-    vars := mux.Vars(r)
-    accommodationID := vars["idAccommodation"]
+	vars := mux.Vars(r)
+	accommodationID := vars["idAccommodation"]
 
-    objectID, err := primitive.ObjectIDFromHex(accommodationID)
-    if err != nil {
-        http.Error(w, "Invalid accommodation ID", http.StatusBadRequest)
-        rh.logger.Println("Invalid accommodation ID:", err)
-        return
-    }
+	objectID, err := primitive.ObjectIDFromHex(accommodationID)
+	if err != nil {
+		http.Error(w, "Invalid accommodation ID", http.StatusBadRequest)
+		rh.logger.Println("Invalid accommodation ID:", err)
+		return
+	}
 
-    ratings, err := rh.repo.GetRatingsByAccommodationID(objectID)
-    if err != nil {
-        http.Error(w, "Failed to fetch ratings", http.StatusBadRequest)
-        return
-    }
+	ratings, err := rh.repo.GetRatingsByAccommodationID(objectID)
+	if err != nil {
+		http.Error(w, "Failed to fetch ratings", http.StatusBadRequest)
+		return
+	}
 
-    if err := json.NewEncoder(w).Encode(ratings); err != nil {
-        rh.logger.Println("Error encoding accommodation ratings:", err)
-        http.Error(w, "Error encoding accommodation ratings", http.StatusInternalServerError)
-        return
-    }
+	if err := json.NewEncoder(w).Encode(ratings); err != nil {
+		rh.logger.Println("Error encoding accommodation ratings:", err)
+		http.Error(w, "Error encoding accommodation ratings", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (rh *NotificationsHandler) GetRatingsHost(w http.ResponseWriter, r *http.Request) {
-    var requestData struct {
-        HostID string `json:"idHost"`
-    }
+	var requestData struct {
+		HostID string `json:"idHost"`
+	}
 
-    if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
-        http.Error(w, "Invalid request body", http.StatusBadRequest)
-        rh.logger.Println("Invalid request body:", err)
-        return
-    }
+	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		rh.logger.Println("Invalid request body:", err)
+		return
+	}
 
-    hostID, err := primitive.ObjectIDFromHex(requestData.HostID)
-    if err != nil {
-        http.Error(w, "Invalid host ID", http.StatusBadRequest)
-        rh.logger.Println("Invalid host ID:", err)
-        return
-    }
+	hostID, err := primitive.ObjectIDFromHex(requestData.HostID)
+	if err != nil {
+		http.Error(w, "Invalid host ID", http.StatusBadRequest)
+		rh.logger.Println("Invalid host ID:", err)
+		return
+	}
 
-    ratings, err := rh.repo.GetRatingsByHostID(hostID)
-    if err != nil {
-        http.Error(w, "Failed to fetch ratings", http.StatusBadRequest)
-        return
-    }
+	ratings, err := rh.repo.GetRatingsByHostID(hostID)
+	if err != nil {
+		http.Error(w, "Failed to fetch ratings", http.StatusBadRequest)
+		return
+	}
 
-    if err := json.NewEncoder(w).Encode(ratings); err != nil {
-        rh.logger.Println("Error encoding host ratings:", err)
-        http.Error(w, "Error encoding host ratings", http.StatusInternalServerError)
-        return
-    }
+	if err := json.NewEncoder(w).Encode(ratings); err != nil {
+		rh.logger.Println("Error encoding host ratings:", err)
+		http.Error(w, "Error encoding host ratings", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (rh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request) {
@@ -448,21 +448,6 @@ func (rh *NotificationsHandler) GetAllAccommodationRatingsByUser(w http.Response
 	}
 }
 
-func (rh *NotificationsHandler) GetAllHostRatings(w http.ResponseWriter, r *http.Request) {
-	ratings, err := rh.repo.GetAllHostRatings(r.Context())
-	if err != nil {
-		rh.logger.Println("Error fetching all host ratings:", err)
-		http.Error(w, "Error fetching host ratings", http.StatusInternalServerError)
-		return
-	}
-
-	if err := json.NewEncoder(w).Encode(ratings); err != nil {
-		rh.logger.Println("Error encoding host ratings:", err)
-		http.Error(w, "Error encoding host ratings", http.StatusInternalServerError)
-		return
-	}
-}
-
 func (rh *NotificationsHandler) GetAllHostRatingsByUser(w http.ResponseWriter, r *http.Request) {
 	tokenStr := rh.extractTokenFromHeader(r)
 	username, err := rh.getUsername(tokenStr)
@@ -484,7 +469,23 @@ func (rh *NotificationsHandler) GetAllHostRatingsByUser(w http.ResponseWriter, r
 		http.Error(w, "Invalid userID", http.StatusBadRequest)
 		return
 	}
+
 	ratings, err := rh.repo.GetAllHostRatingsByUser(r.Context(), id)
+	if err != nil {
+		rh.logger.Println("Error fetching all host ratings:", err)
+		http.Error(w, "Error fetching host ratings", http.StatusInternalServerError)
+		return
+	}
+
+	if err := json.NewEncoder(w).Encode(ratings); err != nil {
+		rh.logger.Println("Error encoding host ratings:", err)
+		http.Error(w, "Error encoding host ratings", http.StatusInternalServerError)
+		return
+	}
+}
+
+func (rh *NotificationsHandler) GetAllHostRatings(w http.ResponseWriter, r *http.Request) {
+	ratings, err := rh.repo.GetAllHostRatings(r.Context())
 	if err != nil {
 		rh.logger.Println("Error fetching all host ratings:", err)
 		http.Error(w, "Error fetching host ratings", http.StatusInternalServerError)

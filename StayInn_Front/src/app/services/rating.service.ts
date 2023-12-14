@@ -150,7 +150,7 @@ export class RatingService {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
     });
-    return this.http.get<RatingHost[]>(this.baseUrl + '/ratings/hostByGuest', { headers });
+    return this.http.get<RatingHost[]>(this.baseUrl + '/ratings/hostByUser', { headers });
   }
 
   getAllAccommodationRatingsByUser(): Observable<RatingAccommodation[]> {

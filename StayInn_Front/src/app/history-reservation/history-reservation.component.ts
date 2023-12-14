@@ -8,7 +8,7 @@ import { JwtPayload } from 'src/app/model/user';
 import { AccommodationService } from '../services/accommodation.service';
 import { Accommodation, DisplayedAccommodation } from '../model/accommodation';
 import { RatingService } from '../services/rating.service';
-import { RatingAccommodation } from '../model/ratings';
+import { RatingAccommodation, RatingHost } from '../model/ratings';
 import { AuthService } from '../services/auth.service';
 
 @Component({
@@ -22,6 +22,7 @@ export class HistoryReservationComponent implements OnInit{
   loggedinUserId: any;
   displayedAccommodations: DisplayedAccommodation[] = [];
   userRatings: RatingAccommodation[] = [];
+  hostRating: RatingHost[] = [];
 
   constructor(private http: HttpClient, private reservationService: ReservationService, private profileService: ProfileService,
      private accommodationService: AccommodationService , private router: Router, private ratingService: RatingService, private authService: AuthService) { }
@@ -46,6 +47,16 @@ export class HistoryReservationComponent implements OnInit{
           console.error('Greška prilikom dohvatanja ocjena za smještaje:', error);
         }
       );
+
+      this.ratingService.getAllHostRatingsByUser().subscribe(
+        (ratings: RatingHost[]) => {
+          this.hostRating = ratings;
+        },
+        (error) => {
+          console.error('Greška prilikom dohvatanja ocjena za smještaje:', error);
+        }
+      );
+
   }
 
   getUserId(){

@@ -12,15 +12,34 @@
   </div>
 </div>
 
-<!-- <div>Rating for Accommodation</div>
-<div *ngIf="userRatings.length > 0">
-  <ul>
-    <li *ngFor="let rating of userRatings">
-      <p>Accommodation: {{ rating.idAccommodation }}</p>
-      <p>Rating: {{ rating.rate }}</p>
-    </li>
-  </ul>
+<div class="wrapper rating-section">
+  <h2>History Rating for Accommodation</h2>
+  <div *ngIf="userRatings.length > 0">
+    <ul class="rating-list">
+      <li *ngFor="let rating of userRatings">
+        <p>Accommodation: {{ rating.idAccommodation }}</p>
+        <p>Rating: {{ rating.rate }}</p>
+        <p>Time: {{ rating.time }}</p>
+      </li>
+    </ul>
+  </div>
+  <div *ngIf="userRatings.length === 0">
+    <p>No ratings available.</p>
+  </div>
 </div>
-<div *ngIf="userRatings.length === 0">
-  <p>No ratings available.</p>
-</div> -->
+
+<div class="wrapper rating-section">
+  <h2>History Rating for Hosts</h2>
+  <div *ngIf="hostRating.length > 0">
+    <ul class="rating-list">
+      <li *ngFor="let rating of hostRating">
+        <p>Host: {{ rating.idHost }}</p>
+        <p>Rating: {{ rating.rate }}</p>
+        <p>Time: {{ rating.time }}</p>
+      </li>
+    </ul>
+  </div>
+  <div *ngIf="hostRating.length === 0">
+    <p>No ratings available.</p>
+  </div>
+</div>

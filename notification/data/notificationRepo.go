@@ -96,26 +96,26 @@ func (ar *NotificationsRepo) AddHostRating(rating *RatingHost) error {
 }
 
 func (ar *NotificationsRepo) GetRatingsByHostID(hostID primitive.ObjectID) ([]RatingHost, error) {
-    ratingsCollection := ar.getHostRatingsCollection()
+	ratingsCollection := ar.getHostRatingsCollection()
 
-    filter := bson.M{"idHost": hostID}
+	filter := bson.M{"idHost": hostID}
 
-    cursor, err := ratingsCollection.Find(context.Background(), filter)
-    if err != nil {
-        return nil, err
-    }
-    defer cursor.Close(context.Background())
+	cursor, err := ratingsCollection.Find(context.Background(), filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(context.Background())
 
-    var ratings []RatingHost
-    for cursor.Next(context.Background()) {
-        var rating RatingHost
-        if err := cursor.Decode(&rating); err != nil {
-            return nil, err
-        }
-        ratings = append(ratings, rating)
-    }
+	var ratings []RatingHost
+	for cursor.Next(context.Background()) {
+		var rating RatingHost
+		if err := cursor.Decode(&rating); err != nil {
+			return nil, err
+		}
+		ratings = append(ratings, rating)
+	}
 
-    return ratings, nil
+	return ratings, nil
 }
 
 func (ar *NotificationsRepo) UpdateHostRating(id, idUser primitive.ObjectID, newRating *RatingHost) error {
@@ -265,6 +265,27 @@ func (ar *NotificationsRepo) GetAllAccommodationRatingsByUser(ctx context.Contex
 	return ratings, nil
 }
 
+func (ar *NotificationsRepo) GetAllHostRatingsByUser(ctx context.Context, userID primitive.ObjectID) ([]RatingHost, error) {
+	ratingsCollection := ar.getHostRatingsCollection()
+
+	cursor, err := ratingsCollection.Find(ctx, bson.M{"idGuest": userID})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var ratings []RatingHost
+	for cursor.Next(ctx) {
+		var rating RatingHost
+		if err := cursor.Decode(&rating); err != nil {
+			return nil, err
+		}
+		ratings = append(ratings, rating)
+	}
+
+	return ratings, nil
+}
+
 func (ar *NotificationsRepo) GetAllAccommodationRatingsForLoggedHost(ctx context.Context, userID primitive.ObjectID) ([]RatingAccommodation, error) {
 	ratingsCollection := ar.getRatingsCollection()
 
@@ -303,27 +324,6 @@ func (ar *NotificationsRepo) GetAllHostRatings(ctx context.Context) ([]RatingHos
 	ratingsCollection := ar.getHostRatingsCollection()
 
 	cursor, err := ratingsCollection.Find(ctx, bson.M{})
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Close(ctx)
-
-	var ratings []RatingHost
-	for cursor.Next(ctx) {
-		var rating RatingHost
-		if err := cursor.Decode(&rating); err != nil {
-			return nil, err
-		}
-		ratings = append(ratings, rating)
-	}
-
-	return ratings, nil
-}
-
-func (ar *NotificationsRepo) GetAllHostRatingsByUser(ctx context.Context, userID primitive.ObjectID) ([]RatingHost, error) {
-	ratingsCollection := ar.getHostRatingsCollection()
-
-	cursor, err := ratingsCollection.Find(ctx, bson.M{"idHost": userID})
 	if err != nil {
 		return nil, err
 	}
