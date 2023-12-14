@@ -4,8 +4,8 @@
     <div *ngFor="let displayedAccommodation of displayedAccommodations" class="reservation-card">
       <p class="accommodation-name">Name: {{ displayedAccommodation.accommodationInfo.name }}</p>
       <p>Location: {{ displayedAccommodation.accommodationInfo.location }}</p>
-      <p>Start date: {{ displayedAccommodation.reservationInfo.StartDate }}</p>
-      <p>End date: {{ displayedAccommodation.reservationInfo.EndDate }}</p>
+      <p>Start date: {{ formatDateTime(displayedAccommodation.reservationInfo.StartDate) }}</p>
+      <p>End date: {{ formatDateTime(displayedAccommodation.reservationInfo.EndDate) }}</p>
       <p>Price: {{ displayedAccommodation.reservationInfo.Price }} €</p>
       <!-- <button (click)="navigateToRateAccommodation(displayedAccommodation.accommodationInfo.id)">Rate Accommodation</button> -->
     </div>
@@ -17,9 +17,9 @@
   <div *ngIf="userRatings.length > 0">
     <ul class="rating-list">
       <li *ngFor="let rating of userRatings">
-        <p>Accommodation: {{ rating.idAccommodation }}</p>
+        <p>Accommodation: {{ getAccommodationNameById(rating.idAccommodation) }}</p>
         <p>Rating: {{ rating.rate }}</p>
-        <p>Time: {{ rating.time }}</p>
+        <p>Time: {{ formatDateTime(rating.time) }}</p>
       </li>
     </ul>
   </div>
@@ -35,7 +35,7 @@
       <li *ngFor="let rating of hostRating">
         <p>Host: {{ rating.hostUsername }}</p>
         <p>Rating: {{ rating.rate }}</p>
-        <p>Time: {{ rating.time }}</p>
+        <p>Time: {{ formatDateTime(rating.time) }}</p>
       </li>
     </ul>
   </div>
