@@ -75,16 +75,6 @@ export class RatingService {
     return this.http.get<RatingAccommodation[]>(this.baseUrl + '/ratings/accommodationByUser', { headers });
   }
 
-  getRatingAccommodationByUser(accommodationId: string): Observable<RatingAccommodation> {
-    const token = localStorage.getItem('token');
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    });
-    return this.http.get<RatingAccommodation>(this.baseUrl + '/rating/accommodation/getByAccommodationId' + accommodationId, { headers });
-  }
-  // end of use
-
   getAverageRatingForUser(body: any): Observable<any> {
     const token = localStorage.getItem('token');
     const headers = new HttpHeaders({
