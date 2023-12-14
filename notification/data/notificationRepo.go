@@ -212,19 +212,6 @@ func (nr *NotificationsRepo) DeleteHostRating(id primitive.ObjectID, idUser prim
 	return nil
 }
 
-func (nr *NotificationsRepo) FindRatingById(ctx context.Context, id primitive.ObjectID) (*RatingAccommodation, error) {
-	collection := nr.getRatingsCollection()
-
-	var rating RatingAccommodation
-	err := collection.FindOne(ctx, bson.M{"_id": id}).Decode(&rating)
-	if err != nil {
-		nr.logger.Println(err)
-		return nil, err
-	}
-
-	return &rating, nil
-}
-
 func (nr *NotificationsRepo) FindAccommodationRatingByGuest(ctx context.Context, accommodationId primitive.ObjectID, guestId primitive.ObjectID) (*RatingAccommodation, error) {
 	collection := nr.getRatingsCollection()
 
@@ -340,46 +327,10 @@ func (nr *NotificationsRepo) GetAllAccommodationRatingsForLoggedHost(ctx context
 	return ratings, nil
 }
 
-func (nr *NotificationsRepo) FindHostRatingById(ctx context.Context, id primitive.ObjectID) (*RatingHost, error) {
-	collection := nr.getHostRatingsCollection()
-
-	var rating RatingHost
-	err := collection.FindOne(ctx, bson.M{"_id": id}).Decode(&rating)
-	if err != nil {
-		nr.logger.Println(err)
-		return nil, err
-	}
-
-	return &rating, nil
-}
-
 func (nr *NotificationsRepo) GetAllHostRatings(ctx context.Context) ([]RatingHost, error) {
 	ratingsCollection := nr.getHostRatingsCollection()
 
 	cursor, err := ratingsCollection.Find(ctx, bson.M{})
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Close(ctx)
-
-	var ratings []RatingHost
-	for cursor.Next(ctx) {
-		var rating RatingHost
-		if err := cursor.Decode(&rating); err != nil {
-			return nil, err
-		}
-		ratings = append(ratings, rating)
-	}
-
-	return ratings, nil
-}
-
-func (nr *NotificationsRepo) GetHostRatings(ctx context.Context, hostUsername string) ([]RatingHost, error) {
-	ratingsCollection := nr.getHostRatingsCollection()
-
-	filter := bson.M{"hostUsername": hostUsername}
-
-	cursor, err := ratingsCollection.Find(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
