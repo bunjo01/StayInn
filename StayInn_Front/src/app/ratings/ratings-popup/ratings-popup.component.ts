@@ -25,7 +25,7 @@ export class RatingsPopupComponent {
 
   ngOnInit(): void {
     if (this.data.type === 'host') {
-      this.ratingService.getUsersRatingForHost({ hostId: this.data.hostId }).subscribe(
+      this.ratingService.getAllRatingsForHost({ idHost: this.data.hostId }).subscribe(
         (ratings) => {
           this.ratingHost = ratings;
         },
@@ -37,7 +37,6 @@ export class RatingsPopupComponent {
       this.ratingService.getAllRatingsForAccommodation(this.data.accommodationId).subscribe(
         (ratings) => {
           this.ratingAccommodation = ratings;
-          console.log('AccommodationS:', this.ratingAccommodation);
         },
         (error) => {
           console.error('Error fetching accommodation ratings:', error);

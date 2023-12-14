@@ -163,6 +163,9 @@ func main() {
 	getAccommodationRatings := router.Methods(http.MethodGet).Path("/ratings/accommodation/{idAccommodation}").Subrouter()
 	getAccommodationRatings.HandleFunc("", notificationsHandler.GetAccommodationRatings)
 
+	getHostRatings := router.Methods(http.MethodPost).Path("/ratings/host/host-ratings").Subrouter()
+	getHostRatings.HandleFunc("", notificationsHandler.GetRatingsHost)
+
 	//
 	//getAllAccommodationRatingsByUser := router.Methods(http.MethodGet).Path("/ratings/accommodationByUser").Subrouter()
 	//getAllAccommodationRatingsByUser.HandleFunc("", notificationsHandler.GetAllAccommodationRatingsByUser)

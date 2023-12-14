@@ -6,6 +6,7 @@ import { Image } from '../model/image';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { MatDialog } from '@angular/material/dialog';
 import { RatingsPopupComponent } from '../ratings/ratings-popup/ratings-popup.component';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-accommodation-details',
@@ -15,15 +16,18 @@ import { RatingsPopupComponent } from '../ratings/ratings-popup/ratings-popup.co
 export class AccommodationDetailsComponent implements OnInit {
   accommodation: Accommodation | null = null;
   images: Image[] = [];
+  userRole:any;
 
   constructor(
     private accommodationService: AccommodationService, 
+    private authService: AuthService,
     private router: Router,
     private sanitizer: DomSanitizer,
     private dialog: MatDialog
     ) { }
 
   ngOnInit(): void {
+    this.setUserRole()
     this.accommodationService.getAccommodation().subscribe(
       data => {
         this.accommodation = data;
@@ -47,6 +51,10 @@ export class AccommodationDetailsComponent implements OnInit {
 
   getAmenityName(amenity: number): string {
     return AmenityEnum[amenity];
+  }
+
+  setUserRole(){
+    this.userRole = this.authService.getRoleFromToken()
   }
 
   navigateToUpdateAccommodation(id: string): void{

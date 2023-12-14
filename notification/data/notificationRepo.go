@@ -95,6 +95,29 @@ func (ar *NotificationsRepo) AddHostRating(rating *RatingHost) error {
 	return nil
 }
 
+func (ar *NotificationsRepo) GetRatingsByHostID(hostID primitive.ObjectID) ([]RatingHost, error) {
+    ratingsCollection := ar.getHostRatingsCollection()
+
+    filter := bson.M{"idHost": hostID}
+
+    cursor, err := ratingsCollection.Find(context.Background(), filter)
+    if err != nil {
+        return nil, err
+    }
+    defer cursor.Close(context.Background())
+
+    var ratings []RatingHost
+    for cursor.Next(context.Background()) {
+        var rating RatingHost
+        if err := cursor.Decode(&rating); err != nil {
+            return nil, err
+        }
+        ratings = append(ratings, rating)
+    }
+
+    return ratings, nil
+}
+
 func (ar *NotificationsRepo) UpdateHostRating(id, idUser primitive.ObjectID, newRating *RatingHost) error {
 	ratingsCollection := ar.getHostRatingsCollection()
 

@@ -167,4 +167,8 @@ export class RatingService {
     return this.http.get<RatingAccommodation[]>(this.baseUrl + '/ratings/accommodation/' + accommodationId);
   }
 
+  getAllRatingsForHost(body: any): Observable<RatingHost[]> {
+    return this.http.post<RatingHost[]>(this.baseUrl + '/ratings/host/host-ratings', body);
+  }
+
 }

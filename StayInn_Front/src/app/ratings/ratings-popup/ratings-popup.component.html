@@ -20,9 +20,7 @@
       </table>
     </div>
     <hr>
-    <div class="accommodation-rating-wrapper" *ngIf="ratingsType === 'accommodation'">
-      <h2>Accommodations Ratings</h2>
-      <div class="accommodation-ratings">
+      <div class="accommodation-ratings" *ngIf="ratingsType === 'accommodation'">
         <h3>Accommodation</h3>
         <table>
           <thead>
@@ -43,6 +41,5 @@
           </tbody>
         </table>
       </div>
-    </div>
     <button (click)="close()">Close</button>
   </div>

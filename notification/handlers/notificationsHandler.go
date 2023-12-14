@@ -55,6 +55,37 @@ func (rh *NotificationsHandler) GetAccommodationRatings(w http.ResponseWriter, r
     }
 }
 
+func (rh *NotificationsHandler) GetRatingsHost(w http.ResponseWriter, r *http.Request) {
+    var requestData struct {
+        HostID string `json:"idHost"`
+    }
+
+    if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+        http.Error(w, "Invalid request body", http.StatusBadRequest)
+        rh.logger.Println("Invalid request body:", err)
+        return
+    }
+
+    hostID, err := primitive.ObjectIDFromHex(requestData.HostID)
+    if err != nil {
+        http.Error(w, "Invalid host ID", http.StatusBadRequest)
+        rh.logger.Println("Invalid host ID:", err)
+        return
+    }
+
+    ratings, err := rh.repo.GetRatingsByHostID(hostID)
+    if err != nil {
+        http.Error(w, "Failed to fetch ratings", http.StatusBadRequest)
+        return
+    }
+
+    if err := json.NewEncoder(w).Encode(ratings); err != nil {
+        rh.logger.Println("Error encoding host ratings:", err)
+        http.Error(w, "Error encoding host ratings", http.StatusInternalServerError)
+        return
+    }
+}
+
 func (rh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request) {
 	var rating data.RatingAccommodation
 	err := json.NewDecoder(r.Body).Decode(&rating)
