@@ -109,9 +109,18 @@ func (uh *UserHandler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ctx := r.Context()
+
 	user.ID = primitive.NewObjectID()
 
-	err := uh.repo.CreateProfileDetails(r.Context(), &user)
+	_, err := uh.repo.CheckUsernameAvailability(ctx, user.Username)
+	if err != nil {
+		uh.logger.Println("Username is not unique!", err)
+		http.Error(rw, "Username is not unique!", http.StatusBadRequest)
+		return
+	}
+
+	err = uh.repo.CreateProfileDetails(ctx, &user)
 	if err != nil {
 		uh.logger.Println("Failed to create user:", err)
 		http.Error(rw, "Failed to create user", http.StatusInternalServerError)
