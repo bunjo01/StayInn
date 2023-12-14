@@ -33,7 +33,7 @@
   <div *ngIf="hostRating.length > 0">
     <ul class="rating-list">
       <li *ngFor="let rating of hostRating">
-        <p>Host: {{ rating.idHost }}</p>
+        <p>Host: {{ rating.hostUsername }}</p>
         <p>Rating: {{ rating.rate }}</p>
         <p>Time: {{ rating.time }}</p>
       </li>
