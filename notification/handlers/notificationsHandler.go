@@ -31,6 +31,30 @@ func NewNotificationsHandler(l *log.Logger, r *data.NotificationsRepo, rc client
 
 // TODO Handler methods
 
+func (rh *NotificationsHandler) GetAccommodationRatings(w http.ResponseWriter, r *http.Request) {
+    vars := mux.Vars(r)
+    accommodationID := vars["idAccommodation"]
+
+    objectID, err := primitive.ObjectIDFromHex(accommodationID)
+    if err != nil {
+        http.Error(w, "Invalid accommodation ID", http.StatusBadRequest)
+        rh.logger.Println("Invalid accommodation ID:", err)
+        return
+    }
+
+    ratings, err := rh.repo.GetRatingsByAccommodationID(objectID)
+    if err != nil {
+        http.Error(w, "Failed to fetch ratings", http.StatusBadRequest)
+        return
+    }
+
+    if err := json.NewEncoder(w).Encode(ratings); err != nil {
+        rh.logger.Println("Error encoding accommodation ratings:", err)
+        http.Error(w, "Error encoding accommodation ratings", http.StatusInternalServerError)
+        return
+    }
+}
+
 func (rh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request) {
 	var rating data.RatingAccommodation
 	err := json.NewDecoder(r.Body).Decode(&rating)

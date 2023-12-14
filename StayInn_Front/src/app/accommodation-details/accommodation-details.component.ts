@@ -4,6 +4,8 @@ import { AccommodationService } from '../services/accommodation.service';
 import { Router } from '@angular/router';
 import { Image } from '../model/image';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { MatDialog } from '@angular/material/dialog';
+import { RatingsPopupComponent } from '../ratings/ratings-popup/ratings-popup.component';
 
 @Component({
   selector: 'app-accommodation-details',
@@ -17,7 +19,8 @@ export class AccommodationDetailsComponent implements OnInit {
   constructor(
     private accommodationService: AccommodationService, 
     private router: Router,
-    private sanitizer: DomSanitizer
+    private sanitizer: DomSanitizer,
+    private dialog: MatDialog
     ) { }
 
   ngOnInit(): void {
@@ -102,5 +105,29 @@ export class AccommodationDetailsComponent implements OnInit {
   
     // Return the sanitized URL
     return this.sanitizer.bypassSecurityTrustResourceUrl(imageUrl);
+  }
+
+  showHostRatings(hostId: string): void {
+    const dialogRef = this.dialog.open(RatingsPopupComponent, {
+      width: '600px',
+      height: 'fit-content',
+      data: { type: 'host', hostId: hostId }
+    });
+  
+    dialogRef.afterClosed().subscribe(result => {
+      console.log('The dialog was closed');
+    });
+  }
+  
+  showAccommodationRatings(accommodationId: string): void {
+    const dialogRef = this.dialog.open(RatingsPopupComponent, {
+      width: '600px',
+      height: 'fit-content',
+      data: { type: 'accommodation', accommodationId: accommodationId }
+    });
+  
+    dialogRef.afterClosed().subscribe(result => {
+      console.log('The dialog was closed');
+    });
   }
 }

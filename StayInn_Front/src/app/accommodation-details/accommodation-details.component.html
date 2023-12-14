@@ -36,4 +36,9 @@
     <app-rate-host [hostId]="accommodation?.hostID"></app-rate-host>
   </div>
 
+  <div class="btnRating-wrap">
+    <button (click)="showHostRatings(accommodation.hostID)">Show Host Ratings</button>
+    <button (click)="showAccommodationRatings(accommodation.id)">Show Accommodation Ratings</button>
+  </div>
+
 </div>

@@ -163,4 +163,8 @@ export class RatingService {
     return this.http.get<RatingAccommodation[]>(this.baseUrl + '/ratings/accommodation/byHost', { headers });
   }
 
+  getAllRatingsForAccommodation(accommodationId: string): Observable<RatingAccommodation[]> {
+    return this.http.get<RatingAccommodation[]>(this.baseUrl + '/ratings/accommodation/' + accommodationId);
+  }
+
 }

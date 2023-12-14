@@ -37,6 +37,8 @@ import { RateAccommodationComponent } from './ratings/rate-accommodation/rate-ac
 import { RateHostComponent } from './ratings/rate-host/rate-host.component';
 import { ProfileMenuComponent } from './profile-menu/profile-menu.component';
 import { RatingsViewComponent } from './ratings/ratings-view/ratings-view.component';
+import { RatingsPopupComponent } from './ratings/ratings-popup/ratings-popup.component';
+import { MatDialogModule } from '@angular/material/dialog';
 
 @NgModule({
   declarations: [
@@ -65,6 +67,7 @@ import { RatingsViewComponent } from './ratings/ratings-view/ratings-view.compon
     RateHostComponent,
     ProfileMenuComponent,
     RatingsViewComponent,
+    RatingsPopupComponent,
   ],
   imports: [
     BrowserModule,
@@ -81,7 +84,8 @@ import { RatingsViewComponent } from './ratings/ratings-view/ratings-view.compon
       preventDuplicates: true,
       countDuplicates: true,
       resetTimeoutOnDuplicate: true
-    })
+    }),
+    MatDialogModule
   ],
   providers: [
     {
