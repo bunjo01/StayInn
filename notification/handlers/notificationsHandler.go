@@ -204,40 +204,6 @@ func (nh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request
 	w.Write([]byte("Rating successfully added"))
 }
 
-func (nh *NotificationsHandler) FindRatingById(rw http.ResponseWriter, h *http.Request) {
-	vars := mux.Vars(h)
-	ratingID := vars["id"]
-
-	ctx := h.Context()
-
-	objectID, err := primitive.ObjectIDFromHex(ratingID)
-	if err != nil {
-		http.Error(rw, "Invalid rating ID", http.StatusBadRequest)
-		nh.logger.Println("Invalid rating ID:", err)
-		return
-	}
-
-	rating, err := nh.repo.FindRatingById(ctx, objectID)
-	if err != nil {
-		nh.logger.Println("Database exception: ", err)
-		http.Error(rw, "Database exception", http.StatusInternalServerError)
-		return
-	}
-
-	if rating == nil {
-		nh.logger.Println("No period with given ID in accommodation")
-		http.Error(rw, "Rating not found", http.StatusNotFound)
-		return
-	}
-
-	err = rating.ToJSON(rw)
-	if err != nil {
-		http.Error(rw, "Unable to convert to json", http.StatusInternalServerError)
-		nh.logger.Fatal("Unable to convert to json:", err)
-		return
-	}
-}
-
 func (nh *NotificationsHandler) FindAccommodationRatingByGuest(rw http.ResponseWriter, h *http.Request) {
 	vars := mux.Vars(h)
 	ratingID := vars["idAccommodation"]
@@ -327,40 +293,6 @@ func (nh *NotificationsHandler) FindHostRatingByGuest(rw http.ResponseWriter, h 
 	}
 
 	rating, err := nh.repo.FindHostRatingByGuest(ctx, userId.ID, guestIdObject)
-	if err != nil {
-		nh.logger.Println("Database exception: ", err)
-		http.Error(rw, "Database exception", http.StatusInternalServerError)
-		return
-	}
-
-	if rating == nil {
-		nh.logger.Println("No period with given ID in accommodation")
-		http.Error(rw, "Rating not found", http.StatusNotFound)
-		return
-	}
-
-	err = rating.ToJSON(rw)
-	if err != nil {
-		http.Error(rw, "Unable to convert to json", http.StatusInternalServerError)
-		nh.logger.Fatal("Unable to convert to json:", err)
-		return
-	}
-}
-
-func (nh *NotificationsHandler) FindHostRatingById(rw http.ResponseWriter, h *http.Request) {
-	vars := mux.Vars(h)
-	ratingID := vars["id"]
-
-	ctx := h.Context()
-
-	objectID, err := primitive.ObjectIDFromHex(ratingID)
-	if err != nil {
-		http.Error(rw, "Invalid rating ID", http.StatusBadRequest)
-		nh.logger.Println("Invalid rating ID:", err)
-		return
-	}
-
-	rating, err := nh.repo.FindHostRatingById(ctx, objectID)
 	if err != nil {
 		nh.logger.Println("Database exception: ", err)
 		http.Error(rw, "Database exception", http.StatusInternalServerError)
@@ -517,38 +449,6 @@ func (nh *NotificationsHandler) GetAllHostRatingsByUser(w http.ResponseWriter, r
 	if err := json.NewEncoder(w).Encode(ratings); err != nil {
 		nh.logger.Println("Error encoding host ratings:", err)
 		http.Error(w, "Error encoding host ratings", http.StatusInternalServerError)
-		return
-	}
-}
-
-func (nh *NotificationsHandler) GetHostRatings(w http.ResponseWriter, r *http.Request) {
-	tokenStr := nh.extractTokenFromHeader(r)
-	vars := mux.Vars(r)
-	hostUsername, ok := vars["hostUsername"]
-	if !ok {
-		http.Error(w, "Missing host username in the request path", http.StatusBadRequest)
-		return
-	}
-
-	_, err := nh.profileClient.GetUserId(r.Context(), hostUsername, tokenStr)
-	if err != nil {
-		nh.logger.Println("Failed to get HostID from username:", err)
-		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
-		return
-	}
-
-	ratings, err := nh.repo.GetHostRatings(r.Context(), hostUsername)
-	if err != nil {
-		nh.logger.Println("Error fetching host ratings:", err)
-		http.Error(w, "Error fetching host ratings", http.StatusInternalServerError)
-		return
-	}
-
-	// Convert ratings to JSON and send the response
-	err = json.NewEncoder(w).Encode(ratings)
-	if err != nil {
-		nh.logger.Println("Error encoding response:", err)
-		http.Error(w, "Error encoding response", http.StatusInternalServerError)
 		return
 	}
 }
@@ -773,108 +673,6 @@ func (nh *NotificationsHandler) GetAverageHostRating(w http.ResponseWriter, r *h
 	w.WriteHeader(http.StatusOK)
 	w.Write(jsonResponse)
 
-}
-
-func (nh *NotificationsHandler) UpdateHostRating(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	ratingID, ok := vars["id"]
-	if !ok {
-		http.Error(w, "Missing rating ID in the request path", http.StatusBadRequest)
-		return
-	}
-
-	id, err := primitive.ObjectIDFromHex(ratingID)
-	if err != nil {
-		http.Error(w, "Invalid rating ID", http.StatusBadRequest)
-		return
-	}
-
-	var newRating data.RatingHost
-	if err := json.NewDecoder(r.Body).Decode(&newRating); err != nil {
-		http.Error(w, "Error parsing data", http.StatusBadRequest)
-		return
-	}
-
-	newRating.Time = time.Now()
-
-	tokenStr := nh.extractTokenFromHeader(r)
-	username, err := nh.getUsername(tokenStr)
-	if err != nil {
-		nh.logger.Println("Failed to read username from token:", err)
-		http.Error(w, "Failed to read username from token", http.StatusBadRequest)
-		return
-	}
-
-	userID, err := nh.profileClient.GetUserId(r.Context(), username, tokenStr)
-	if err != nil {
-		nh.logger.Println("Failed to get HostID from username:", err)
-		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
-		return
-	}
-
-	idUser, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		http.Error(w, "Invalid userID", http.StatusBadRequest)
-		return
-	}
-
-	if err := nh.repo.UpdateHostRating(id, idUser, &newRating); err != nil {
-		http.Error(w, "Error updating host rating", http.StatusBadRequest)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Host rating successfully updated"))
-}
-
-func (nh *NotificationsHandler) UpdateAccommodationRating(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	ratingID, ok := vars["id"]
-	if !ok {
-		http.Error(w, "Missing rating ID in the request path", http.StatusBadRequest)
-		return
-	}
-
-	id, err := primitive.ObjectIDFromHex(ratingID)
-	if err != nil {
-		http.Error(w, "Invalid rating ID", http.StatusBadRequest)
-		return
-	}
-
-	var newRating data.RatingAccommodation
-	if err := json.NewDecoder(r.Body).Decode(&newRating); err != nil {
-		http.Error(w, "Error parsing data", http.StatusBadRequest)
-		return
-	}
-
-	tokenStr := nh.extractTokenFromHeader(r)
-	username, err := nh.getUsername(tokenStr)
-	if err != nil {
-		nh.logger.Println("Failed to read username from token:", err)
-		http.Error(w, "Failed to read username from token", http.StatusBadRequest)
-		return
-	}
-
-	userID, err := nh.profileClient.GetUserId(r.Context(), username, tokenStr)
-	if err != nil {
-		nh.logger.Println("Failed to get HostID from username:", err)
-		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
-		return
-	}
-
-	idUser, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		http.Error(w, "Invalid userID", http.StatusBadRequest)
-		return
-	}
-
-	if err := nh.repo.UpdateRatingAccommodationByID(id, idUser, newRating.Rate); err != nil {
-		http.Error(w, "Error updating host rating", http.StatusBadRequest)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Host rating successfully updated"))
 }
 
 func (nh *NotificationsHandler) DeleteHostRating(w http.ResponseWriter, r *http.Request) {
