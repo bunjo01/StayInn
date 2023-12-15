@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -198,6 +199,39 @@ func (r *ReservationHandler) CreateReservation(rw http.ResponseWriter, h *http.R
 		http.Error(rw, fmt.Sprintf("Failed to create reservation: %v", err), http.StatusBadRequest)
 		return
 	}
+
+	// Get accommodation
+	accommodation, err := r.accommodation.GetAccommodationByID(h.Context(), reservation.IDAccommodation, tokenStr)
+	if err != nil {
+		r.logger.Println("failed to get accommodation by ID: ", reservation.IDAccommodation, " - ", err)
+		http.Error(rw, "failed to get accommodation by ID", http.StatusInternalServerError)
+		return
+	}
+
+	// Get host
+	host, err := r.profile.GetUserById(h.Context(), accommodation.HostID, tokenStr)
+	if err != nil {
+		r.logger.Println("failed to get host by ID: ", accommodation.HostID.Hex(), " - ", err)
+		http.Error(rw, "failed to get host by ID", http.StatusInternalServerError)
+		return
+	}
+
+	// Notify host
+	notification := data.Notification{
+		HostID:       host.ID,
+		HostUsername: host.Username,
+		HostEmail:    host.Email,
+		Text:         fmt.Sprintf("Reservation created for %s, by user %s", accommodation.Name, username),
+		Time:         time.Now(),
+	}
+
+	notified, err := r.notification.NotifyReservation(h.Context(), notification, tokenStr)
+	if !notified {
+		r.logger.Println("failed to notify host: ", err)
+		http.Error(rw, "failed to notify host", http.StatusInternalServerError)
+		return
+	}
+
 	rw.WriteHeader(http.StatusCreated)
 }
 
@@ -219,7 +253,7 @@ func (r *ReservationHandler) FindAccommodationIdsByDates(rw http.ResponseWriter,
 	rw.WriteHeader(http.StatusOK)
 }
 
-func (r *ReservationHandler) FindAllReservationsByUserIDExpiredHandler(rw http.ResponseWriter, h *http.Request) {
+func (r *ReservationHandler) FindAllReservationsByUserIDExpired(rw http.ResponseWriter, h *http.Request) {
 	tokenStr := r.extractTokenFromHeader(h)
 	username, err := r.getUsername(tokenStr)
 	if err != nil {
@@ -255,6 +289,7 @@ func (r *ReservationHandler) FindAllReservationsByUserIDExpiredHandler(rw http.R
 		return
 	}
 
+	rw.WriteHeader(http.StatusOK)
 }
 
 func (r *ReservationHandler) UpdateAvailablePeriodByAccommodation(rw http.ResponseWriter, h *http.Request) {
@@ -369,10 +404,54 @@ func (r *ReservationHandler) DeleteReservation(rw http.ResponseWriter, h *http.R
 		return
 	}
 
+	// Get reservation
+	reservation, err := r.repo.FindReservationByIdAndAvailablePeriod(reservationID, periodID)
+	if err != nil {
+		r.logger.Println("failed to get reservation by ID: ", reservationID, " - ", err)
+		http.Error(rw, "failed to get reservation by ID", http.StatusInternalServerError)
+		return
+	}
+
 	err = r.repo.DeleteReservationByIdAndAvailablePeriodID(reservationID, periodID, userID)
 	if err != nil {
 		r.logger.Println("Database exception: ", err)
 		rw.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	// Get period
+	period, err := r.repo.FindAvailablePeriodsByAccommodationId(reservation.IDAccommodation.Hex())
+	if err != nil {
+		r.logger.Println("failed to get period by accommodation ID: ", reservation.IDAccommodation.Hex(), " - ", err)
+		http.Error(rw, "failed to get period by accommodation ID", http.StatusInternalServerError)
+		return
+	}
+
+	// Get host
+	host, err := r.profile.GetUserById(h.Context(), period[0].IDUser, tokenStr)
+	if err != nil {
+		r.logger.Println("failed to get host by ID: ", period[0].IDUser, " - ", err)
+		http.Error(rw, "failed to get host by ID", http.StatusInternalServerError)
+		return
+	}
+
+	startDate := reservation.StartDate.Format("02. January 2006.")
+	endDate := reservation.EndDate.Format("02. January 2006.")
+
+	// Notify host
+	notification := data.Notification{
+		HostID:       host.ID,
+		HostUsername: host.Username,
+		HostEmail:    host.Email,
+		Text:         fmt.Sprintf("Reservation from %s to %s deleted by user %s", startDate, endDate, username),
+		Time:         time.Now(),
+	}
+
+	notified, err := r.notification.NotifyReservation(h.Context(), notification, tokenStr)
+	if !notified {
+		r.logger.Println("failed to notify host: ", err)
+		http.Error(rw, "failed to notify host", http.StatusInternalServerError)
+		return
 	}
 
 	rw.WriteHeader(http.StatusAccepted)
@@ -458,8 +537,6 @@ func (r *ReservationHandler) AuthorizeRoles(allowedRoles ...string) mux.Middlewa
 			}
 
 			for _, allowedRole := range allowedRoles {
-				fmt.Println("allowed role : ", allowedRole)
-				fmt.Println("JWT role : ", role)
 				if allowedRole == role {
 					next.ServeHTTP(w, rr)
 					return

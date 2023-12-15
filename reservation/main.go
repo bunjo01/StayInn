@@ -191,11 +191,8 @@ func main() {
 		},
 	)
 
-	// TODO: Change second param accordingly after implementing methods on notification service
 	notification := clients.NewNotificationClient(notificationClient, os.Getenv("NOTIFICATION_SERVICE_URI"), notificationBreaker)
-	// TODO: Change second param in methods when sending request
 	profile := clients.NewProfileClient(profileClient, os.Getenv("PROFILE_SERVICE_URI"), profileBreaker)
-	// TODO: Change second param or add it in method
 	accommodation := clients.NewAccommodationClient(accommodationClient, os.Getenv("ACCOMMODATION_SERVICE_URI"), accommodationBreaker)
 
 	//Initialize the handler and inject said logger
@@ -221,8 +218,8 @@ func main() {
 	findAvailablePeriodByIdAndByAccommodationId.HandleFunc("", reservationHandler.FindAvailablePeriodByIdAndByAccommodationId)
 	findAvailablePeriodByIdAndByAccommodationId.Use(reservationHandler.AuthorizeRoles("HOST", "GUEST"))
 
-	FindAllReservationsByUserIDExpired := router.Methods(http.MethodGet).Path("/expired").Subrouter()
-	FindAllReservationsByUserIDExpired.HandleFunc("", reservationHandler.FindAllReservationsByUserIDExpiredHandler)
+	findAllReservationsByUserIDExpired := router.Methods(http.MethodGet).Path("/expired").Subrouter()
+	findAllReservationsByUserIDExpired.HandleFunc("", reservationHandler.FindAllReservationsByUserIDExpired)
 
 	postAvailablePeriodsByAccommodationRouter := router.Methods(http.MethodPost).Path("/period").Subrouter()
 	postAvailablePeriodsByAccommodationRouter.HandleFunc("", reservationHandler.CreateAvailablePeriod)

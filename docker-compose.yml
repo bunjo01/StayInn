@@ -248,6 +248,8 @@ services:
       - MONGO_DB_URI=${MONGO_DB_URI_NOTIFICATION}
       - PROFILE_SERVICE_URI=${PROFILE_SERVICE}
       - RESERVATION_SERVICE_URI=${RESERVATION_SERVICE}
+      - MAIL_ADDRESS=${MAIL_ADDRESS}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
     depends_on:
       notification_db:
         condition: service_healthy

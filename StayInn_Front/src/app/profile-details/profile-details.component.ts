@@ -8,6 +8,7 @@ import { ReservationService } from '../services/reservation.service';
 import { ReservationByAvailablePeriod } from '../model/reservation';
 import { AccommodationService } from '../services/accommodation.service';
 import { Accommodation } from '../model/accommodation';
+import { RatingService } from '../services/rating.service';
 
 @Component({
   selector: 'app-profile-details',
@@ -20,6 +21,7 @@ export class ProfileDetailsComponent implements OnInit {
   role: string = "";
   reservations?: ReservationByAvailablePeriod[] = [];
   accommodations?: Accommodation[] = [];
+  notifications?: Notification[] = [];
   username: string = this.authService.getUsernameFromToken() || '';
   updateSuccess: boolean = false;
 
@@ -28,6 +30,7 @@ export class ProfileDetailsComponent implements OnInit {
     private authService: AuthService,
     private reservationService: ReservationService,
     private accommodationService: AccommodationService,
+    private ratingService: RatingService,
     private toastr: ToastrService,
     private fb: FormBuilder
     ) { }
@@ -64,6 +67,13 @@ export class ProfileDetailsComponent implements OnInit {
           }, error => { 
             console.log("Error getting accommodations for host", error) 
           });
+
+          this.ratingService.getNotifications(this.username).subscribe( data => {
+            this.notifications = data;
+            this.notifications.reverse();
+          }, error => {
+            console.log("Error getting notifications for host", error);
+          })
         }
 
       },
@@ -97,6 +107,11 @@ export class ProfileDetailsComponent implements OnInit {
 
     if (!addressRegex.test(this.form.value.address)) {
       this.toastr.warning('Address format is not valid', 'Invalid address');
+      return;
+    }
+
+    if (this.form.value.email == "" || this.form.get('email')?.hasError('email')) {
+      this.toastr.warning('Email is not valid', 'Invalid email');
       return;
     }
 

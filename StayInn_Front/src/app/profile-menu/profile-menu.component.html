@@ -19,9 +19,14 @@
                 <p>Profile details</p>
                 <span>></span>
             </a>
-            <a (click)="navigateTo('/history-reservation')" class="sub-menu-link">
+            <a *ngIf="userRole == 'GUEST'" (click)="navigateTo('/history-reservation')" class="sub-menu-link">
                 <img src="../../assets/images/reservations.png">
                 <p>Reservations</p>
+                <span>></span>
+            </a>
+            <a *ngIf="userRole == 'HOST'" (click)="navigateTo('/host-ratings')" class="sub-menu-link">
+                <img src="../../assets/images/rating.png">
+                <p>Ratings</p>
                 <span>></span>
             </a>
             <a (click)="navigateTo('/change-password')" class="sub-menu-link">

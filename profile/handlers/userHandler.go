@@ -109,9 +109,18 @@ func (uh *UserHandler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ctx := r.Context()
+
 	user.ID = primitive.NewObjectID()
 
-	err := uh.repo.CreateProfileDetails(r.Context(), &user)
+	avaible, err := uh.repo.CheckUsernameAvailability(ctx, user.Username)
+	if !avaible || err != nil {
+		uh.logger.Println("Username is not unique!", err)
+		http.Error(rw, "Username is not unique!", http.StatusBadRequest)
+		return
+	}
+
+	err = uh.repo.CreateProfileDetails(ctx, &user)
 	if err != nil {
 		uh.logger.Println("Failed to create user:", err)
 		http.Error(rw, "Failed to create user", http.StatusInternalServerError)
@@ -179,7 +188,7 @@ func (uh *UserHandler) UpdateUser(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	username := vars["username"]
 
-	// Dohvati trenutnog korisnika kako biste dobili trenutnu e-mail adresu
+	// Get current user for email check
 	currentUser, err := uh.repo.GetUser(r.Context(), username)
 	if err != nil {
 		uh.logger.Println("Failed to get user:", err)
@@ -195,34 +204,35 @@ func (uh *UserHandler) UpdateUser(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := uh.repo.UpdateUser(r.Context(), username, &updatedUser); err != nil {
+	if err := uh.repo.UpdateUser(r.Context(), username, &updatedUser, email); err != nil {
 		uh.logger.Println("Failed to update user:", err)
 		http.Error(rw, "Failed to update user", http.StatusInternalServerError)
 		return
 	}
 
-	rw.Header().Set("Content-Type", "application/json")
-	rw.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(rw).Encode(updatedUser); err != nil {
-		uh.logger.Println("Failed to encode updated user:", err)
-		http.Error(rw, "Failed to encode updated user", http.StatusInternalServerError)
-	}
-
 	ctx, cancel := context.WithTimeout(r.Context(), 5000*time.Millisecond)
 	defer cancel()
-	_, err = uh.auth.PassUsernameToAuthService(ctx, username, updatedUser.Username, tokenStr)
-	if err != nil {
-		uh.logger.Println(err)
-		writeResp(err, http.StatusServiceUnavailable, rw)
-		return
+
+	if username != updatedUser.Username {
+		_, err = uh.auth.PassUsernameToAuthService(ctx, username, updatedUser.Username, tokenStr)
+		if err != nil {
+			uh.logger.Println(err)
+			writeResp(err, http.StatusServiceUnavailable, rw)
+			return
+		}
 	}
 
-	_, err = uh.auth.PassEmailToAuthService(ctx, email, updatedUser.Email, tokenStr)
-	if err != nil {
-		uh.logger.Println(err)
-		writeResp(err, http.StatusServiceUnavailable, rw)
-		return
+	if email != updatedUser.Email {
+		_, err = uh.auth.PassEmailToAuthService(ctx, email, updatedUser.Email, tokenStr)
+		if err != nil {
+			uh.logger.Println(err)
+			writeResp(err, http.StatusServiceUnavailable, rw)
+			return
+		}
 	}
+
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(http.StatusOK)
 }
 
 func (uh *UserHandler) DeleteUser(rw http.ResponseWriter, r *http.Request) {

@@ -1,0 +1,61 @@
+.popup-ratings {
+    /* height: 100vh; */
+    width: 550px;
+    margin: 20px auto;
+    padding: 40px;
+    border: 4px solid black;
+    background-color: goldenrod;
+    text-align: center;
+  }
+  
+  .host-ratings, .accommodation-ratings, .accommodation-rating-wrapper {
+    margin-top: 20px;
+    text-align: center;
+    border: 2px solid black;
+    background-color: gold;
+    padding: 2px;
+    border-radius: 6px;
+  }
+  
+  .accommodation-rating-wrapper {
+    padding: 6px 20px;
+  }
+  
+  .host-ratings {
+    margin-bottom: 20px;
+  }
+  
+  .accommodation-ratings {
+    margin: 20px 0;
+    background-color: gold;
+  }
+  
+  .popup-ratings hr {
+    width: 100%;
+    height: 3px;
+    background-color: black;
+    color: black;
+    text-decoration: none;
+    border: none;
+  }
+  
+  table {
+    width: 70%;
+    border-collapse: collapse;
+    margin: 0 auto;
+    margin-top: 10px;
+    margin-bottom: 6px;
+  }
+  
+  th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+    font-weight: bold;
+    background-color: white;
+  }
+  
+  th {
+    background-color: #007BFF;
+    color: black;
+  }
