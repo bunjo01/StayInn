@@ -262,20 +262,14 @@ func (r *ReservationHandler) FindAllReservationsByUserIDExpired(rw http.Response
 		return
 	}
 
-	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
+	guestID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
-		r.logger.Println("Failed to get HostID from username:", err)
-		http.Error(rw, "Failed to get HostID from username", http.StatusBadRequest)
+		r.logger.Println("Failed to get guestID from username:", err)
+		http.Error(rw, "Failed to get guestID from username", http.StatusBadRequest)
 		return
 	}
 
-	objectUserID, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		http.Error(rw, "Invalid user ID", http.StatusBadRequest)
-		return
-	}
-
-	reservations, err := r.repo.FindAllReservationsByUserIDExpired(objectUserID.Hex())
+	reservations, err := r.repo.FindAllReservationsByUserIDExpired(guestID)
 	if err != nil {
 		r.logger.Println("Database exception: ", err)
 		http.Error(rw, "Failed to fetch expired reservations", http.StatusBadRequest)
