@@ -564,19 +564,6 @@ func (nh *NotificationsHandler) AddHostRating(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	found := false
-	for _, reservation := range hasExpiredReservations {
-		if reservation.IDUser == rating.HostID {
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		http.Error(w, "Guest can't rate this host!", http.StatusBadRequest)
-		return
-	}
-
 	rating.Time = time.Now()
 
 	ratings, err := nh.repo.GetAllHostRatingsByUser(r.Context(), rating.HostID)
