@@ -27,8 +27,8 @@
   <ng-template #noImages>
     <h3>No images available</h3>
   </ng-template> 
-  <button *ngIf="userRole == 'HOST'" class="btnAccommodationUpdate" (click)="navigateToUpdateAccommodation(accommodation.id)">Update accommodation</button>
-  <button *ngIf="userRole == 'HOST'" class="btnAccommodationDelete" (click)="navigateToDeleteAccommodation(accommodation.id)">Delete accommodation</button>
+  <button *ngIf="role == 'HOST'" class="btnAccommodationUpdate" (click)="navigateToUpdateAccommodation(accommodation.id)">Update accommodation</button>
+  <button *ngIf="role == 'HOST'" class="btnAccommodationDelete" (click)="navigateToDeleteAccommodation(accommodation.id)">Delete accommodation</button>
  
   <div class="rating-wrap">
     <h2>Ratings:</h2>

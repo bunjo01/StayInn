@@ -1,54 +1,48 @@
 .wrapper {
-    margin-bottom: 20px;
-    padding: 20px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-  }
-  
-  .reservation-cards {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-  }
-  
-  .reservation-card {
-    flex: 0 0 calc(33.33% - 20px);
-    padding: 15px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-  }
-  
-  .rating-section {
-    margin-top: 20px;
-    padding: 20px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-  }
-  
-  .rating-cards {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-  }
-  
-  .rating-card {
-    flex: 0 0 calc(33.33% - 20px);
-    padding: 15px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-  }
-  
-  .rating-list {
-    list-style: none;
-    padding: 0;
-  }
-  
-  .rating-item {
-    padding: 10px;
-    border-bottom: 1px solid #ddd;
-  }
-  
-  .rating-item:last-child {
-    border-bottom: none;
-  }
-  
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+h2 {
+  font-size: 24px;
+  margin-bottom: 16px;
+}
+
+.reservation-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.reservation-card {
+  border: 1px solid #ccc;
+  padding: 16px;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  width: calc(33.33% - 16px);
+  box-sizing: border-box;
+}
+
+.accommodation-name {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.rating-section {
+  margin-top: 24px;
+}
+
+.rating-list {
+  list-style-type: none;
+  padding: 0;
+}
+
+.rating-list li {
+  border: 1px solid #ccc;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  background-color: #f9f9f9;
+}

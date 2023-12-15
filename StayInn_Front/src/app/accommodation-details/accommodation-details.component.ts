@@ -16,7 +16,7 @@ import { AuthService } from '../services/auth.service';
 export class AccommodationDetailsComponent implements OnInit {
   accommodation: Accommodation | null = null;
   images: Image[] = [];
-  userRole:any;
+  role: string = "";
 
   constructor(
     private accommodationService: AccommodationService, 
@@ -27,7 +27,7 @@ export class AccommodationDetailsComponent implements OnInit {
     ) { }
 
   ngOnInit(): void {
-    this.setUserRole()
+    this.role = this.authService.getRoleFromTokenNoRedirect() || "";
     this.accommodationService.getAccommodation().subscribe(
       data => {
         this.accommodation = data;
@@ -51,10 +51,6 @@ export class AccommodationDetailsComponent implements OnInit {
 
   getAmenityName(amenity: number): string {
     return AmenityEnum[amenity];
-  }
-
-  setUserRole(){
-    this.userRole = this.authService.getRoleFromToken()
   }
 
   navigateToUpdateAccommodation(id: string): void{

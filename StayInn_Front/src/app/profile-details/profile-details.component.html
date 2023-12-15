@@ -1,6 +1,6 @@
 <div class="profile-container">
   <h2>Profile Details</h2>
-  <div *ngIf="userProfile">
+  <div class="form" *ngIf="userProfile">
     <form (submit)="updateProfile()" [formGroup]="form">
       <div class="form-group">
         <label for="username">Username:</label>
@@ -50,7 +50,7 @@
   </div>
 
   <div class="container-main">
-    <div class="card-container">
+    <div class="card-container" *ngIf="role == 'GUEST'">
       <div class="card">
         <ng-container *ngIf="reservations && reservations.length > 0 && role == 'GUEST'; else noReservations">
           <h2>User Reservations</h2>
@@ -70,16 +70,15 @@
     </div>
     
     <div class="card-container" *ngIf="role == 'HOST'">
+      <h2 id="hostAccTxt">Host Accommodations</h2>
       <div *ngFor="let accommodation of accommodations" class="card">
           <img src="../../assets/images/stay-inn.jpg" alt="{{ accommodation.name }} image" class="card-image">
           <div class="card-title">{{ accommodation.name }}</div>
           <h1 class="card-location">{{accommodation.location}}</h1>
-          <h3>Minimal number of guests: {{accommodation.minGuests}}</h3>
-          <h3>Maximal number of guests: {{accommodation.maxGuests}}</h3>
       </div>
     </div>
 
-    <div class="card-container">
+    <div class="card-container" *ngIf="notifications && notifications.length > 0 && role == 'HOST'">
       <div class="card">
         <ng-container *ngIf="notifications && notifications.length > 0 && role == 'HOST'">
           <h2 style="color: black;">Notifications</h2>

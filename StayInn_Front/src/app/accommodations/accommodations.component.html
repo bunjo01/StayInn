@@ -1,18 +1,9 @@
-<button class="btnCreateAccommodation" routerLink="/create-accommodation">Create Accommodation</button>
+<button *ngIf="role == 'HOST'" class="btnCreateAccommodation" routerLink="/create-accommodation">Create Accommodation</button>
 <div class="card-container">
   <div *ngFor="let accommodation of accommodations" class="card">
       <img src="../../assets/images/stay-inn.jpg" alt="{{ accommodation.name }} image" class="card-image">
       <div class="card-title">{{ accommodation.name }}</div>
       <h1 class="card-location">{{accommodation.location}}</h1>
-      <!-- <div class="amenitiesContainer">
-        <ul class="amenities-list">
-          <li *ngFor="let amenity of accommodation.amenities">
-            <p>{{ getAmenityName(amenity) }}</p>
-          </li>
-        </ul>
-      </div>
-      <h3>Minimal number of guests: {{accommodation.minGuests}}</h3>
-      <h3>Maximal number of guests: {{accommodation.maxGuests}}</h3> -->
       <button class="btnAvailablePeriods" (click)="navigateToAvailablePeriods(accommodation)">View available periods</button>
       <button class="btnAccommodationDetails" (click)="navigateToAccommodationDetails(accommodation)">View accommodation details</button>
   </div>

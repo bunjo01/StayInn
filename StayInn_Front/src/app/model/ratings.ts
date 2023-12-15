@@ -4,7 +4,7 @@ export interface RatingAccommodation {
     IdHost: string;
     UsernameUser: string;
     HostUsername: string;
-    IDAccommodation: string;
+    idAccommodation: string;
     Time: string;
     Rate: number;
 }
