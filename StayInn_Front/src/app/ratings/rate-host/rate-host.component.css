@@ -58,3 +58,14 @@
 .btnSubmit:hover {
     background-color: rgb(225, 191, 0);
 }
+
+.btnDelete {
+  background-color: red;
+  border: 2px solid black;
+  border-radius: 6px;
+  padding: 2px;
+}
+
+#txtRate {
+  color:white;
+}

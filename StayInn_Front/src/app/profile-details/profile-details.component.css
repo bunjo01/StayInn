@@ -39,6 +39,10 @@ button {
   margin: 10px auto;
 }
 
+button:hover {
+  background-color: #0056b3;
+}
+
 .text-danger {
   color: red;
   font-weight: 500;
@@ -72,6 +76,12 @@ button {
   padding: 10px;
 }
 
+.card h3 {
+  text-align: center;
+  width: 200px;
+  margin: 0 50px;
+}
+
 .card ul {
   list-style: none;
 }
@@ -95,4 +105,8 @@ button {
 }
 #btnDelete {
   background-color: red;
+}
+
+#btnDelete:hover {
+  background-color: rgb(200, 1, 1);
 }
