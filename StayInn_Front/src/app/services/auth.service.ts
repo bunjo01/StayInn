@@ -61,6 +61,17 @@ export class AuthService {
     return tokenPayload.role
   }
 
+  getRoleFromTokenNoRedirect(){
+    const token = localStorage.getItem('token');
+    if (token === null) {
+      return;
+    }
+
+    const tokenPayload = decode.jwtDecode(token) as JwtPayload;
+
+    return tokenPayload.role
+  }
+
   getUsernameFromToken(){
     const token = localStorage.getItem('token');
     if (token === null) {

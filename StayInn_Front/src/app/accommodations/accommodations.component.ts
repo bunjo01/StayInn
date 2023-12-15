@@ -26,7 +26,7 @@ export class AccommodationsComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadAccommodations();
     this.listenForSearchedAccommodations();
-    this.role = this.authService.getRoleFromToken() || "";
+    this.role = this.authService.getRoleFromTokenNoRedirect() || "";
   }
 
   toggleCreateAccommodationForm(): void {
