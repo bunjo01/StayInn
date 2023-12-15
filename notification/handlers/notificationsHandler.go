@@ -183,27 +183,25 @@ func (nh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	go func() {
-		notification := data.Notification{
-			HostID:       host.ID,
-			HostUsername: host.Username,
-			HostEmail:    host.Email,
-			Text:         fmt.Sprintf("User %s rated one of your accommodations %d stars", rating.GuestUsername, rating.Rate),
-			Time:         time.Now(),
-		}
+	notification := data.Notification{
+		HostID:       host.ID,
+		HostUsername: host.Username,
+		HostEmail:    host.Email,
+		Text:         fmt.Sprintf("User %s rated one of your accommodations %d stars", rating.GuestUsername, rating.Rate),
+		Time:         time.Now(),
+	}
 
-		err = nh.repo.CreateNotification(r.Context(), &notification)
-		if err != nil {
-			nh.logger.Println("Failed to create notification:", err)
-			http.Error(w, "Failed to create notification", http.StatusInternalServerError)
-			return
-		}
+	err = nh.repo.CreateNotification(r.Context(), &notification)
+	if err != nil {
+		nh.logger.Println("Failed to create notification:", err)
+		http.Error(w, "Failed to create notification", http.StatusInternalServerError)
+		return
+	}
 
-		success, err := data.SendNotificationEmail(notification.HostEmail, "rating-accommodation")
-		if !success {
-			nh.logger.Println("Failed to send notification email:", err)
-		}
-	}()
+	success, err := data.SendNotificationEmail(notification.HostEmail, "rating-accommodation")
+	if !success {
+		nh.logger.Println("Failed to send notification email:", err)
+	}
 
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte("Rating successfully added"))
@@ -586,27 +584,25 @@ func (nh *NotificationsHandler) AddHostRating(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	go func() {
-		notification := data.Notification{
-			HostID:       host.ID,
-			HostUsername: host.Username,
-			HostEmail:    host.Email,
-			Text:         fmt.Sprintf("User %s rated you %d stars", rating.GuestUsername, rating.Rate),
-			Time:         time.Now(),
-		}
+	notification := data.Notification{
+		HostID:       host.ID,
+		HostUsername: host.Username,
+		HostEmail:    host.Email,
+		Text:         fmt.Sprintf("User %s rated you %d stars", rating.GuestUsername, rating.Rate),
+		Time:         time.Now(),
+	}
 
-		err = nh.repo.CreateNotification(r.Context(), &notification)
-		if err != nil {
-			nh.logger.Println("Failed to create notification:", err)
-			http.Error(w, "Failed to create notification", http.StatusInternalServerError)
-			return
-		}
+	err = nh.repo.CreateNotification(r.Context(), &notification)
+	if err != nil {
+		nh.logger.Println("Failed to create notification:", err)
+		http.Error(w, "Failed to create notification", http.StatusInternalServerError)
+		return
+	}
 
-		success, err := data.SendNotificationEmail(notification.HostEmail, "rating-host")
-		if !success {
-			nh.logger.Println("Failed to send notification email:", err)
-		}
-	}()
+	success, err := data.SendNotificationEmail(notification.HostEmail, "rating-host")
+	if !success {
+		nh.logger.Println("Failed to send notification email:", err)
+	}
 
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte("Host rating successfully added"))
