@@ -171,4 +171,13 @@ export class RatingService {
     return this.http.post<RatingHost[]>(this.baseUrl + '/ratings/host/host-ratings', body);
   }
 
+  getAllHostRatings(hostUsername: string): Observable<RatingHost[]> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+    return this.http.get<RatingHost[]>(this.baseUrl + '/ratings/host/' + hostUsername, {headers});
+  }
+
 }

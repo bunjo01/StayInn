@@ -170,10 +170,10 @@ func main() {
 	getAllAccommodationRatingsByLoggUser.HandleFunc("", notificationsHandler.GetAllAccommodationRatingsByUser)
 
 	getAllHostRatingsByLoggUser := router.Methods(http.MethodGet).Path("/ratings/hostByUser").Subrouter()
-	getAllHostRatingsByLoggUser.HandleFunc("", notificationsHandler.GetAllAccommodationRatingsByUser)
+	getAllHostRatingsByLoggUser.HandleFunc("", notificationsHandler.GetAllHostRatingsByUser)
 
-	// getHostRatingsLoggUser := router.Methods(http.MethodGet).Path("/ratings/host/{hostUsername}").Subrouter()
-	// getHostRatingsLoggUser.HandleFunc("", notificationsHandler.GetHostRatings)
+	getHostRatingsLoggUser := router.Methods(http.MethodGet).Path("/ratings/host/{hostUsername}").Subrouter()
+	getHostRatingsLoggUser.HandleFunc("", notificationsHandler.GetHostRatings)
 
 	//findRatingForHost := router.Methods(http.MethodGet).Path("/rating/host/{id}").Subrouter()
 	//findRatingForHost.HandleFunc("", notificationsHandler.FindHostRatingById)
