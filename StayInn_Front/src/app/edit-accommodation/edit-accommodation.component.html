@@ -20,7 +20,7 @@
         <label class="form-label">Amenities:</label>
         <div class="amenityBox" *ngFor="let amenity of amenityValues; let i = index">
             <input class="amenities" type="checkbox" id="amenity{{i}}" name="amenities"
-                [(ngModel)]="accommodation.amenities[i]" [value]="amenity" class="checkbox-input" />
+                [(ngModel)]="accommodation.amenities[i]" [value]="amenity" class="checkbox-input"/>
             <label for="amenity{{i}}" class="checkbox-label">{{ getAmenityName(amenity) }}</label>
         </div>
         <button type="submit" class="submit-button">Update</button>
