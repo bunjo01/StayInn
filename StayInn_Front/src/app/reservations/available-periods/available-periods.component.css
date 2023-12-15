@@ -14,15 +14,25 @@
 }
 
 .card {
-    margin-bottom: 20px;
+    margin-bottom: 10px;
     background-color: goldenrod;
     border: 1px solid #ddd;
     border-radius: 6px;
-    padding: 10px;
+    padding: 20px;
+}
+
+.card h2 {
+    margin-bottom: 20px;
 }
 
 .card ul {
     list-style: none;
+}
+
+.card ul li {
+    border: 2px solid black;
+    margin-bottom: 10px;
+    padding: 10px;
 }
 
 .btnStyle {

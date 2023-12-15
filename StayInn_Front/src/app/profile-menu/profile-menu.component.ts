@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, ElementRef, HostListener, OnInit, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { ToastrService } from 'ngx-toastr';
@@ -11,6 +11,7 @@ import { ToastrService } from 'ngx-toastr';
 export class ProfileMenuComponent implements OnInit {
   isMenuOpen: boolean = false;
   userRole:any;
+  @ViewChild('menu') menu: ElementRef | undefined;
 
   constructor(private router: Router, private authService: AuthService, private toastr: ToastrService) {}
   ngOnInit(): void {
@@ -28,6 +29,13 @@ export class ProfileMenuComponent implements OnInit {
     if (route === '/logout') {
       this.toastr.info("Logged out");
       this.authService.logout();
+    }
+  }
+
+  @HostListener('document:click', ['$event'])
+  clickOutside(event: Event): void {
+    if (this.menu && !this.menu.nativeElement.contains(event.target)) {
+      this.isMenuOpen = false;
     }
   }
 

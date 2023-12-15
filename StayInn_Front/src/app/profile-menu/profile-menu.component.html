@@ -1,5 +1,5 @@
 <nav>
-    <div class="menu-icon" (click)="toggleMenu()">
+    <div class="menu-icon" (click)="toggleMenu()" #menu>
         <img src="../../assets/images/user.png" class="user-pic">
         <ng-container *ngIf="!isMenuOpen">
             <h2>Menu</h2>

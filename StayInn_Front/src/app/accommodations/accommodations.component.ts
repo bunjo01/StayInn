@@ -3,18 +3,21 @@ import { AccommodationService } from 'src/app/services/accommodation.service';
 import { Accommodation, AmenityEnum } from 'src/app/model/accommodation';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
+import { AuthService } from '../services/auth.service';
 @Component({
   selector: 'app-accommodations',
   templateUrl: './accommodations.component.html',
   styleUrls: ['./accommodations.component.css']
 })
 export class AccommodationsComponent implements OnInit, OnDestroy {
+  role: string = "";
   accommodations: Accommodation[] = [];
   showCreateAccommodationForm: boolean = false;
   private accommodationSubscription!: Subscription;
 
   constructor(private accommodationService: AccommodationService,
-              private router: Router) {}
+              private router: Router,
+              private authService: AuthService) {}
 
   ngOnDestroy(): void {
     this.accommodationSubscription.unsubscribe();
@@ -23,6 +26,7 @@ export class AccommodationsComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadAccommodations();
     this.listenForSearchedAccommodations();
+    this.role = this.authService.getRoleFromToken() || "";
   }
 
   toggleCreateAccommodationForm(): void {

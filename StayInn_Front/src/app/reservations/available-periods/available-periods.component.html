@@ -13,7 +13,6 @@
           <button class="btnStyle btnAddReservation" *ngIf="isGuest()" (click)="navigateToAddReservation(period)">Add Reservation</button>
           <button class="btnStyle btnView" (click)="navigateToReservations(period)">View reservations for period</button>
           <button class="btnStyle btnEdit" *ngIf="isOwnerOfAvailablePeriod(period.IDUser)" (click)="navigateToEditAvailablePeriod(period)">Edit period</button>
-          <br><br>
         </li>
       </ul>
     </div>

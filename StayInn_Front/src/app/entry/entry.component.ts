@@ -9,6 +9,7 @@ import { DatePipe, formatDate } from '@angular/common';
   styleUrls: ['./entry.component.css']
 })
 export class EntryComponent {
+  role: string = "";
   constructor(private accommodationService: AccommodationService,
     private datePipe: DatePipe){}
 
