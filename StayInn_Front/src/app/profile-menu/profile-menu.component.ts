@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { ToastrService } from 'ngx-toastr';
@@ -8,10 +8,14 @@ import { ToastrService } from 'ngx-toastr';
   templateUrl: './profile-menu.component.html',
   styleUrls: ['./profile-menu.component.css']
 })
-export class ProfileMenuComponent {
+export class ProfileMenuComponent implements OnInit {
   isMenuOpen: boolean = false;
+  userRole:any;
 
   constructor(private router: Router, private authService: AuthService, private toastr: ToastrService) {}
+  ngOnInit(): void {
+    this.setUserRole();
+  }
 
   toggleMenu() {
     this.isMenuOpen = !this.isMenuOpen;
@@ -29,5 +33,9 @@ export class ProfileMenuComponent {
 
   getUsername(): string | undefined {
     return this.authService.getUsernameFromToken();
+  }
+
+  setUserRole(){
+    this.userRole = this.authService.getRoleFromToken()
   }
 }

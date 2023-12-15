@@ -3,13 +3,13 @@
         <h2>Accommodation</h2>
         <!-- <p>Name: {{ accommodation.name }}</p>
         <p>Description: {{ accommodation.location }} </p> -->
-        <button *ngIf="userRole == 'GUEST'" (click)="deleteAccommodationRating()">remove your rating</button>
+        <button class="btnDelete" *ngIf="userRole == 'GUEST'" (click)="deleteAccommodationRating()">remove your rating</button>
         <div *ngIf="averageRating">
             <p>Average accommodation rating : {{averageRating.averageRating}}</p>
         </div>
         
         <div *ngIf="guestsRatingOfAccommodation">
-            <p>You rated this accommodation : {{guestsRatingOfAccommodation.rate}}</p>
+            <p id="txtRate">You rated this accommodation : {{guestsRatingOfAccommodation.rate}}</p>
         </div>
         
     </div>
