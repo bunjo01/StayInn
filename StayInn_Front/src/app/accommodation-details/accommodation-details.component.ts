@@ -67,14 +67,14 @@ export class AccommodationDetailsComponent implements OnInit {
     this.router.navigateByUrl('/update-accommodation');
   }
 
-  deleteAccommodation(id: string): void {
+  navigateToDeleteAccommodation(id: string): void {
     this.accommodationService.deleteAccommodation(id).subscribe(
       () => {
-        console.log('Smeštaj uspešno obrisan.');
+        console.log('Accommodation successfully deleted');
         this.router.navigate([''])
       },
       error => {
-        console.error('Greška prilikom brisanja smeštaja:', error);
+        console.error('Error while deleting accommodation:', error);
       }
     );
   }

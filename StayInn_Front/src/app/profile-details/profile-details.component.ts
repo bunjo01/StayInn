@@ -110,6 +110,11 @@ export class ProfileDetailsComponent implements OnInit {
       return;
     }
 
+    if (this.form.value.email == "" || this.form.get('email')?.hasError('email')) {
+      this.toastr.warning('Email is not valid', 'Invalid email');
+      return;
+    }
+
     if (this.userProfile) {
       // Update userProfile with form values
       this.userProfile.username = this.form.value.username;

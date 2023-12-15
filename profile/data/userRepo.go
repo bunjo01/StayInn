@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"os"
 	"time"
@@ -154,7 +155,7 @@ func (ur *UserRepo) CheckEmailAvailability(ctx context.Context, email string) (b
 	return errors.Is(err, mongo.ErrNoDocuments), nil
 }
 
-func (ur *UserRepo) UpdateUser(ctx context.Context, username string, user *NewUser) error {
+func (ur *UserRepo) UpdateUser(ctx context.Context, username string, user *NewUser, oldEmail string) error {
 	usernameAvailable, err := ur.CheckUsernameAvailability(ctx, user.Username)
 	if err != nil {
 		ur.logger.Println("Error checking username availability:", err)
@@ -165,14 +166,16 @@ func (ur *UserRepo) UpdateUser(ctx context.Context, username string, user *NewUs
 		return fmt.Errorf("username %s is already taken", user.Username)
 	}
 
-	emailAvailable, err := ur.CheckEmailAvailability(ctx, user.Email)
-	if err != nil {
-		ur.logger.Println("Error checking email availability:", err)
-		return err
-	}
+	if oldEmail != user.Email {
+		emailAvailable, err := ur.CheckEmailAvailability(ctx, user.Email)
+		if err != nil {
+			ur.logger.Println("Error checking email availability:", err)
+			return err
+		}
 
-	if !emailAvailable {
-		return fmt.Errorf("email %s is already taken", user.Email)
+		if !emailAvailable {
+			return fmt.Errorf("email %s is already taken", user.Email)
+		}
 	}
 
 	collection := ur.getUserCollection()

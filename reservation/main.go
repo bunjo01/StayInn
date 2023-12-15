@@ -218,8 +218,8 @@ func main() {
 	findAvailablePeriodByIdAndByAccommodationId.HandleFunc("", reservationHandler.FindAvailablePeriodByIdAndByAccommodationId)
 	findAvailablePeriodByIdAndByAccommodationId.Use(reservationHandler.AuthorizeRoles("HOST", "GUEST"))
 
-	FindAllReservationsByUserIDExpired := router.Methods(http.MethodGet).Path("/expired").Subrouter()
-	FindAllReservationsByUserIDExpired.HandleFunc("", reservationHandler.FindAllReservationsByUserIDExpiredHandler)
+	findAllReservationsByUserIDExpired := router.Methods(http.MethodGet).Path("/expired").Subrouter()
+	findAllReservationsByUserIDExpired.HandleFunc("", reservationHandler.FindAllReservationsByUserIDExpired)
 
 	postAvailablePeriodsByAccommodationRouter := router.Methods(http.MethodPost).Path("/period").Subrouter()
 	postAvailablePeriodsByAccommodationRouter.HandleFunc("", reservationHandler.CreateAvailablePeriod)
