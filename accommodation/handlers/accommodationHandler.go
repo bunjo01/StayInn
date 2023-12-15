@@ -235,6 +235,15 @@ func (ah *AccommodationHandler) DeleteAccommodation(rw http.ResponseWriter, r *h
 		return
 	}
 
+	for i := 0; i < 10; i++ {
+		filename := fmt.Sprintf("%s-image-%d", id.Hex(), i)
+		err := ah.images.DeleteFile(filename, false)
+		if err != nil {
+			break
+		}
+		ah.logger.Printf("%s-image-%d deleted\n", id.Hex(), i)
+	}
+
 	rw.WriteHeader(http.StatusNoContent)
 }
 
@@ -305,6 +314,17 @@ func (ah *AccommodationHandler) DeleteUserAccommodations(rw http.ResponseWriter,
 		ah.logger.Println("Failed to delete accommodations for userID:", err)
 		http.Error(rw, "Failed to delete accommodations for userID: "+userID.Hex(), http.StatusInternalServerError)
 		return
+	}
+
+	for _, accID := range accIDs {
+		for i := 0; i < 10; i++ {
+			filename := fmt.Sprintf("%s-image-%d", accID.Hex(), i)
+			err := ah.images.DeleteFile(filename, false)
+			if err != nil {
+				break
+			}
+			ah.logger.Printf("%s-image-%d deleted\n", accID.Hex(), i)
+		}
 	}
 
 	rw.WriteHeader(http.StatusNoContent)

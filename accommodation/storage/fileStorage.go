@@ -212,3 +212,20 @@ func (fs *FileStorage) ReadFileBytes(fileName string, isCopied bool) ([]byte, er
 
 	return fileContent, nil
 }
+
+func (fs *FileStorage) DeleteFile(fileName string, isCopied bool) error {
+	var filePath string
+	if isCopied {
+		filePath = hdfsCopyDir + fileName
+	} else {
+		filePath = hdfsWriteDir + fileName
+	}
+
+	err := fs.client.Remove(filePath)
+	if err != nil {
+		fs.logger.Println("Error in deleting file on HDFS:", err)
+		return err
+	}
+
+	return nil
+}
