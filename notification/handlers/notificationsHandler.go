@@ -453,6 +453,38 @@ func (nh *NotificationsHandler) GetAllHostRatingsByUser(w http.ResponseWriter, r
 	}
 }
 
+func (rh *NotificationsHandler) GetHostRatings(w http.ResponseWriter, r *http.Request) {
+	tokenStr := rh.extractTokenFromHeader(r)
+	vars := mux.Vars(r)
+	hostUsername, ok := vars["hostUsername"]
+	if !ok {
+		http.Error(w, "Missing host username in the request path", http.StatusBadRequest)
+		return
+	}
+
+	_, err := rh.profileClient.GetUserId(r.Context(), hostUsername, tokenStr)
+	if err != nil {
+		rh.logger.Println("Failed to get HostID from username:", err)
+		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
+		return
+	}
+
+	ratings, err := rh.repo.GetHostRatings(r.Context(), hostUsername)
+	if err != nil {
+		rh.logger.Println("Error fetching host ratings:", err)
+		http.Error(w, "Error fetching host ratings", http.StatusInternalServerError)
+		return
+	}
+
+	// Convert ratings to JSON and send the response
+	err = json.NewEncoder(w).Encode(ratings)
+	if err != nil {
+		rh.logger.Println("Error encoding response:", err)
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
+}
+
 func (nh *NotificationsHandler) AddHostRating(w http.ResponseWriter, r *http.Request) {
 	var rating data.RatingHost
 	ctx, cancel := context.WithTimeout(r.Context(), 5000*time.Millisecond)

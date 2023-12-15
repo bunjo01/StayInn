@@ -394,6 +394,29 @@ func (nr *NotificationsRepo) GetRatingsByHostUsername(username string) ([]Rating
 	return ratings, nil
 }
 
+func (ar *NotificationsRepo) GetHostRatings(ctx context.Context, hostUsername string) ([]RatingHost, error) {
+	ratingsCollection := ar.getHostRatingsCollection()
+
+	filter := bson.M{"hostUsername": hostUsername}
+
+	cursor, err := ratingsCollection.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var ratings []RatingHost
+	for cursor.Next(ctx) {
+		var rating RatingHost
+		if err := cursor.Decode(&rating); err != nil {
+			return nil, err
+		}
+		ratings = append(ratings, rating)
+	}
+
+	return ratings, nil
+}
+
 func (nr *NotificationsRepo) UpdateRatingAccommodationByID(id, idUser primitive.ObjectID, newRate int) error {
 	ratingsCollection := nr.getRatingsCollection()
 
