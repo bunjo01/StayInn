@@ -122,16 +122,7 @@ func (ch *CredentialsHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), 5000*time.Millisecond)
-	defer cancel()
-	_, err := ch.profile.PassInfoToProfileService(ctx, newUser, tokenStr)
-	if err != nil {
-		ch.logger.Println(err)
-		writeResp(err, http.StatusServiceUnavailable, w)
-		return
-	}
-
-	err = ch.repo.RegisterUser(newUser.Username, newUser.Password, newUser.FirstName, newUser.LastName,
+	err := ch.repo.RegisterUser(newUser.Username, newUser.Password, newUser.FirstName, newUser.LastName,
 		newUser.Email, newUser.Address, newUser.Role)
 	if err != nil && err.Error() == "username already exists" {
 		http.Error(w, "Username is not unique!", http.StatusBadRequest)
@@ -141,6 +132,16 @@ func (ch *CredentialsHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	} else if err != nil {
 		http.Error(w, "Failed to register new user", http.StatusInternalServerError)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 5000*time.Millisecond)
+	defer cancel()
+	_, err = ch.profile.PassInfoToProfileService(ctx, newUser, tokenStr)
+	if err != nil {
+		ch.logger.Println(err)
+		ch.repo.DeleteUser(r.Context(), newUser.Username)
+		writeResp(err, http.StatusServiceUnavailable, w)
 		return
 	}
 

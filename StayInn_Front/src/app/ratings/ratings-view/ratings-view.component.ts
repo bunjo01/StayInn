@@ -27,7 +27,7 @@ export class RatingsViewComponent implements OnInit {
   }
 
   getAllHostRatings() {
-    this.ratingService.getAllHostRatingsByUser().subscribe(
+    this.ratingService.getAllHostRatings(this.username).subscribe(
       (ratings) => {
         this.ratingHost = ratings;
         console.log('All host ratings:', this.ratingHost);

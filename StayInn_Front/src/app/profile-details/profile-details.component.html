@@ -28,7 +28,7 @@
       <div class="form-group">
         <label for="email">Email:</label>
         <input [(ngModel)]="userProfile.email" type="email" name="email" [formControl]="form.controls['email']">
-        <small class="text-danger" *ngIf="form.get('email').hasError('required') && form.get('email').touched">
+        <small class="text-danger" *ngIf="form.get('email').hasError('email') && form.get('email').touched">
           Email is not valid
         </small>
       </div>

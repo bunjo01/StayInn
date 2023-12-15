@@ -253,7 +253,7 @@ func (r *ReservationHandler) FindAccommodationIdsByDates(rw http.ResponseWriter,
 	rw.WriteHeader(http.StatusOK)
 }
 
-func (r *ReservationHandler) FindAllReservationsByUserIDExpiredHandler(rw http.ResponseWriter, h *http.Request) {
+func (r *ReservationHandler) FindAllReservationsByUserIDExpired(rw http.ResponseWriter, h *http.Request) {
 	tokenStr := r.extractTokenFromHeader(h)
 	username, err := r.getUsername(tokenStr)
 	if err != nil {
@@ -289,6 +289,7 @@ func (r *ReservationHandler) FindAllReservationsByUserIDExpiredHandler(rw http.R
 		return
 	}
 
+	rw.WriteHeader(http.StatusOK)
 }
 
 func (r *ReservationHandler) UpdateAvailablePeriodByAccommodation(rw http.ResponseWriter, h *http.Request) {
@@ -415,6 +416,7 @@ func (r *ReservationHandler) DeleteReservation(rw http.ResponseWriter, h *http.R
 	if err != nil {
 		r.logger.Println("Database exception: ", err)
 		rw.WriteHeader(http.StatusNotFound)
+		return
 	}
 
 	// Get period
@@ -535,8 +537,6 @@ func (r *ReservationHandler) AuthorizeRoles(allowedRoles ...string) mux.Middlewa
 			}
 
 			for _, allowedRole := range allowedRoles {
-				fmt.Println("allowed role : ", allowedRole)
-				fmt.Println("JWT role : ", role)
 				if allowedRole == role {
 					next.ServeHTTP(w, rr)
 					return

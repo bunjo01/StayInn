@@ -1,12 +1,12 @@
 <div class="rate-host-wrap">
     <div class="accommodation-info">
         <h2>Host</h2>
-        <button *ngIf="userRole == 'GUEST'" (click)="deleteRatingsHostByUser()">remove your rating</button>
+        <button class="btnDelete" *ngIf="userRole == 'GUEST'" (click)="deleteRatingsHostByUser()">remove your rating</button>
         <div *ngIf="averageHostRate">
             <p>Average host rating : {{averageHostRate.averageRating}}</p>
         </div>
         <div *ngIf="guestsRate && userRole == 'GUEST'">
-            <p>You rated this host : {{guestsRate.rate}}</p>
+            <p id="txtRate">You rated this host : {{guestsRate.rate}}</p>
         </div>
     </div>
 
