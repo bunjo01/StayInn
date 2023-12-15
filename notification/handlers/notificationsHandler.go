@@ -145,6 +145,11 @@ func (nh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	if len(reservations) == 0 {
+		http.Error(w, "You don't have any reservations", http.StatusBadRequest)
+		return
+	}
+
 	found := false
 	for _, reservation := range reservations {
 		if reservation.IDAccommodation == idAccommodation {
@@ -453,8 +458,8 @@ func (nh *NotificationsHandler) GetAllHostRatingsByUser(w http.ResponseWriter, r
 	}
 }
 
-func (rh *NotificationsHandler) GetHostRatings(w http.ResponseWriter, r *http.Request) {
-	tokenStr := rh.extractTokenFromHeader(r)
+func (nh *NotificationsHandler) GetHostRatings(w http.ResponseWriter, r *http.Request) {
+	tokenStr := nh.extractTokenFromHeader(r)
 	vars := mux.Vars(r)
 	hostUsername, ok := vars["hostUsername"]
 	if !ok {
@@ -462,16 +467,16 @@ func (rh *NotificationsHandler) GetHostRatings(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	_, err := rh.profileClient.GetUserId(r.Context(), hostUsername, tokenStr)
+	_, err := nh.profileClient.GetUserId(r.Context(), hostUsername, tokenStr)
 	if err != nil {
-		rh.logger.Println("Failed to get HostID from username:", err)
+		nh.logger.Println("Failed to get HostID from username:", err)
 		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
 		return
 	}
 
-	ratings, err := rh.repo.GetHostRatings(r.Context(), hostUsername)
+	ratings, err := nh.repo.GetHostRatings(r.Context(), hostUsername)
 	if err != nil {
-		rh.logger.Println("Error fetching host ratings:", err)
+		nh.logger.Println("Error fetching host ratings:", err)
 		http.Error(w, "Error fetching host ratings", http.StatusInternalServerError)
 		return
 	}
@@ -479,7 +484,7 @@ func (rh *NotificationsHandler) GetHostRatings(w http.ResponseWriter, r *http.Re
 	// Convert ratings to JSON and send the response
 	err = json.NewEncoder(w).Encode(ratings)
 	if err != nil {
-		rh.logger.Println("Error encoding response:", err)
+		nh.logger.Println("Error encoding response:", err)
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
 		return
 	}
@@ -556,6 +561,19 @@ func (nh *NotificationsHandler) AddHostRating(w http.ResponseWriter, r *http.Req
 
 	if len(hasExpiredReservations) == 0 {
 		http.Error(w, "Guest does not have any expired reservations with the specified host", http.StatusBadRequest)
+		return
+	}
+
+	found := false
+	for _, reservation := range hasExpiredReservations {
+		if reservation.IDUser == rating.HostID {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		http.Error(w, "Guest can't rate this host!", http.StatusBadRequest)
 		return
 	}
 
