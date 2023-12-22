@@ -2,10 +2,9 @@ import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { ReservationByAvailablePeriod } from 'src/app/model/reservation';
-import { JwtPayload } from 'src/app/model/user';
 import { ProfileService } from 'src/app/services/profile.service';
-import * as decode from 'jwt-decode';
 import { ReservationService } from 'src/app/services/reservation.service';
+import { AuthService } from 'src/app/services/auth.service';
 
 @Component({
   selector: 'app-reservations',
@@ -21,11 +20,12 @@ export class ReservationsComponent {
   constructor(private reservationService: ReservationService,
               private router: Router,
               private toastr: ToastrService,
-              private profileService: ProfileService) {}
+              private profileService: ProfileService,
+              private authService: AuthService) {}
 
   ngOnInit(): void {
     this.getAvailablePeriod();
-    this.loggedinUserUsername = this.getUsernameFromToken();
+    this.loggedinUserUsername = this.authService.getRoleFromToken();
     this.getUserId();
     this.reservationService.getReservationByAvailablePeriod(this.availablePeriod.ID).subscribe(
       (data) => {
@@ -39,20 +39,14 @@ export class ReservationsComponent {
   deleteReservation(reservation: ReservationByAvailablePeriod) {
     this.reservationService.deleteReservation(reservation.IDAvailablePeriod, reservation.ID).subscribe(
       (result) => {
-        // Uspesno brisanje
         this.toastr.success('Reservation deleted successfully!', 'Success');
-        this.refreshPage();
+        this.router.navigate(['']);
       },
       (error) => {
-        // Greška prilikom brisanja
         this.toastr.error('Failed to delete reservation!', 'Error');
         console.error('Error deleting reservation: ', error);
       }
     );
-  }
-
-  refreshPage(){
-    location.reload();
   }
 
   navigateToAddReservation(): void {
@@ -74,17 +68,4 @@ export class ReservationsComponent {
       this.loggedinUserId = result.id
     })
   }
-
-  getUsernameFromToken(){
-    const token = localStorage.getItem('token');
-    if (token === null) {
-      this.router.navigate(['login']);
-      return;
-    }
-
-    const tokenPayload = decode.jwtDecode(token) as JwtPayload;
-
-    return tokenPayload.username
-  }
-
 }

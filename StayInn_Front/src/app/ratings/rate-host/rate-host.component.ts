@@ -22,18 +22,18 @@ export class RateHostComponent implements OnInit{
   constructor(private ratingService: RatingService, 
               private toastr: ToastrService, 
               private router: Router,
-              private authService: AuthService) {}
+              private authService: AuthService) { }
 
   ngOnInit(): void {
-    if (this.hostId){
-      this.getHostsRateByGuest()
-      this.getHostsAverageRate()
-      this.setUserRole()
+    if (this.hostId) {
+      this.getHostsRateByGuest();
+      this.getHostsAverageRate();
+      this.setUserRole();
     }
   }
 
-  setUserRole(){
-    this.userRole = this.authService.getRoleFromToken()
+  setUserRole() {
+    this.userRole = this.authService.getRoleFromTokenNoRedirect();
   }
 
   setRating(value: number) {
@@ -64,25 +64,25 @@ export class RateHostComponent implements OnInit{
     }
   }
 
-  getHostsRateByGuest(){
+  getHostsRateByGuest() {
     let id = this.hostId
     const body = {"id":id}
     this.ratingService.getUsersRatingForHost(body).subscribe((result) => {
       this.guestsRate = result
-    })
+    });
   }
 
-  getHostsAverageRate(){
+  getHostsAverageRate() {
     let id = this.hostId
     const body = {"id":id}
     this.ratingService.getAverageRatingForUser(body).subscribe((result) => {
       this.averageHostRate = result
-    })
+    });
   }
 
-  deleteRatingsHostByUser(){
-    if(this.hostId != null){
-      this.ratingService.deleteRatingsHostByUser(this.guestsRate.id).subscribe((result) => {})      
+  deleteRatingsHostByUser() {
+    if (this.hostId != null) {
+      this.ratingService.deleteRatingsHostByUser(this.guestsRate.id).subscribe((result) => {});
     }
   }
 
@@ -99,5 +99,4 @@ export class RateHostComponent implements OnInit{
       );
     }
   }
-
 }

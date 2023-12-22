@@ -72,7 +72,7 @@ export class EditAccommodationComponent implements OnInit, OnDestroy {
           updatedAccommodation => {
             console.log('Accommodation updated:', updatedAccommodation);
             this.toastr.success("Update accommodation successfully", "Accommodation Update");
-            this.router.navigate(['/']);
+            this.router.navigate(['']);
           },
           error => {
             console.error('Error updating accommodation:', error);

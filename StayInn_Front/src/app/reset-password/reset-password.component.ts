@@ -24,8 +24,8 @@ export class ResetPasswordComponent {
 
   ngOnInit() {
     this.changePasswordForm = this.formBuilder.group({
-      newPassword: [null, Validators.pattern('^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$')],
-      newPassword1: [null, Validators.pattern('^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$')],
+      newPassword: [null, Validators.required],
+      newPassword1: [null, Validators.required],
       recoverUUID: [null, Validators.required],
     });
   }
@@ -52,8 +52,6 @@ export class ResetPasswordComponent {
       recoveryUUID: recoveryUUID,
     }
 
-
-    // TODO: Pozvati service za reset lozinke
     this.authService.resetPassword(requestBody).subscribe(
       (result) => {
         this.toastr.success('Successful change password', 'Change password');
@@ -62,11 +60,9 @@ export class ResetPasswordComponent {
       (error) => {
         console.error('Error while sending mail: ', error);
         if (error instanceof HttpErrorResponse) {
-          // Prikazivanje statusnog koda i poruke greške kroz ToastrService
           const errorMessage = `${error.error}`;
           this.toastr.error(errorMessage, 'Recover Password Error');
         } else {
-          // Ukoliko greška nije HTTP greška, prikazuje se generička poruka
           this.toastr.error('An unexpected error occurred', 'Recover Password Error');
         }
       }

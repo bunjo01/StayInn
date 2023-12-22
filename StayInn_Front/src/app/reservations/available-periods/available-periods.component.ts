@@ -27,7 +27,7 @@ export class AvailablePeriodsComponent implements OnInit {
 
   ngOnInit(): void {
     this.getAccommodation();
-    this.loggedinUserUsername = this.getUsernameFromToken();
+    this.loggedinUserUsername = this.authService.getUsernameFromToken();
     this.getUserId();
     this.reservationService.getAvailablePeriods(this.accommodation.id).subscribe(
       data => {
@@ -86,17 +86,4 @@ export class AvailablePeriodsComponent implements OnInit {
       this.loggedinUserId = result.id
     })
   }
-
-  getUsernameFromToken(){
-    const token = localStorage.getItem('token');
-    if (token === null) {
-      this.router.navigate(['login']);
-      return;
-    }
-
-    const tokenPayload = decode.jwtDecode(token) as JwtPayload;
-
-    return tokenPayload.username
-  }
-
 }
