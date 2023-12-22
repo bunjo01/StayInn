@@ -27,14 +27,14 @@ export class RateAccommodationComponent implements OnInit {
     private router: Router,
     private accommodationService: AccommodationService,
     private authService: AuthService
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     if (this.accommodationID) {
       this.accommodation$ = this.accommodationService.getAccommodationById(this.accommodationID);
-      this.setGuestsRatingOfAccommodation()
-      this.setAverageRatingForAccommodation()
-      this.setUserRole()
+      this.setGuestsRatingOfAccommodation();
+      this.setAverageRatingForAccommodation();
+      this.setUserRole();
     }
   }
 
@@ -42,31 +42,31 @@ export class RateAccommodationComponent implements OnInit {
     this.ratingA = value;
   }
 
-  setGuestsRatingOfAccommodation(){
-    if(this.accommodationID != null){
+  setGuestsRatingOfAccommodation() {
+    if (this.accommodationID != null) {
       this.ratingService.getUsersRatingForAccommodation(this.accommodationID).subscribe((result) => {
         this.guestsRatingOfAccommodation = result
-      })
+      });
     }
   }
 
-  setAverageRatingForAccommodation(){
-    if(this.accommodationID != null){
+  setAverageRatingForAccommodation() {
+    if (this.accommodationID != null) {
       this.ratingService.getAverageRatingForAccommodation(this.accommodationID).subscribe((result) => {
         this.averageRating = result
       })
     }
   }
 
-  deleteAccommodationRating(){
-    if(this.accommodationID != null){
+  deleteAccommodationRating() {
+    if (this.accommodationID != null) {
       this.ratingService.deleteRatingsAccommodationByUser(this.guestsRatingOfAccommodation.id).subscribe((result) => {})      
     }
-    this.router.navigate(["/"])
+    this.router.navigate(['']);
   }
 
-  setUserRole(){
-    this.userRole = this.authService.getRoleFromToken()
+  setUserRole() {
+    this.userRole = this.authService.getRoleFromTokenNoRedirect();
   }
 
   addRating() {

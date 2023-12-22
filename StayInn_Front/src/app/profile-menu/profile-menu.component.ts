@@ -44,6 +44,6 @@ export class ProfileMenuComponent implements OnInit {
   }
 
   setUserRole(){
-    this.userRole = this.authService.getRoleFromToken()
+    this.userRole = this.authService.getRoleFromToken();
   }
 }

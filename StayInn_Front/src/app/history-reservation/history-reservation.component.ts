@@ -33,7 +33,7 @@ export class HistoryReservationComponent implements OnInit{
      private accommodationService: AccommodationService , private router: Router, private ratingService: RatingService, private authService: AuthService, private datePipe: DatePipe) { }
 
   ngOnInit(): void {
-      this.loggedinUserUsername = this.getUsernameFromToken();
+      this.loggedinUserUsername = this.authService.getUsernameFromToken();
       console.log(this.loggedinUserUsername);
       this.getUserId();
       this.reservationService.getReservationByUserExp()
@@ -75,24 +75,6 @@ export class HistoryReservationComponent implements OnInit{
       this.loggedinUserId = result.id
     })
   }
-
-  getUsernameFromToken() {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      this.router.navigate(['login']);
-      return null;
-    }
-  
-    try {
-      const tokenPayload = decode.jwtDecode(token) as JwtPayload;
-      return tokenPayload.username;
-    } catch (error) {
-      console.error('Greška prilikom dekodiranja tokena:', error);
-      this.router.navigate(['login']);
-      return null;
-    }
-  }
-  
 
   loadAccommodations() {
     this.expiredReservations.forEach((reservation) => {

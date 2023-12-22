@@ -84,6 +84,17 @@ export class AuthService {
     return tokenPayload.username
   }
 
+  getUsernameFromTokenNoRedirect(){
+    const token = localStorage.getItem('token');
+    if (token === null) {
+      return;
+    }
+
+    const tokenPayload = decode.jwtDecode(token) as JwtPayload;
+
+    return tokenPayload.username
+  }
+
   public isAuthenticated(): boolean {
     const token = localStorage.getItem('token');
     return !this.jwtHelper.isTokenExpired(token);

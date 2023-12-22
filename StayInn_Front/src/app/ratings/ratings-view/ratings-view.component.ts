@@ -16,7 +16,7 @@ export class RatingsViewComponent implements OnInit {
   ratingHost: RatingHost[] = [];
   ratingAccommodation: RatingAccommodation[] = [];
   accommodations: Accommodation[] = [];
-  username: string = this.authService.getUsernameFromToken() || '';
+  username: string = this.authService.getUsernameFromTokenNoRedirect() || '';
 
   constructor(private ratingService: RatingService,private authService: AuthService, private datePipe: DatePipe, private accommodationService: AccommodationService) {}
 

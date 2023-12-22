@@ -33,9 +33,7 @@ export class EditPeriodTemplateComponent {
       .subscribe(response => {
         console.log('Period updated successfully:', response);
         this.formData = { ID: '', IDAccommodation: '', IDUser:'', StartDate: '', EndDate: '', Price: 0, PricePerGuest: false };
-        this.router.navigateByUrl('/').then(() => {
-          window.location.reload();
-        });
+        this.router.navigate(['']);
       }, error => {
         console.error('Error updating period:', error);
         if (error instanceof HttpErrorResponse) {
