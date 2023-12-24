@@ -25,7 +25,7 @@ export class ReservationsComponent {
 
   ngOnInit(): void {
     this.getAvailablePeriod();
-    this.loggedinUserUsername = this.authService.getRoleFromToken();
+    this.loggedinUserUsername = this.authService.getUsernameFromToken();
     this.getUserId();
     this.reservationService.getReservationByAvailablePeriod(this.availablePeriod.ID).subscribe(
       (data) => {

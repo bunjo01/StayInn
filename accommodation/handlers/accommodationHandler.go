@@ -397,7 +397,6 @@ func (ah *AccommodationHandler) extractTokenFromHeader(rr *http.Request) string 
 
 func (ah *AccommodationHandler) SearchAccommodations(rw http.ResponseWriter, r *http.Request) {
 	tokenStr := ah.extractTokenFromHeader(r)
-	ah.logger.Printf("Entering SearchAccommodations function")
 	ctx, cancel := context.WithTimeout(r.Context(), 5000*time.Millisecond)
 	defer cancel()
 
@@ -431,10 +430,14 @@ func (ah *AccommodationHandler) SearchAccommodations(rw http.ResponseWriter, r *
 	location := r.URL.Query().Get("location")
 	numberOfGuests := r.URL.Query().Get("numberOfGuests")
 
-	numGuests, err := strconv.Atoi(numberOfGuests)
-	if err != nil {
-		http.Error(rw, "Failed to convert numberOfGuests", http.StatusInternalServerError)
-		return
+	var numGuests int
+	var err error
+	if numberOfGuests != "" && numberOfGuests != "NaN" {
+		numGuests, err = strconv.Atoi(numberOfGuests)
+		if err != nil {
+			http.Error(rw, "Failed to convert numberOfGuests", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	filter := make(bson.M)
