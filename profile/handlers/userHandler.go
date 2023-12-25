@@ -204,12 +204,6 @@ func (uh *UserHandler) UpdateUser(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := uh.repo.UpdateUser(r.Context(), username, &updatedUser, email); err != nil {
-		uh.logger.Println("Failed to update user:", err)
-		http.Error(rw, "Failed to update user", http.StatusInternalServerError)
-		return
-	}
-
 	ctx, cancel := context.WithTimeout(r.Context(), 5000*time.Millisecond)
 	defer cancel()
 
@@ -229,6 +223,12 @@ func (uh *UserHandler) UpdateUser(rw http.ResponseWriter, r *http.Request) {
 			writeResp(err, http.StatusServiceUnavailable, rw)
 			return
 		}
+	}
+
+	if err := uh.repo.UpdateUser(r.Context(), username, &updatedUser, email); err != nil {
+		uh.logger.Println("Failed to update user:", err)
+		http.Error(rw, "Failed to update user", http.StatusInternalServerError)
+		return
 	}
 
 	rw.Header().Set("Content-Type", "application/json")
