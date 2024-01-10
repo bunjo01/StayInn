@@ -6,11 +6,15 @@ import (
 	"auth/domain"
 	"auth/handlers"
 	"context"
-	"log"
+	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
+
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/natefinch/lumberjack.v2"
 
 	gorillaHandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -18,7 +22,7 @@ import (
 )
 
 func main() {
-	//Reading from environment, if not set we will default it to 8080.
+	//Reading from environment, if not set we will default it to 8081.
 	//This allows flexibility in different environments (for eg. when running multiple docker api's and want to override the default port)
 	port := os.Getenv("PORT")
 	if len(port) == 0 {
@@ -29,14 +33,20 @@ func main() {
 	timeoutContext, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	//Initialize the logger we are going to use, with prefix and datetime for every log
-	logger := log.New(os.Stdout, "[auth-service] ", log.LstdFlags)
-	storeLogger := log.New(os.Stdout, "[auth-store] ", log.LstdFlags)
+	//Initialize the logger we are going to use
+	lumberjackLogger := &lumberjack.Logger{
+		Filename: "/logger/logs/auth.log",
+		MaxSize:  1,  //MB
+		MaxAge:   30, //days
+	}
+
+	log.SetOutput(io.MultiWriter(os.Stdout, lumberjackLogger))
+	log.SetLevel(log.InfoLevel)
 
 	// NoSQL: Initialize Auth Repository store
-	store, err := data.New(timeoutContext, storeLogger)
+	store, err := data.New(timeoutContext)
 	if err != nil {
-		logger.Fatal(err)
+		log.Fatal(fmt.Sprintf("[auth-service]as#10 Failed to initialize repo: %v", err))
 	}
 	defer store.Disconnect(timeoutContext)
 
@@ -62,7 +72,7 @@ func main() {
 				return counts.ConsecutiveFailures > 2
 			},
 			OnStateChange: func(name string, from, to gobreaker.State) {
-				logger.Printf("CB '%s' changed from '%s' to '%s'\n", name, from, to)
+				log.Info(fmt.Sprintf("[auth-service]as#1 CB '%s' changed from '%s' to '%s'", name, from, to))
 			},
 			IsSuccessful: func(err error) bool {
 				if err == nil {
@@ -77,7 +87,7 @@ func main() {
 	profile := clients.NewProfileClient(profileClient, os.Getenv("PROFILE_SERVICE_URI"), profileBreaker)
 
 	//Initialize the handler and inject logger and other services clients
-	credentialsHandler := handlers.NewCredentialsHandler(logger, store, profile)
+	credentialsHandler := handlers.NewCredentialsHandler(store, profile)
 
 	//Initialize the router and add a middleware for all the requests
 	router := mux.NewRouter()
@@ -109,25 +119,57 @@ func main() {
 		WriteTimeout: 5 * time.Second,
 	}
 
-	logger.Println("Server listening on port", port)
+	log.Info(fmt.Sprintf("[auth-service]as#2 Server listening on port %s", port))
 	//Distribute all the connections to goroutines
 	go func() {
 		err := server.ListenAndServe()
 		if err != nil {
-			logger.Fatal(err)
+			log.Fatal(fmt.Sprintf("[auth-service]as#3 Error while serving request: %v", err))
 		}
 	}()
+
+	// Protecting logs from unauthorized access and modification
+	// dirPath := "/logger/logs"
+	// err = protectLogs(dirPath)
+	// if err != nil {
+	// 	log.Fatal(fmt.Sprintf("[auth-service]as#9 Error while protecting logs: %v", err))
+	// }
 
 	sigCh := make(chan os.Signal)
 	signal.Notify(sigCh, os.Interrupt)
 	signal.Notify(sigCh, os.Kill)
 
 	sig := <-sigCh
-	logger.Println("Received terminate, graceful shutdown", sig)
+	log.Info(fmt.Sprintf("[auth-service]as#4 Recieved terminate, starting gracefull shutdown %v", sig))
 
 	//Try to shutdown gracefully
 	if server.Shutdown(timeoutContext) != nil {
-		logger.Fatal("Cannot gracefully shutdown...")
+		log.Fatal("[auth-service]as#5 Cannot gracefully shutdown")
 	}
-	logger.Println("Server stopped")
+	log.Info("[auth-service]as#6 Server gracefully stopped")
 }
+
+// Changes ownership and sets permissions
+// func protectLogs(dirPath string) error {
+// 	// Walk through all files in the directory
+// 	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+// 		if err != nil {
+// 			return errors.New("error accessing path " + dirPath)
+// 		}
+
+// 		// Change ownership to user
+// 		if err := os.Chown(path, 0, 0); err != nil {
+// 			log.Fatal(fmt.Sprintf("[auth-service]as#7 Failed to set log ownership to root: %v", err))
+// 			return errors.New("error changing onwership to root for " + path)
+// 		}
+
+// 		// Set read-only permissions for the owner
+// 		if err := os.Chmod(path, 0644); err != nil {
+// 			log.Fatal(fmt.Sprintf("[auth-service]as#8 Failed to set read-only permissions for root: %v", err))
+// 			return errors.New("error changing permissions for " + path)
+// 		}
+
+// 		return nil
+// 	})
+// 	return err
+// }

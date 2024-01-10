@@ -6,12 +6,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 )
 
 var secretKey = []byte("stayinn_secret")
@@ -19,7 +19,6 @@ var secretKey = []byte("stayinn_secret")
 type KeyProduct struct{}
 
 type CredentialsHandler struct {
-	logger  *log.Logger
 	repo    *data.CredentialsRepo
 	profile clients.ProfileClient
 }
@@ -30,8 +29,8 @@ const (
 )
 
 // Injecting the logger makes this code much more testable
-func NewCredentialsHandler(l *log.Logger, r *data.CredentialsRepo, p clients.ProfileClient) *CredentialsHandler {
-	return &CredentialsHandler{l, r, p}
+func NewCredentialsHandler(r *data.CredentialsRepo, p clients.ProfileClient) *CredentialsHandler {
+	return &CredentialsHandler{r, p}
 }
 
 // TODO Handler methods
@@ -103,7 +102,7 @@ func (ch *CredentialsHandler) UpdateEmail(w http.ResponseWriter, r *http.Request
 	oldEmail := vars["oldEmail"]
 	email := vars["email"]
 
-	ch.logger.Printf("Received request to update email from %s to %s\n", oldEmail, email)
+	log.Info(fmt.Sprintf("[auth-handler]#ah1 Received request to update email from %s to %s", oldEmail, email))
 
 	if err := ch.repo.ChangeEmail(r.Context(), oldEmail, email); err != nil {
 		http.Error(w, fmt.Sprintf("Failed to change email: %v", err), http.StatusInternalServerError)
@@ -139,7 +138,7 @@ func (ch *CredentialsHandler) Register(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	_, err = ch.profile.PassInfoToProfileService(ctx, newUser, tokenStr)
 	if err != nil {
-		ch.logger.Println(err)
+		log.Error(fmt.Sprintf("[auth-handler]#ah2 Error while passing info to profile service: %v", err))
 		ch.repo.DeleteUser(r.Context(), newUser.Username)
 		writeResp(err, http.StatusServiceUnavailable, w)
 		return
@@ -178,7 +177,7 @@ func (ch *CredentialsHandler) ActivateAccount(w http.ResponseWriter, r *http.Req
 	err := ch.repo.ActivateUserAccount(activationUUID)
 	if err != nil {
 		if err.Error() == "link for activation has expired" {
-			ch.logger.Printf("Error during activation: %v", err)
+			log.Error(fmt.Sprintf("[auth-handler]#ah3 Error during activation: %v", err))
 			http.Error(w, "Link for activation has expired", http.StatusGone)
 			return
 		}
@@ -234,7 +233,7 @@ func (ch *CredentialsHandler) DeleteUser(w http.ResponseWriter, r *http.Request)
 	username := vars["username"]
 
 	if err := ch.repo.DeleteUser(r.Context(), username); err != nil {
-		ch.logger.Println("Failed to delete user: ", err)
+		log.Error(fmt.Sprintf("[auth-handler]#ah4 Failed to delete user %s: %v", username, err))
 		http.Error(w, "Failed to delete user", http.StatusInternalServerError)
 		return
 	}
@@ -247,6 +246,7 @@ func (ch *CredentialsHandler) AuthorizeRoles(allowedRoles ...string) mux.Middlew
 		return http.HandlerFunc(func(w http.ResponseWriter, rr *http.Request) {
 			tokenString := ch.extractTokenFromHeader(rr)
 			if tokenString == "" {
+				log.Warning(fmt.Sprintf("[auth-handler]#ah5 No token found in request from '%s'", rr.RemoteAddr))
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
@@ -257,13 +257,20 @@ func (ch *CredentialsHandler) AuthorizeRoles(allowedRoles ...string) mux.Middlew
 			})
 
 			if err != nil || !token.Valid {
+				log.Warning(fmt.Sprintf("[auth-handler]#ah6 Invalid signature token found in request from '%s'", rr.RemoteAddr))
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
 
-			_, ok1 := claims["username"].(string)
+			username, ok1 := claims["username"].(string)
 			role, ok2 := claims["role"].(string)
-			if !ok1 || !ok2 {
+			if !ok1 {
+				log.Warning(fmt.Sprintf("[auth-handler]#ah7 Username not found in token in request from '%s'", rr.RemoteAddr))
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+			if !ok2 {
+				log.Warning(fmt.Sprintf("[auth-handler]#ah8 Role not found in token in request from '%s'", rr.RemoteAddr))
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
@@ -275,6 +282,7 @@ func (ch *CredentialsHandler) AuthorizeRoles(allowedRoles ...string) mux.Middlew
 				}
 			}
 
+			log.Warning(fmt.Sprintf("[auth-handler]#ah9 User '%s' from '%s' tried to do unauthorized action", username, rr.RemoteAddr))
 			http.Error(w, "Forbidden", http.StatusForbidden)
 		})
 	}
