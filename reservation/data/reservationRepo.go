@@ -70,20 +70,20 @@ func (rr *ReservationRepo) GetAvailablePeriodsByAccommodation(id string) (Availa
 
 		err := scanner.Scan(&period.ID, &idAccommodationStr, &idUserStr, &period.StartDate, &period.EndDate, &period.Price, &period.PricePerGuest)
 		if err != nil {
-			log.Info(fmt.Sprintf("[res-service]rr#3 Error while scanning from database: %v", err))
+			log.Fatal(fmt.Sprintf("[res-service]rr#3 Error while scanning from database: %v", err))
 			return nil, err
 		}
 
 		idAccommodation, err := primitive.ObjectIDFromHex(idAccommodationStr)
 		if err != nil {
-			log.Info(fmt.Sprintf("[res-service]rr#4 Error while parsing id: %v", err))
+			log.Error(fmt.Sprintf("[res-service]rr#4 Error while parsing id: %v", err))
 			return nil, err
 		}
 		period.IDAccommodation = idAccommodation
 
 		idUser, err := primitive.ObjectIDFromHex(idUserStr)
 		if err != nil {
-			log.Info(fmt.Sprintf("[res-service]rr#5 Error while parsing id: %v", err))
+			log.Error(fmt.Sprintf("[res-service]rr#5 Error while parsing id: %v", err))
 			return nil, err
 		}
 		period.IDUser = idUser
@@ -91,7 +91,7 @@ func (rr *ReservationRepo) GetAvailablePeriodsByAccommodation(id string) (Availa
 		availablePeriods = append(availablePeriods, &period)
 	}
 	if err := scanner.Err(); err != nil {
-		log.Info(fmt.Sprintf("[res-service]rr#6 Error while scanning from database: %v", err))
+		log.Fatal(fmt.Sprintf("[res-service]rr#6 Error while scanning from database: %v", err))
 		return nil, err
 	}
 
@@ -113,21 +113,21 @@ func (rr *ReservationRepo) GetReservationsByAvailablePeriod(idAvailablePeriod st
 
 		err := scanner.Scan(&reservation.ID, &idAccommodationStr, &reservation.IDAvailablePeriod, &idUserStr, &reservation.StartDate, &reservation.EndDate, &reservation.GuestNumber, &reservation.Price)
 		if err != nil {
-			log.Info(fmt.Sprintf("[res-service]rr#7 Error while scanning from database: %v", err))
+			log.Fatal(fmt.Sprintf("[res-service]rr#7 Error while scanning from database: %v", err))
 			return nil, err
 		}
 
 		// Convert idAccommodationStr and idUserStr strings to primitive.ObjectID
 		idAccommodation, err := primitive.ObjectIDFromHex(idAccommodationStr)
 		if err != nil {
-			log.Info(fmt.Sprintf("[res-service]rr#8 Error while parsing id: %v", err))
+			log.Error(fmt.Sprintf("[res-service]rr#8 Error while parsing id: %v", err))
 			return nil, err
 		}
 		reservation.IDAccommodation = idAccommodation
 
 		idUser, err := primitive.ObjectIDFromHex(idUserStr)
 		if err != nil {
-			log.Info(fmt.Sprintf("[res-service]rr#9 Error while parsing id: %v", err))
+			log.Error(fmt.Sprintf("[res-service]rr#9 Error while parsing id: %v", err))
 			return nil, err
 		}
 		reservation.IDUser = idUser
@@ -135,7 +135,7 @@ func (rr *ReservationRepo) GetReservationsByAvailablePeriod(idAvailablePeriod st
 		reservations = append(reservations, &reservation)
 	}
 	if err := scanner.Err(); err != nil {
-		log.Info(fmt.Sprintf("[res-service]rr#10 Error while scanning from database: %v", err))
+		log.Fatal(fmt.Sprintf("[res-service]rr#10 Error while scanning from database: %v", err))
 		return nil, err
 	}
 
@@ -164,7 +164,7 @@ func (rr *ReservationRepo) InsertAvailablePeriodByAccommodation(availablePeriod 
 
 	isOverLap, err := rr.checkForOverlap(*availablePeriod, availablePeriod.IDAccommodation.Hex())
 	if err != nil {
-		log.Info(fmt.Sprintf("[res-service]rr#11 Error while checking overlap of dates: %v", err))
+		log.Error(fmt.Sprintf("[res-service]rr#11 Error while checking overlap of dates: %v", err))
 		return err
 	}
 
@@ -182,7 +182,7 @@ func (rr *ReservationRepo) InsertAvailablePeriodByAccommodation(availablePeriod 
 		availablePeriodId, idAccommodation, idUser, availablePeriod.StartDate, availablePeriod.EndDate,
 		availablePeriod.Price, availablePeriod.PricePerGuest).Exec()
 	if err != nil {
-		log.Info(fmt.Sprintf("[res-service]rr#12 Error while inserting in database: %v", err))
+		log.Fatal(fmt.Sprintf("[res-service]rr#12 Error while inserting in database: %v", err))
 		return err
 	}
 
@@ -196,23 +196,23 @@ func (rr *ReservationRepo) InsertReservationByAvailablePeriod(reservation *Reser
 	// Check if the reservation is within the appropriate range of the available period
 	availablePeriod, err := rr.FindAvailablePeriodById(reservation.IDAvailablePeriod.String(), reservation.IDAccommodation.Hex())
 	if err != nil {
-		log.Info(fmt.Sprintf("[res-service]rr#13 Error while finding available period by id: %v", err))
+		log.Error(fmt.Sprintf("[res-service]rr#13 Error while finding available period by id: %v", err))
 		return err
 	}
 	if reservation.StartDate.Before(availablePeriod.StartDate) || reservation.EndDate.After(availablePeriod.EndDate) {
-		log.Info(fmt.Sprintf("[res-service]rr#14 Error while comparing two dates: %v", err))
+		log.Error(fmt.Sprintf("[res-service]rr#14 Error while comparing two dates: %v", err))
 		return errors.New("reservation is not within the appropriate range of the available period")
 	}
 
 	if reservation.EndDate.Sub(reservation.StartDate) < 24*time.Hour {
-		log.Info(fmt.Sprintf("[res-service]rr#15 Error while creating reservation: %v", err))
+		log.Error(fmt.Sprintf("[res-service]rr#15 Error while creating reservation: %v", err))
 		return errors.New("EndDate must be at least one day after StartDate")
 	}
 
 	// Retrieve existing reservations for the available period
 	existingReservations, err := rr.FindAllReservationsByAvailablePeriod(availablePeriod.ID.String())
 	if err != nil {
-		log.Info(fmt.Sprintf("[res-service]rr#16 Error while getting all available periods: %v", err))
+		log.Fatal(fmt.Sprintf("[res-service]rr#16 Error while getting all available periods: %v", err))
 		return err
 	}
 
@@ -220,7 +220,7 @@ func (rr *ReservationRepo) InsertReservationByAvailablePeriod(reservation *Reser
 	for _, existingReservation := range existingReservations {
 		if (reservation.StartDate.Before(existingReservation.EndDate) || reservation.StartDate.Equal(existingReservation.EndDate)) &&
 			(reservation.EndDate.After(existingReservation.StartDate) || reservation.EndDate.Equal(existingReservation.StartDate)) {
-			log.Info(fmt.Sprintf("[res-service]rr#17 Error while checking for reservation overlap: %v", err))
+			log.Error(fmt.Sprintf("[res-service]rr#17 Error while checking for reservation overlap: %v", err))
 			return errors.New("new reservation overlaps with an existing reservation")
 		}
 	}
@@ -233,7 +233,7 @@ func (rr *ReservationRepo) InsertReservationByAvailablePeriod(reservation *Reser
 		reservationId, reservation.IDAccommodation.Hex(), reservation.IDAvailablePeriod, reservation.IDUser.Hex(),
 		reservation.StartDate, reservation.EndDate, reservation.GuestNumber, calculatedPrice).Exec()
 	if err != nil {
-		log.Info(fmt.Sprintf("[res-service]rr#18 Error while inserting in database: %v", err))
+		log.Fatal(fmt.Sprintf("[res-service]rr#18 Error while inserting in database: %v", err))
 		return err
 	}
 
@@ -248,53 +248,53 @@ func (rr *ReservationRepo) UpdateAvailablePeriodByAccommodation(availablePeriod 
 
 	availablePeriods, err := rr.FindAvailablePeriodsById(id.String(), accommodationdId)
 	if err != nil {
-		log.Info(fmt.Sprintf("[res-service]rr#19 Error while finding available period by id: %v", err))
+		log.Fatal(fmt.Sprintf("[res-service]rr#19 Error while finding available period by id: %v", err))
 		return err
 	}
 
 	if len(availablePeriods) != 1 {
-		log.Info(fmt.Sprintf("[res-service]rr#20 Error while finding available period by id: %v", err))
+		log.Error(fmt.Sprintf("[res-service]rr#20 Error while finding available period by id: %v", err))
 		return err
 	}
 
 	reservations, err := rr.GetReservationsByAvailablePeriod(id.String())
 	if err != nil {
-		log.Info(fmt.Sprintf("[res-service]rr#21 Error while finding reservation by available period: %v", err))
+		log.Fatal(fmt.Sprintf("[res-service]rr#21 Error while finding reservation by available period: %v", err))
 		return err
 	}
 
 	if len(reservations) != 0 {
-		log.Info(fmt.Sprintf("[res-service]rr#22 Error while chaning period with reservations: %v", err))
+		log.Error(fmt.Sprintf("[res-service]rr#22 Error while chaning period with reservations: %v", err))
 		err = errors.New("cannot change period with reservations")
 		return err
 	}
 
 	isOverLap, err := rr.checkForOverlap(*availablePeriod, accommodationdId)
 	if err != nil {
-		log.Info(fmt.Sprintf("[res-service]rr#23 Error while checking for period overlap: %v", err))
+		log.Error(fmt.Sprintf("[res-service]rr#23 Error while checking for period overlap: %v", err))
 		return err
 	}
 
 	if isOverLap {
-		log.Info(fmt.Sprintf("[res-service]rr#24 Error while checking for period overlap: %v", err))
+		log.Error(fmt.Sprintf("[res-service]rr#24 Error while checking for period overlap: %v", err))
 		err = errors.New("date overlap")
 		return err
 	}
 
 	if availablePeriod.Price < 0 {
-		log.Info(fmt.Sprintf("[res-service]rr#25 Error while creating period: %v", err))
+		log.Error(fmt.Sprintf("[res-service]rr#25 Error while creating period: %v", err))
 		err = errors.New("price cannot be negative")
 		return err
 	}
 
 	if availablePeriod.StartDate.Before(time.Now()) {
-		log.Info(fmt.Sprintf("[res-service]rr#26 Error while creating period: %v", err))
+		log.Error(fmt.Sprintf("[res-service]rr#26 Error while creating period: %v", err))
 		err = errors.New("start date must be in the future")
 		return err
 	}
 
 	if availablePeriod.StartDate.After(availablePeriod.EndDate) {
-		log.Info(fmt.Sprintf("[res-service]rr#27 Error while creating period: %v", err))
+		log.Error(fmt.Sprintf("[res-service]rr#27 Error while creating period: %v", err))
 		err = errors.New("start date must be before end date")
 		return err
 	}
@@ -306,7 +306,7 @@ func (rr *ReservationRepo) UpdateAvailablePeriodByAccommodation(availablePeriod 
 		availablePeriod.EndDate, availablePeriod.Price, availablePeriod.PricePerGuest,
 		availablePeriod.StartDate, availablePeriod.ID.String(), availablePeriod.IDAccommodation.Hex()).Exec()
 	if err != nil {
-		log.Info(fmt.Sprintf("[res-service]rr#28 Error while inserting in database: %v", err))
+		log.Fatal(fmt.Sprintf("[res-service]rr#28 Error while inserting in database: %v", err))
 		return err
 	}
 
@@ -332,7 +332,7 @@ func (rr *ReservationRepo) FindAvailablePeriodsByAccommodationId(accommodationId
 		err := scanner.Scan(&period.ID, &idAccommodationStr, &idUserStr, &period.StartDate, &period.EndDate, &period.Price, &period.PricePerGuest)
 
 		if err != nil {
-			log.Info(fmt.Sprintf("[res-service]rr#29 Error while scanning from database: %v", err))
+			log.Fatal(fmt.Sprintf("[res-service]rr#29 Error while scanning from database: %v", err))
 			return nil, err
 		}
 
@@ -344,7 +344,7 @@ func (rr *ReservationRepo) FindAvailablePeriodsByAccommodationId(accommodationId
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Info(fmt.Sprintf("[res-service]rr#30 Error while scanning from database: %v", err))
+		log.Fatal(fmt.Sprintf("[res-service]rr#30 Error while scanning from database: %v", err))
 		return nil, err
 	}
 
@@ -371,7 +371,7 @@ func (rr *ReservationRepo) FindAvailablePeriodsById(id, accommodationId string) 
 		err := scanner.Scan(&period.ID, &idAccommodationStr, &idUserStr, &period.StartDate, &period.EndDate, &period.Price, &period.PricePerGuest)
 
 		if err != nil {
-			log.Info(fmt.Sprintf("[res-service]rr#31 Error while scanning from database: %v", err))
+			log.Fatal(fmt.Sprintf("[res-service]rr#31 Error while scanning from database: %v", err))
 			return nil, err
 		}
 
@@ -382,7 +382,7 @@ func (rr *ReservationRepo) FindAvailablePeriodsById(id, accommodationId string) 
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Info(fmt.Sprintf("[res-service]rr#32 Error while scanning from database: %v", err))
+		log.Fatal(fmt.Sprintf("[res-service]rr#32 Error while scanning from database: %v", err))
 		return nil, err
 	}
 
@@ -406,7 +406,7 @@ func (rr *ReservationRepo) FindAvailablePeriodById(id, accommodationID string) (
 	)
 
 	if err != nil {
-		log.Info(fmt.Sprintf("[res-service]rr#33 Error while scanning from database: %v", err))
+		log.Fatal(fmt.Sprintf("[res-service]rr#33 Error while scanning from database: %v", err))
 		return nil, err
 	}
 
@@ -436,7 +436,7 @@ func (rr *ReservationRepo) FindAllReservationsByAvailablePeriod(periodId string)
 			&reservation.StartDate, &reservation.EndDate, &reservation.GuestNumber, &reservation.Price)
 
 		if err != nil {
-			log.Info(fmt.Sprintf("[res-service]rr#34 Error while scanning from database: %v", err))
+			log.Fatal(fmt.Sprintf("[res-service]rr#34 Error while scanning from database: %v", err))
 			return nil, err
 		}
 
@@ -448,7 +448,7 @@ func (rr *ReservationRepo) FindAllReservationsByAvailablePeriod(periodId string)
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Info(fmt.Sprintf("[res-service]rr#35 Error while scanning from database: %v", err))
+		log.Fatal(fmt.Sprintf("[res-service]rr#35 Error while scanning from database: %v", err))
 		return nil, err
 	}
 
@@ -475,7 +475,7 @@ func (rr *ReservationRepo) FindAllReservationsByUserID(userID string) (Reservati
 			&reservation.StartDate, &reservation.EndDate, &reservation.GuestNumber, &reservation.Price)
 
 		if err != nil {
-			log.Info(fmt.Sprintf("[res-service]rr#36 Error while scanning from database: %v", err))
+			log.Fatal(fmt.Sprintf("[res-service]rr#36 Error while scanning from database: %v", err))
 			return nil, err
 		}
 
@@ -487,7 +487,7 @@ func (rr *ReservationRepo) FindAllReservationsByUserID(userID string) (Reservati
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Info(fmt.Sprintf("[res-service]rr#37 Error while scanning from database: %v", err))
+		log.Fatal(fmt.Sprintf("[res-service]rr#37 Error while scanning from database: %v", err))
 		return nil, err
 	}
 
@@ -515,7 +515,7 @@ func (rr *ReservationRepo) FindAllReservationsByUserIDExpired(userID string) (Re
 			&reservation.StartDate, &reservation.EndDate, &reservation.GuestNumber, &reservation.Price)
 
 		if err != nil {
-			log.Info(fmt.Sprintf("[res-service]rr#38 Error while scanning from database: %v", err))
+			log.Fatal(fmt.Sprintf("[res-service]rr#38 Error while scanning from database: %v", err))
 			return nil, err
 		}
 
@@ -527,7 +527,7 @@ func (rr *ReservationRepo) FindAllReservationsByUserIDExpired(userID string) (Re
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Info(fmt.Sprintf("[res-service]rr#39 Error while scanning from database: %v", err))
+		log.Fatal(fmt.Sprintf("[res-service]rr#39 Error while scanning from database: %v", err))
 		return nil, err
 	}
 
@@ -554,7 +554,7 @@ func (rr *ReservationRepo) FindReservationByIdAndAvailablePeriod(id, periodID st
 	)
 
 	if err != nil {
-		log.Info(fmt.Sprintf("[res-service]rr#40 Error while scanning from database: %v", err))
+		log.Fatal(fmt.Sprintf("[res-service]rr#40 Error while scanning from database: %v", err))
 		return nil, err
 	}
 
@@ -570,17 +570,17 @@ func (rr *ReservationRepo) FindReservationByIdAndAvailablePeriod(id, periodID st
 func (rr *ReservationRepo) DeleteReservationByIdAndAvailablePeriodID(id, periodID, ownerId string) error {
 	reservation, err := rr.FindReservationByIdAndAvailablePeriod(id, periodID)
 	if err != nil {
-		log.Info(fmt.Sprintf("[res-service]rr#41 Error while finging reservation by id and period: %v", err))
+		log.Fatal(fmt.Sprintf("[res-service]rr#41 Error while finging reservation by id and period: %v", err))
 		return err
 	}
 
 	if reservation.IDUser.Hex() != ownerId {
-		log.Info(fmt.Sprintf("[res-service]rr#42 Error while comparing userid and ownerid: %v", err))
+		log.Error(fmt.Sprintf("[res-service]rr#42 Error while comparing userid and ownerid: %v", err))
 		return errors.New("you are not owner of reservation")
 	}
 
 	if time.Now().After(reservation.StartDate) {
-		log.Info(fmt.Sprintf("[res-service]rr#43 Error while comparing present with reservation start date: %v", err))
+		log.Error(fmt.Sprintf("[res-service]rr#43 Error while comparing present with reservation start date: %v", err))
 		return errors.New("cannot delete reservation after start date has passed")
 	}
 
@@ -588,7 +588,7 @@ func (rr *ReservationRepo) DeleteReservationByIdAndAvailablePeriodID(id, periodI
               WHERE id = ? AND id_available_period = ?`
 
 	if err := rr.session.Query(query, id, periodID).Exec(); err != nil {
-		log.Info(fmt.Sprintf("[res-service]rr#44 Error while retriving data from database: %v", err))
+		log.Fatal(fmt.Sprintf("[res-service]rr#44 Error while retriving data from database: %v", err))
 		return err
 	}
 
@@ -600,7 +600,7 @@ func (rr *ReservationRepo) DeleteReservationByIdAndAvailablePeriodID(id, periodI
 func (rr *ReservationRepo) CheckAndDeleteReservationsByUserID(userID primitive.ObjectID) error {
 	reservations, err := rr.FindAllReservationsByUserID(userID.Hex())
 	if err != nil {
-		log.Info(fmt.Sprintf("[res-service]rr#45 Error while finding reservations by userid: %v", err))
+		log.Fatal(fmt.Sprintf("[res-service]rr#45 Error while finding reservations by userid: %v", err))
 		return err
 	}
 
@@ -608,7 +608,7 @@ func (rr *ReservationRepo) CheckAndDeleteReservationsByUserID(userID primitive.O
 	// Check if any reservation has an end date in the future
 	for _, reservation := range reservations {
 		if time.Now().Before(reservation.EndDate) {
-			log.Info(fmt.Sprintf("[res-service]rr#46 Error while finding user active reservation: %v", err))
+			log.Error(fmt.Sprintf("[res-service]rr#46 Error while finding user active reservation: %v", err))
 			return errors.New("user has active reservations")
 		}
 		// Mark the accommodation as processed
@@ -620,7 +620,7 @@ func (rr *ReservationRepo) CheckAndDeleteReservationsByUserID(userID primitive.O
               WHERE id_accommodation = ? AND id_user = ?`
 
 		if err := rr.session.Query(query, accommodationID.Hex(), userID.Hex()).Exec(); err != nil {
-			log.Info(fmt.Sprintf("[res-service]rr#47 Error while retriving data from database: %v", err))
+			log.Fatal(fmt.Sprintf("[res-service]rr#47 Error while retriving data from database: %v", err))
 			return err
 		}
 	}
@@ -635,14 +635,14 @@ func (rr *ReservationRepo) DeletePeriodsForAccommodations(accIDs []primitive.Obj
 	for _, accID := range accIDs {
 		periods, err := rr.FindAvailablePeriodsByAccommodationId(accID.String())
 		if err != nil {
-			log.Info(fmt.Sprintf("[res-service]rr#48 Error while finding periods by accommodation id: %v", err))
+			log.Fatal(fmt.Sprintf("[res-service]rr#48 Error while finding periods by accommodation id: %v", err))
 			return err
 		}
 
 		for _, period := range periods {
 			reservations, err := rr.FindAllReservationsByAvailablePeriod(period.ID.String())
 			if err != nil {
-				log.Info(fmt.Sprintf("[res-service]rr#49 Error while finding reservations by period: %v", err))
+				log.Error(fmt.Sprintf("[res-service]rr#49 Error while finding reservations by period: %v", err))
 				return err
 			}
 
@@ -650,7 +650,7 @@ func (rr *ReservationRepo) DeletePeriodsForAccommodations(accIDs []primitive.Obj
 			for _, reservation := range reservations {
 				if !time.Now().After(reservation.EndDate) {
 					// If the end date has not passed, disallow deletion and return an error
-					log.Info(fmt.Sprintf("[res-service]rr#50 Error while deleting period with active reservations: %v", err))
+					log.Error(fmt.Sprintf("[res-service]rr#50 Error while deleting period with active reservations: %v", err))
 					return errors.New("cannot delete period, there are active reservations")
 				}
 
@@ -662,7 +662,7 @@ func (rr *ReservationRepo) DeletePeriodsForAccommodations(accIDs []primitive.Obj
 				query := `DELETE FROM reservations_by_available_period WHERE id IN ?`
 
 				if err := rr.session.Query(query, reservationIDs).Exec(); err != nil {
-					log.Info(fmt.Sprintf("[res-service]rr#51 Error while deleting data from databse: %v", err))
+					log.Error(fmt.Sprintf("[res-service]rr#51 Error while deleting data from databse: %v", err))
 					return err
 				}
 			}
@@ -670,7 +670,7 @@ func (rr *ReservationRepo) DeletePeriodsForAccommodations(accIDs []primitive.Obj
 			query := `DELETE FROM available_periods_by_accommodation WHERE id = ?`
 
 			if err := rr.session.Query(query, period.ID).Exec(); err != nil {
-				log.Info(fmt.Sprintf("[res-service]rr#52 Error while deleting data from databse: %v", err))
+				log.Fatal(fmt.Sprintf("[res-service]rr#52 Error while deleting data from databse: %v", err))
 				return err
 			}
 		}
@@ -702,7 +702,7 @@ func (rr *ReservationRepo) FindAccommodationIdsByDates(dates *Dates) (ListOfObje
 			err := scanner.Scan(&period.ID, &idAccommodationStr, &idUserStr, &period.StartDate, &period.EndDate, &period.Price, &period.PricePerGuest)
 
 			if err != nil {
-				log.Info(fmt.Sprintf("[res-service]rr#53 Error while scanning from databse: %v", err))
+				log.Fatal(fmt.Sprintf("[res-service]rr#53 Error while scanning from databse: %v", err))
 				return ListOfObjectIds{}, err
 			}
 
@@ -717,7 +717,7 @@ func (rr *ReservationRepo) FindAccommodationIdsByDates(dates *Dates) (ListOfObje
 		}
 
 		if err := scanner.Err(); err != nil {
-			log.Info(fmt.Sprintf("[res-service]rr#54 Error while scanning data from databse: %v", err))
+			log.Fatal(fmt.Sprintf("[res-service]rr#54 Error while scanning data from databse: %v", err))
 			return ListOfObjectIds{}, err
 		}
 	}
@@ -728,7 +728,7 @@ func (rr *ReservationRepo) FindAccommodationIdsByDates(dates *Dates) (ListOfObje
 
 	listOfInvalidIds, err := rr.FindReservationForSearch(periodIDs, accommodationIds, dates.StartDate, dates.EndDate)
 	if err != nil {
-		log.Info(fmt.Sprintf("[res-service]rr#55 Error while finding reservation for search: %v", err))
+		log.Error(fmt.Sprintf("[res-service]rr#55 Error while finding reservation for search: %v", err))
 		return ListOfObjectIds{}, err
 	}
 
@@ -781,7 +781,7 @@ func (rr *ReservationRepo) FindReservationForSearch(periodsIds []gocql.UUID, lis
 		}
 
 		if err := iter.Close(); err != nil {
-			log.Info(fmt.Sprintf("[res-service]rr#56 Error while itering over objects: %v", err))
+			log.Error(fmt.Sprintf("[res-service]rr#56 Error while itering over objects: %v", err))
 			return ListOfObjectIds{}, err
 		}
 	}
@@ -817,13 +817,13 @@ func (rr *ReservationRepo) GetDistinctIds(idColumnName string, tableName string)
 		var id string
 		err := scanner.Scan(&id)
 		if err != nil {
-			log.Info(fmt.Sprintf("[res-service]rr#57 Error while scanning for ids: %v", err))
+			log.Fatal(fmt.Sprintf("[res-service]rr#57 Error while scanning for ids: %v", err))
 			return nil, err
 		}
 		ids = append(ids, id)
 	}
 	if err := scanner.Err(); err != nil {
-		log.Info(fmt.Sprintf("[res-service]rr#58 Error while scanning data from databse: %v", err))
+		log.Fatal(fmt.Sprintf("[res-service]rr#58 Error while scanning data from databse: %v", err))
 		return nil, err
 	}
 	log.Info(fmt.Sprintf("[res-service]rr#77 Successfuly retrieved distinct ids"))
@@ -833,7 +833,7 @@ func (rr *ReservationRepo) GetDistinctIds(idColumnName string, tableName string)
 func (rr *ReservationRepo) checkForOverlap(newPeriod AvailablePeriodByAccommodation, accommodationId string) (bool, error) {
 	avalablePeriods, err := rr.FindAvailablePeriodsByAccommodationId(accommodationId)
 	if err != nil {
-		log.Info(fmt.Sprintf("[res-service]rr#59 Error while finding available periods by accommodation: %v", err))
+		log.Fatal(fmt.Sprintf("[res-service]rr#59 Error while finding available periods by accommodation: %v", err))
 		return true, err
 	}
 

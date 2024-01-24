@@ -143,7 +143,7 @@ func main() {
 				return counts.ConsecutiveFailures > 2
 			},
 			OnStateChange: func(name string, from, to gobreaker.State) {
-				log.Info(fmt.Sprintf("[res-service]rs#8 CB '%s' changed from '%s' to &: '%s'", name, from, to))
+				log.Info(fmt.Sprintf("[res-service]rs#8 CB '%s' changed from '%s' to '%s'", name, from, to))
 			},
 			IsSuccessful: func(err error) bool {
 				if err == nil {
@@ -165,7 +165,7 @@ func main() {
 				return counts.ConsecutiveFailures > 2
 			},
 			OnStateChange: func(name string, from, to gobreaker.State) {
-				log.Info(fmt.Sprintf("[res-service]rs#9 CB '%s' changed from '%s' to &: '%s'", name, from, to))
+				log.Info(fmt.Sprintf("[res-service]rs#9 CB '%s' changed from '%s' to '%s'", name, from, to))
 			},
 			IsSuccessful: func(err error) bool {
 				if err == nil {
@@ -187,7 +187,7 @@ func main() {
 				return counts.ConsecutiveFailures > 2
 			},
 			OnStateChange: func(name string, from, to gobreaker.State) {
-				log.Info(fmt.Sprintf("[res-service]rs#10 CB '%s' changed from '%s' to &: '%s'", name, from, to))
+				log.Info(fmt.Sprintf("[res-service]rs#10 CB '%s' changed from '%s' to '%s'", name, from, to))
 			},
 			IsSuccessful: func(err error) bool {
 				if err == nil {
