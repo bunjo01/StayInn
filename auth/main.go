@@ -6,11 +6,13 @@ import (
 	"auth/domain"
 	"auth/handlers"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -129,11 +131,11 @@ func main() {
 	}()
 
 	// Protecting logs from unauthorized access and modification
-	// dirPath := "/logger/logs"
-	// err = protectLogs(dirPath)
-	// if err != nil {
-	// 	log.Fatal(fmt.Sprintf("[auth-service]as#9 Error while protecting logs: %v", err))
-	// }
+	dirPath := "/logger/logs"
+	err = protectLogs(dirPath)
+	if err != nil {
+		log.Fatal(fmt.Sprintf("[auth-service]as#9 Error while protecting logs: %v", err))
+	}
 
 	sigCh := make(chan os.Signal)
 	signal.Notify(sigCh, os.Interrupt)
@@ -150,26 +152,26 @@ func main() {
 }
 
 // Changes ownership and sets permissions
-// func protectLogs(dirPath string) error {
-// 	// Walk through all files in the directory
-// 	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
-// 		if err != nil {
-// 			return errors.New("error accessing path " + dirPath)
-// 		}
+func protectLogs(dirPath string) error {
+	// Walk through all files in the directory
+	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return errors.New("error accessing path " + dirPath)
+		}
 
-// 		// Change ownership to user
-// 		if err := os.Chown(path, 0, 0); err != nil {
-// 			log.Fatal(fmt.Sprintf("[auth-service]as#7 Failed to set log ownership to root: %v", err))
-// 			return errors.New("error changing onwership to root for " + path)
-// 		}
+		// Change ownership to user
+		if err := os.Chown(path, 0, 0); err != nil {
+			log.Fatal(fmt.Sprintf("[auth-service]as#7 Failed to set log ownership to root: %v", err))
+			return errors.New("error changing onwership to root for " + path)
+		}
 
-// 		// Set read-only permissions for the owner
-// 		if err := os.Chmod(path, 0644); err != nil {
-// 			log.Fatal(fmt.Sprintf("[auth-service]as#8 Failed to set read-only permissions for root: %v", err))
-// 			return errors.New("error changing permissions for " + path)
-// 		}
+		// Set read-only permissions for the owner
+		if err := os.Chmod(path, 0400); err != nil {
+			log.Fatal(fmt.Sprintf("[auth-service]as#8 Failed to set read-only permissions for root: %v", err))
+			return errors.New("error changing permissions for " + path)
+		}
 
-// 		return nil
-// 	})
-// 	return err
-// }
+		return nil
+	})
+	return err
+}
