@@ -2,7 +2,8 @@ package main
 
 import (
 	"context"
-	"log"
+	"fmt"
+	"io"
 	"net/http"
 	"notification/clients"
 	"notification/data"
@@ -11,6 +12,9 @@ import (
 	"os"
 	"os/signal"
 	"time"
+
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/natefinch/lumberjack.v2"
 
 	gorillaHandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -27,14 +31,20 @@ func main() {
 	timeoutContext, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Logger initialization
-	logger := log.New(os.Stdout, "[notification-service] ", log.LstdFlags)
-	storeLogger := log.New(os.Stdout, "[notification-store] ", log.LstdFlags)
+	//Initialize the logger we are going to use
+	lumberjackLogger := &lumberjack.Logger{
+		Filename: "/logger/logs/reservation.log",
+		MaxSize:  1,  //MB
+		MaxAge:   30, //days
+	}
+
+	log.SetOutput(io.MultiWriter(os.Stdout, lumberjackLogger))
+	log.SetLevel(log.InfoLevel)
 
 	// Initializing repo for notifications
-	store, err := data.New(timeoutContext, storeLogger)
+	store, err := data.New(timeoutContext)
 	if err != nil {
-		logger.Fatal(err)
+		log.Fatal(fmt.Sprintf("[noti-service]ns#10 Failed to initialize repo: %v", err))
 	}
 	defer store.Disconnect(timeoutContext)
 	store.Ping()
@@ -65,7 +75,7 @@ func main() {
 				return counts.ConsecutiveFailures > 2
 			},
 			OnStateChange: func(name string, from, to gobreaker.State) {
-				logger.Printf("CB '%s' changed from '%s' to '%s'\n", name, from, to)
+				log.Info("[noti-service]ns#1 CB '%s' changed from '%s' to '%s'\n", name, from, to)
 			},
 			IsSuccessful: func(err error) bool {
 				if err == nil {
@@ -87,7 +97,7 @@ func main() {
 				return counts.ConsecutiveFailures > 2
 			},
 			OnStateChange: func(name string, from, to gobreaker.State) {
-				logger.Printf("CB '%s' changed from '%s' to '%s'\n", name, from, to)
+				log.Info("[noti-service]ns#2 CB '%s' changed from '%s' to '%s'\n", name, from, to)
 			},
 			IsSuccessful: func(err error) bool {
 				if err == nil {
@@ -102,7 +112,7 @@ func main() {
 	reservation := clients.NewReservationClient(reservationClient, os.Getenv("RESERVATION_SERVICE_URI"), reservationBreaker)
 	profile := clients.NewProfileClient(profileClient, os.Getenv("PROFILE_SERVICE_URI"), profileBreaker)
 
-	notificationsHandler := handlers.NewNotificationsHandler(logger, store, reservation, profile)
+	notificationsHandler := handlers.NewNotificationsHandler(store, reservation, profile)
 
 	// Router init
 	router := mux.NewRouter()
@@ -196,12 +206,12 @@ func main() {
 		WriteTimeout: 5 * time.Second,
 	}
 
-	logger.Println("Server listening on port", port)
+	log.Info(fmt.Sprintf("[noti-service]ns#3 Server listening on port", port))
 
 	go func() {
 		err := server.ListenAndServe()
 		if err != nil {
-			logger.Fatal(err)
+			log.Fatal(fmt.Sprintf("[noti-service]ns#4 Error while serving request: %v", err))
 		}
 	}()
 
@@ -210,10 +220,10 @@ func main() {
 	signal.Notify(sigCh, os.Kill)
 
 	sig := <-sigCh
-	logger.Println("Received terminate, graceful shutdown", sig)
+	log.Info(fmt.Sprintf("[noti-service]ns#5 Recieved terminate, starting gracefull shutdown %v", sig))
 
 	if err := server.Shutdown(timeoutContext); err != nil {
-		logger.Fatal("Cannot gracefully shutdown...")
+		log.Fatal("[noti-service]ns#6 Cannot gracefully shutdown...")
 	}
-	logger.Println("Server stopped")
+	log.Info("[noti-service]ns#7 Server stopped")
 }
