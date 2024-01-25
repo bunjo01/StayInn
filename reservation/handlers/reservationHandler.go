@@ -35,6 +35,8 @@ func (r *ReservationHandler) GetAllAvailablePeriodsByAccommodation(rw http.Respo
 	vars := mux.Vars(h)
 	id := vars["id"]
 
+	log.Info(fmt.Sprintf("[rese-handler]#rh59 Received login request from '%s'", h.RemoteAddr))
+
 	availablePeriods, err := r.repo.GetAvailablePeriodsByAccommodation(id)
 	if err != nil {
 		log.Error(fmt.Sprintf("[rese-handler]rh#1 Error while finding available period by accommodation: %v", err))
@@ -59,6 +61,8 @@ func (r *ReservationHandler) FindAvailablePeriodByIdAndByAccommodationId(rw http
 	periodID := vars["periodID"]
 	accomodationID := vars["accomodationID"]
 
+	log.Info(fmt.Sprintf("[rese-handler]#rh60 Received login request from '%s'", h.RemoteAddr))
+
 	availablePeriod, err := r.repo.FindAvailablePeriodById(periodID, accomodationID)
 	if err != nil {
 		log.Error(fmt.Sprintf("[rese-handler]rh#3 Error while finding period by id: %v", err))
@@ -81,6 +85,8 @@ func (r *ReservationHandler) FindAvailablePeriodByIdAndByAccommodationId(rw http
 func (r *ReservationHandler) GetAllReservationByAvailablePeriod(rw http.ResponseWriter, h *http.Request) {
 	vars := mux.Vars(h)
 	id := vars["id"]
+
+	log.Info(fmt.Sprintf("[rese-handler]#rh61 Received login request from '%s'", h.RemoteAddr))
 
 	reservations, err := r.repo.GetReservationsByAvailablePeriod(id)
 	if err != nil {
@@ -110,6 +116,8 @@ func (r *ReservationHandler) CreateAvailablePeriod(rw http.ResponseWriter, h *ht
 		http.Error(rw, "Failed to read username from token", http.StatusBadRequest)
 		return
 	}
+
+	log.Info(fmt.Sprintf("[rese-handler]#rh62 Received login request from '%s' with username: '%s'", h.RemoteAddr, username))
 
 	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
@@ -167,6 +175,8 @@ func (r *ReservationHandler) CreateReservation(rw http.ResponseWriter, h *http.R
 		http.Error(rw, "Failed to read username from token", http.StatusBadRequest)
 		return
 	}
+
+	log.Info(fmt.Sprintf("[rese-handler]#rh63 Received login request from '%s' with username: '%s'", h.RemoteAddr, username))
 
 	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
@@ -240,6 +250,8 @@ func (r *ReservationHandler) CreateReservation(rw http.ResponseWriter, h *http.R
 }
 
 func (r *ReservationHandler) FindAccommodationIdsByDates(rw http.ResponseWriter, h *http.Request) {
+	log.Info(fmt.Sprintf("[rese-handler]#rh64 Received login request from '%s'", h.RemoteAddr))
+
 	dates := h.Context().Value(KeyProduct{}).(data.Dates)
 	ids, err := r.repo.FindAccommodationIdsByDates(&dates)
 	if err != nil {
@@ -267,6 +279,8 @@ func (r *ReservationHandler) FindAllReservationsByUserIDExpired(rw http.Response
 		http.Error(rw, "Failed to read username from token", http.StatusBadRequest)
 		return
 	}
+
+	log.Info(fmt.Sprintf("[rese-handler]#rh65 Received login request from '%s' with username: '%s'", h.RemoteAddr, username))
 
 	guestID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
@@ -304,6 +318,8 @@ func (r *ReservationHandler) UpdateAvailablePeriodByAccommodation(rw http.Respon
 		return
 	}
 
+	log.Info(fmt.Sprintf("[rese-handler]#rh66 Received login request from '%s' with username: '%s'", h.RemoteAddr, username))
+
 	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
 		log.Error(fmt.Sprintf("[rese-handler]rh#31 Error while reading host id from username: %v", err))
@@ -328,6 +344,8 @@ func (r *ReservationHandler) UpdateAvailablePeriodByAccommodation(rw http.Respon
 }
 
 func (r *ReservationHandler) DeletePeriodsForAccommodations(rw http.ResponseWriter, h *http.Request) {
+	log.Info(fmt.Sprintf("[rese-handler]#rh67 Received login request from '%s'", h.RemoteAddr))
+
 	if h.Context().Value(KeyProduct{}) != nil {
 		accIDs := h.Context().Value(KeyProduct{}).([]primitive.ObjectID)
 		if (accIDs != nil) && len(accIDs) > 0 {
@@ -348,6 +366,8 @@ func (r *ReservationHandler) GetAllReservationsByUser(rw http.ResponseWriter, h 
 	tokenStr := r.extractTokenFromHeader(h)
 	vars := mux.Vars(h)
 	username := vars["username"]
+
+	log.Info(fmt.Sprintf("[rese-handler]#rh68 Received login request from '%s' with username: '%s'", h.RemoteAddr, username))
 
 	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
@@ -380,6 +400,8 @@ func (r *ReservationHandler) CheckAndDeleteReservationsForUser(rw http.ResponseW
 		return
 	}
 
+	log.Info(fmt.Sprintf("[rese-handler]#rh69 Received login request from '%s'", h.RemoteAddr))
+
 	err = r.repo.CheckAndDeleteReservationsByUserID(userID)
 	if err != nil {
 		log.Error(fmt.Sprintf("[rese-handler]rh#38 Error while checking and deleting reservations by user id : %v", err))
@@ -401,6 +423,8 @@ func (r *ReservationHandler) DeleteReservation(rw http.ResponseWriter, h *http.R
 		http.Error(rw, "Failed to read username from token", http.StatusBadRequest)
 		return
 	}
+
+	log.Info(fmt.Sprintf("[rese-handler]#rh70 Received login request from '%s' with username: '%s'", h.RemoteAddr, username))
 
 	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
