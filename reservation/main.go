@@ -38,7 +38,7 @@ func main() {
 
 	//Initialize the logger we are going to use, with prefix and datetime for every log
 	lumberjackLogger := &lumberjack.Logger{
-		Filename: "/logger/logs/res.log",
+		Filename: "/logger/logs/rese.log",
 		MaxSize:  1,  //MB
 		MaxAge:   30, //days
 	}
@@ -52,7 +52,7 @@ func main() {
 	cassandraPortStr := os.Getenv("CASSANDRA_PORT")
 	cassandraPort, err := strconv.Atoi(cassandraPortStr)
 	if err != nil {
-		log.Fatal(fmt.Sprintf("[res-service]rs#1 Failed to initialize repo: %v", err))
+		log.Fatal(fmt.Sprintf("[rese-service]rs#1 Failed to initialize repo: %v", err))
 	}
 	cassandraUser := os.Getenv("CASSANDRA_USER")
 	cassandraPassword := os.Getenv("CASSANDRA_PASSWORD")
@@ -62,7 +62,7 @@ func main() {
 
 	session, err := cluster.CreateSession()
 	if err != nil {
-		log.Fatal(fmt.Sprintf("[res-service]rs#2 Failed to create session: %v", err))
+		log.Fatal(fmt.Sprintf("[rese-service]rs#2 Failed to create session: %v", err))
 	}
 
 	err = session.Query(
@@ -70,11 +70,11 @@ func main() {
 						WITH replication = {
 							'class' : 'SimpleStrategy',
 							'replication_factor' : %d
-						}`, "reservation", 1)).Exec()
+						}`, "reseervation", 1)).Exec()
 
 	if err != nil {
 		session.Close()
-		log.Fatal(fmt.Sprintf("[res-service]rs#3 Failed to create namespaces: %v", err))
+		log.Fatal(fmt.Sprintf("[rese-service]rs#3 Failed to create namespaces: %v", err))
 	}
 
 	session.Close()
@@ -90,21 +90,21 @@ func main() {
 
 	session, err = cluster.CreateSession()
 	if err != nil {
-		log.Fatal(fmt.Sprintf("[res-service]rs#4 Failed to create Cassandra session: %v", err))
+		log.Fatal(fmt.Sprintf("[rese-service]rs#4 Failed to create Cassandra session: %v", err))
 	} else {
 		defer session.Close()
-		log.Info(fmt.Sprintf("[res-service]rs#5 Connected to Cassandra: %v", err))
+		log.Info(fmt.Sprintf("[rese-service]rs#5 Connected to Cassandra: %v", err))
 	}
 
 	// Initializing repo
 	store, err := data.New(session)
 	if err != nil {
-		log.Fatal(fmt.Sprintf("[res-service]rs#6 Failed to initialize res handler: %v", err))
+		log.Fatal(fmt.Sprintf("[rese-service]rs#6 Failed to initialize res handler: %v", err))
 	}
 
 	err = store.CreateTables()
 	if err != nil {
-		log.Fatal(fmt.Sprintf("[res-service]rs#7 Failed to create Cassandra tables: %v", err))
+		log.Fatal(fmt.Sprintf("[rese-service]rs#7 Failed to create Cassandra tables: %v", err))
 	}
 
 	defer store.CloseSession()
@@ -143,7 +143,7 @@ func main() {
 				return counts.ConsecutiveFailures > 2
 			},
 			OnStateChange: func(name string, from, to gobreaker.State) {
-				log.Info(fmt.Sprintf("[res-service]rs#8 CB '%s' changed from '%s' to '%s'", name, from, to))
+				log.Info(fmt.Sprintf("[rese-service]rs#8 CB '%s' changed from '%s' to '%s'", name, from, to))
 			},
 			IsSuccessful: func(err error) bool {
 				if err == nil {
@@ -165,7 +165,7 @@ func main() {
 				return counts.ConsecutiveFailures > 2
 			},
 			OnStateChange: func(name string, from, to gobreaker.State) {
-				log.Info(fmt.Sprintf("[res-service]rs#9 CB '%s' changed from '%s' to '%s'", name, from, to))
+				log.Info(fmt.Sprintf("[rese-service]rs#9 CB '%s' changed from '%s' to '%s'", name, from, to))
 			},
 			IsSuccessful: func(err error) bool {
 				if err == nil {
@@ -187,7 +187,7 @@ func main() {
 				return counts.ConsecutiveFailures > 2
 			},
 			OnStateChange: func(name string, from, to gobreaker.State) {
-				log.Info(fmt.Sprintf("[res-service]rs#10 CB '%s' changed from '%s' to '%s'", name, from, to))
+				log.Info(fmt.Sprintf("[rese-service]rs#10 CB '%s' changed from '%s' to '%s'", name, from, to))
 			},
 			IsSuccessful: func(err error) bool {
 				if err == nil {
@@ -270,13 +270,13 @@ func main() {
 		WriteTimeout: 5 * time.Second,
 	}
 
-	log.Info(fmt.Sprintf("[res-service]rs#11 Listening on port: %v", port))
+	log.Info(fmt.Sprintf("[rese-service]rs#11 Listening on port: %v", port))
 	//Distribute all the connections to goroutines
 	go func() {
 		err := server.ListenAndServe()
 		if err != nil {
 			if err != nil {
-				log.Fatal(fmt.Sprintf("[res-service]rs#12 Error while serving request: %v", err))
+				log.Fatal(fmt.Sprintf("[rese-service]rs#12 Error while serving request: %v", err))
 			}
 		}
 	}()
@@ -286,13 +286,13 @@ func main() {
 	signal.Notify(sigCh, os.Kill)
 
 	sig := <-sigCh
-	log.Info(fmt.Sprintf("[res-service]rs#13 Recieved terminate, starting gracefull shutdown %v", sig))
+	log.Info(fmt.Sprintf("[rese-service]rs#13 Recieved terminate, starting gracefull shutdown %v", sig))
 
 	//Try to shutdown gracefully
 	if server.Shutdown(timeoutContext) != nil {
-		log.Fatal("[res-service]rs#14 Cannot gracefully shutdown")
+		log.Fatal("[rese-service]rs#14 Cannot gracefully shutdown")
 	}
 
-	log.Info("[res-service]rs#15 Server gracefully stopped")
+	log.Info("[rese-service]rs#15 Server gracefully stopped")
 
 }

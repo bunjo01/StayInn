@@ -37,7 +37,7 @@ func (r *ReservationHandler) GetAllAvailablePeriodsByAccommodation(rw http.Respo
 
 	availablePeriods, err := r.repo.GetAvailablePeriodsByAccommodation(id)
 	if err != nil {
-		log.Error(fmt.Sprintf("[res-service]rh#1 Error while finding available period by accommodation: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#1 Error while finding available period by accommodation: %v", err))
 	}
 
 	if availablePeriods == nil {
@@ -47,11 +47,11 @@ func (r *ReservationHandler) GetAllAvailablePeriodsByAccommodation(rw http.Respo
 	err = availablePeriods.ToJSON(rw)
 	if err != nil {
 		http.Error(rw, "Unable to convert to json:", http.StatusInternalServerError)
-		log.Error(fmt.Sprintf("[res-service]rh#2 Error while converting from json: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#2 Error while converting from json: %v", err))
 		return
 	}
 
-	log.Info(fmt.Sprintf("[res-service]rh#48 Successfuly retrieved available periods by accommodation"))
+	log.Info(fmt.Sprintf("[rese-handler]rh#48 Successfuly retrieved available periods by accommodation"))
 }
 
 func (r *ReservationHandler) FindAvailablePeriodByIdAndByAccommodationId(rw http.ResponseWriter, h *http.Request) {
@@ -61,21 +61,21 @@ func (r *ReservationHandler) FindAvailablePeriodByIdAndByAccommodationId(rw http
 
 	availablePeriod, err := r.repo.FindAvailablePeriodById(periodID, accomodationID)
 	if err != nil {
-		log.Error(fmt.Sprintf("[res-service]rh#3 Error while finding period by id: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#3 Error while finding period by id: %v", err))
 	}
 
 	if availablePeriod == nil {
-		log.Error(fmt.Sprintf("[res-service]rh#4 Error while finding period by id: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#4 Error while finding period by id: %v", err))
 		return
 	}
 
 	err = availablePeriod.ToJSON(rw)
 	if err != nil {
 		http.Error(rw, "Unable to convert to json:", http.StatusInternalServerError)
-		log.Error(fmt.Sprintf("[res-service]rh#5 Error while converting json: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#5 Error while converting json: %v", err))
 		return
 	}
-	log.Info(fmt.Sprintf("[res-service]rh#49 Successfuly retrieved available periods by id and accommodation"))
+	log.Info(fmt.Sprintf("[rese-handler]rh#49 Successfuly retrieved available periods by id and accommodation"))
 }
 
 func (r *ReservationHandler) GetAllReservationByAvailablePeriod(rw http.ResponseWriter, h *http.Request) {
@@ -84,7 +84,7 @@ func (r *ReservationHandler) GetAllReservationByAvailablePeriod(rw http.Response
 
 	reservations, err := r.repo.GetReservationsByAvailablePeriod(id)
 	if err != nil {
-		log.Error(fmt.Sprintf("[res-service]rh#6 Error while finding reservations by period: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#6 Error while finding reservations by period: %v", err))
 	}
 
 	if reservations == nil {
@@ -94,10 +94,10 @@ func (r *ReservationHandler) GetAllReservationByAvailablePeriod(rw http.Response
 	err = reservations.ToJSON(rw)
 	if err != nil {
 		http.Error(rw, "Unable to convert to json:", http.StatusInternalServerError)
-		log.Error(fmt.Sprintf("[res-service]rh#7 Error while converting json: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#7 Error while converting json: %v", err))
 		return
 	}
-	log.Info(fmt.Sprintf("[res-service]rh#50 Successfuly retrieved reservation by avilable period"))
+	log.Info(fmt.Sprintf("[rese-handler]rh#50 Successfuly retrieved reservation by avilable period"))
 }
 
 func (r *ReservationHandler) CreateAvailablePeriod(rw http.ResponseWriter, h *http.Request) {
@@ -106,53 +106,53 @@ func (r *ReservationHandler) CreateAvailablePeriod(rw http.ResponseWriter, h *ht
 	tokenStr := r.extractTokenFromHeader(h)
 	username, err := r.getUsername(tokenStr)
 	if err != nil {
-		log.Warning(fmt.Sprintf("[res-service]rh#8 Error while reading username from token: %v", err))
+		log.Warning(fmt.Sprintf("[rese-handler]rh#8 Error while reading username from token: %v", err))
 		http.Error(rw, "Failed to read username from token", http.StatusBadRequest)
 		return
 	}
 
 	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
-		log.Error(fmt.Sprintf("[res-service]rh#9 Error while getting hostId for username: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#9 Error while getting hostId for username: %v", err))
 		http.Error(rw, "Failed to get HostID from username", http.StatusBadRequest)
 		return
 	}
 
 	availablePeriod.IDUser, err = primitive.ObjectIDFromHex(userID)
 	if err != nil {
-		log.Error(fmt.Sprintf("[res-service]rh#10 Error while getting hostId for accommodation: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#10 Error while getting hostId for accommodation: %v", err))
 		http.Error(rw, "Failed to set HostID for accommodation", http.StatusBadRequest)
 		return
 	}
 
 	_, err = r.accommodation.CheckAccommodationID(h.Context(), availablePeriod.IDAccommodation, tokenStr)
 	if err != nil {
-		log.Error(fmt.Sprintf("[res-service]rh#11 Error while getting accommodation by id: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#11 Error while getting accommodation by id: %v", err))
 		http.Error(rw, "Failed to get accommodation by Id", http.StatusBadRequest)
 		return
 	}
 
 	exists, err := r.accommodation.CheckAccommodationID(h.Context(), availablePeriod.IDAccommodation, tokenStr)
 	if err != nil {
-		log.Error(fmt.Sprintf("[res-service]rh#12 Error while getting accommodation by id: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#12 Error while getting accommodation by id: %v", err))
 		http.Error(rw, "Failed to check accommodation existence", http.StatusInternalServerError)
 		return
 	}
 
 	if !exists {
-		log.Error(fmt.Sprintf("[res-service]rh#13 Error while getting accommodation by id: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#13 Error while getting accommodation by id: %v", err))
 		http.Error(rw, "Accommodation does not exist", http.StatusBadRequest)
 		return
 	}
 
 	err = r.repo.InsertAvailablePeriodByAccommodation(availablePeriod)
 	if err != nil {
-		log.Error(fmt.Sprintf("[res-service]rh#14 Error while inserting in database: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#14 Error while inserting in database: %v", err))
 		http.Error(rw, fmt.Sprintf("Failed to create available period: %v", err), http.StatusBadRequest)
 		return
 	}
 
-	log.Info(fmt.Sprintf("[res-service]rh#51 User id:'%s' successfuly created available period", userID))
+	log.Info(fmt.Sprintf("[rese-handler]rh#51 User id:'%s' successfuly created available period", userID))
 
 	rw.WriteHeader(http.StatusCreated)
 }
@@ -163,41 +163,41 @@ func (r *ReservationHandler) CreateReservation(rw http.ResponseWriter, h *http.R
 	tokenStr := r.extractTokenFromHeader(h)
 	username, err := r.getUsername(tokenStr)
 	if err != nil {
-		log.Warning(fmt.Sprintf("[res-service]rh#15 Error while reading username from token: %v", err))
+		log.Warning(fmt.Sprintf("[rese-handler]rh#15 Error while reading username from token: %v", err))
 		http.Error(rw, "Failed to read username from token", http.StatusBadRequest)
 		return
 	}
 
 	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
-		log.Error(fmt.Sprintf("[res-service]rh#16 Error while getting hostId for username: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#16 Error while getting hostId for username: %v", err))
 		http.Error(rw, "Failed to get HostID from username", http.StatusBadRequest)
 		return
 	}
 
 	reservation.IDUser, err = primitive.ObjectIDFromHex(userID)
 	if err != nil {
-		log.Error(fmt.Sprintf("[res-service]rh#17 Error while getting hostId for accommodation: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#17 Error while getting hostId for accommodation: %v", err))
 		http.Error(rw, "Failed to set HostID for accommodation", http.StatusBadRequest)
 		return
 	}
 
 	exists, err := r.accommodation.CheckAccommodationID(h.Context(), reservation.IDAccommodation, tokenStr)
 	if !exists {
-		log.Error(fmt.Sprintf("[res-service]rh#18 Error while getting accommodation by id: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#18 Error while getting accommodation by id: %v", err))
 		http.Error(rw, "Accommodation does not exist", http.StatusBadRequest)
 		return
 	}
 
 	if err != nil {
-		log.Error(fmt.Sprintf("[res-service]rh#19 Error while getting accommodation by id: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#19 Error while getting accommodation by id: %v", err))
 		http.Error(rw, "Failed to check accommodation existence", http.StatusInternalServerError)
 		return
 	}
 
 	err = r.repo.InsertReservationByAvailablePeriod(reservation)
 	if err != nil {
-		log.Error(fmt.Sprintf("[res-service]rh#20 Error while inserting in database: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#20 Error while inserting in database: %v", err))
 		http.Error(rw, fmt.Sprintf("Failed to create reservation: %v", err), http.StatusBadRequest)
 		return
 	}
@@ -205,7 +205,7 @@ func (r *ReservationHandler) CreateReservation(rw http.ResponseWriter, h *http.R
 	// Get accommodation
 	accommodation, err := r.accommodation.GetAccommodationByID(h.Context(), reservation.IDAccommodation, tokenStr)
 	if err != nil {
-		log.Error(fmt.Sprintf("[res-service]rh#21 Error while finding accommodation by id: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#21 Error while finding accommodation by id: %v", err))
 		http.Error(rw, "failed to get accommodation by ID", http.StatusInternalServerError)
 		return
 	}
@@ -213,7 +213,7 @@ func (r *ReservationHandler) CreateReservation(rw http.ResponseWriter, h *http.R
 	// Get host
 	host, err := r.profile.GetUserById(h.Context(), accommodation.HostID, tokenStr)
 	if err != nil {
-		log.Error(fmt.Sprintf("[res-service]rh#22 Error while finding host by id: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#22 Error while finding host by id: %v", err))
 		http.Error(rw, "failed to get host by ID", http.StatusInternalServerError)
 		return
 	}
@@ -229,12 +229,12 @@ func (r *ReservationHandler) CreateReservation(rw http.ResponseWriter, h *http.R
 
 	notified, err := r.notification.NotifyReservation(h.Context(), notification, tokenStr)
 	if !notified {
-		log.Error(fmt.Sprintf("[res-service]rh#23 Error while trying to notify host: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#23 Error while trying to notify host: %v", err))
 		http.Error(rw, "failed to notify host", http.StatusInternalServerError)
 		return
 	}
 
-	log.Info(fmt.Sprintf("[res-service]rh#52 User id:'%s' successfuly created reservation", userID))
+	log.Info(fmt.Sprintf("[rese-handler]rh#52 User id:'%s' successfuly created reservation", userID))
 
 	rw.WriteHeader(http.StatusCreated)
 }
@@ -243,18 +243,18 @@ func (r *ReservationHandler) FindAccommodationIdsByDates(rw http.ResponseWriter,
 	dates := h.Context().Value(KeyProduct{}).(data.Dates)
 	ids, err := r.repo.FindAccommodationIdsByDates(&dates)
 	if err != nil {
-		log.Error(fmt.Sprintf("[res-service]rh#24 Error while finding accommodation by id and dates: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#24 Error while finding accommodation by id and dates: %v", err))
 		http.Error(rw, fmt.Sprintf("Failed to find accommodation ids: %v", err), http.StatusBadRequest)
 		return
 	}
 	err = ids.ToJSON(rw)
 	if err != nil {
-		log.Error(fmt.Sprintf("[res-service]rh#25 Error while trying to convert json: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#25 Error while trying to convert json: %v", err))
 		http.Error(rw, "Unable to convert to json:", http.StatusInternalServerError)
 		return
 	}
 
-	log.Info(fmt.Sprintf("[res-service]rh#53 Successfuly retrieved accommodation ids by dates"))
+	log.Info(fmt.Sprintf("[rese-handler]rh#53 Successfuly retrieved accommodation ids by dates"))
 
 	rw.WriteHeader(http.StatusOK)
 }
@@ -263,33 +263,33 @@ func (r *ReservationHandler) FindAllReservationsByUserIDExpired(rw http.Response
 	tokenStr := r.extractTokenFromHeader(h)
 	username, err := r.getUsername(tokenStr)
 	if err != nil {
-		log.Warning(fmt.Sprintf("[res-service]rh#26 Error while reading username from token: %v", err))
+		log.Warning(fmt.Sprintf("[rese-handler]rh#26 Error while reading username from token: %v", err))
 		http.Error(rw, "Failed to read username from token", http.StatusBadRequest)
 		return
 	}
 
 	guestID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
-		log.Error(fmt.Sprintf("[res-service]rh#27 Error while getting hostId for username: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#27 Error while getting hostId for username: %v", err))
 		http.Error(rw, "Failed to get guestID from username", http.StatusBadRequest)
 		return
 	}
 
 	reservations, err := r.repo.FindAllReservationsByUserIDExpired(guestID)
 	if err != nil {
-		log.Error(fmt.Sprintf("[res-service]rh#28 Error while finding expired reservations by user: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#28 Error while finding expired reservations by user: %v", err))
 		http.Error(rw, "Failed to fetch expired reservations", http.StatusBadRequest)
 		return
 	}
 
 	err = reservations.ToJSON(rw)
 	if err != nil {
-		log.Error(fmt.Sprintf("[res-service]rh#29 Error while converting json: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#29 Error while converting json: %v", err))
 		http.Error(rw, "Unable to convert to JSON", http.StatusBadRequest)
 		return
 	}
 
-	log.Info(fmt.Sprintf("[res-service]rh#54 User id:'%s' successfully retrieved expired reservations by user", guestID))
+	log.Info(fmt.Sprintf("[rese-handler]rh#54 User id:'%s' successfully retrieved expired reservations by user", guestID))
 
 	rw.WriteHeader(http.StatusOK)
 }
@@ -299,31 +299,31 @@ func (r *ReservationHandler) UpdateAvailablePeriodByAccommodation(rw http.Respon
 	tokenStr := r.extractTokenFromHeader(h)
 	username, err := r.getUsername(tokenStr)
 	if err != nil {
-		log.Warning(fmt.Sprintf("[res-service]rh#30 Error while reading username from token: %v", err))
+		log.Warning(fmt.Sprintf("[rese-handler]rh#30 Error while reading username from token: %v", err))
 		http.Error(rw, "Failed to read username from token", http.StatusBadRequest)
 		return
 	}
 
 	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
-		log.Error(fmt.Sprintf("[res-service]rh#31 Error while reading host id from username: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#31 Error while reading host id from username: %v", err))
 		http.Error(rw, "Failed to get HostID from username", http.StatusBadRequest)
 		return
 	}
 
 	if availablePeriod.IDUser.Hex() != userID {
-		log.Error(fmt.Sprintf("[res-service]rh#32 User is not owner of period: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#32 User is not owner of period: %v", err))
 		http.Error(rw, "You are not the owner of available period", http.StatusBadRequest)
 		return
 	}
 
 	err = r.repo.UpdateAvailablePeriodByAccommodation(availablePeriod)
 	if err != nil {
-		log.Error(fmt.Sprintf("[res-service]rh#33 Error while updating period by accommodation: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#33 Error while updating period by accommodation: %v", err))
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	log.Info(fmt.Sprintf("[res-service]rh#55 User id:'%s' successfully updated available period by accommodation id:'%s'", userID, availablePeriod.ID.String()))
+	log.Info(fmt.Sprintf("[rese-handler]rh#55 User id:'%s' successfully updated available period by accommodation id:'%s'", userID, availablePeriod.ID.String()))
 	rw.WriteHeader(http.StatusCreated)
 }
 
@@ -333,14 +333,14 @@ func (r *ReservationHandler) DeletePeriodsForAccommodations(rw http.ResponseWrit
 		if (accIDs != nil) && len(accIDs) > 0 {
 			err := r.repo.DeletePeriodsForAccommodations(accIDs)
 			if err != nil {
-				log.Error(fmt.Sprintf("[res-service]rh#34 Error while deleting periods by accommodation: %v", err))
+				log.Error(fmt.Sprintf("[rese-handler]rh#34 Error while deleting periods by accommodation: %v", err))
 				rw.WriteHeader(http.StatusBadRequest)
 				return
 			}
 		}
 	}
 
-	log.Info(fmt.Sprintf("[res-service]rh#56 Successfully deleted available period by accommodations"))
+	log.Info(fmt.Sprintf("[rese-handler]rh#56 Successfully deleted available period by accommodations"))
 	rw.WriteHeader(http.StatusNoContent)
 }
 
@@ -351,24 +351,24 @@ func (r *ReservationHandler) GetAllReservationsByUser(rw http.ResponseWriter, h 
 
 	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
-		log.Warning(fmt.Sprintf("[res-service]rh#35 Error while reading username from token: %v", err))
+		log.Warning(fmt.Sprintf("[rese-handler]rh#35 Error while reading username from token: %v", err))
 		http.Error(rw, "Failed to get UserID from username", http.StatusBadRequest)
 		return
 	}
 
 	reservations, err := r.repo.FindAllReservationsByUserID(userID)
 	if err != nil {
-		log.Error(fmt.Sprintf("[res-service]rh#36 Error while finding reservations by userId: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#36 Error while finding reservations by userId: %v", err))
 		rw.WriteHeader(http.StatusBadRequest)
 	}
 
 	err = reservations.ToJSON(rw)
 	if err != nil {
-		log.Error(fmt.Sprintf("[res-service]rh#37 Error while converting json: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#37 Error while converting json: %v", err))
 		http.Error(rw, "Unable to convert to json:", http.StatusInternalServerError)
 		return
 	}
-	log.Info(fmt.Sprintf("[res-service]rh#56 Successfully retrieved reservtions by user"))
+	log.Info(fmt.Sprintf("[rese-handler]rh#56 Successfully retrieved reservtions by user"))
 	rw.WriteHeader(http.StatusOK)
 }
 
@@ -382,10 +382,10 @@ func (r *ReservationHandler) CheckAndDeleteReservationsForUser(rw http.ResponseW
 
 	err = r.repo.CheckAndDeleteReservationsByUserID(userID)
 	if err != nil {
-		log.Error(fmt.Sprintf("[res-service]rh#38 Error while checking and deleting reservations by user id : %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#38 Error while checking and deleting reservations by user id : %v", err))
 		rw.WriteHeader(http.StatusBadRequest)
 	}
-	log.Info(fmt.Sprintf("[res-service]rh#57 Successfully deleted reservtions for user id:'%s'", userID))
+	log.Info(fmt.Sprintf("[rese-handler]rh#57 Successfully deleted reservtions for user id:'%s'", userID))
 
 	rw.WriteHeader(http.StatusNoContent)
 }
@@ -397,14 +397,14 @@ func (r *ReservationHandler) DeleteReservation(rw http.ResponseWriter, h *http.R
 	tokenStr := r.extractTokenFromHeader(h)
 	username, err := r.getUsername(tokenStr)
 	if err != nil {
-		log.Warning(fmt.Sprintf("[res-service]rh#39 Error while reading username from token: %v", err))
+		log.Warning(fmt.Sprintf("[rese-handler]rh#39 Error while reading username from token: %v", err))
 		http.Error(rw, "Failed to read username from token", http.StatusBadRequest)
 		return
 	}
 
 	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
-		log.Error(fmt.Sprintf("[res-service]rh#40 Error while reading host id from username: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#40 Error while reading host id from username: %v", err))
 		http.Error(rw, "Failed to get HostID from username", http.StatusBadRequest)
 		return
 	}
@@ -412,14 +412,14 @@ func (r *ReservationHandler) DeleteReservation(rw http.ResponseWriter, h *http.R
 	// Get reservation
 	reservation, err := r.repo.FindReservationByIdAndAvailablePeriod(reservationID, periodID)
 	if err != nil {
-		log.Error(fmt.Sprintf("[res-service]rh#41 Error while finding reservation by id and period: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#41 Error while finding reservation by id and period: %v", err))
 		http.Error(rw, "failed to get reservation by ID", http.StatusInternalServerError)
 		return
 	}
 
 	err = r.repo.DeleteReservationByIdAndAvailablePeriodID(reservationID, periodID, userID)
 	if err != nil {
-		log.Error(fmt.Sprintf("[res-service]rh#42 Error while reading host id from usenrame: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#42 Error while reading host id from usenrame: %v", err))
 		rw.WriteHeader(http.StatusNotFound)
 		return
 	}
@@ -427,7 +427,7 @@ func (r *ReservationHandler) DeleteReservation(rw http.ResponseWriter, h *http.R
 	// Get period
 	period, err := r.repo.FindAvailablePeriodsByAccommodationId(reservation.IDAccommodation.Hex())
 	if err != nil {
-		log.Error(fmt.Sprintf("[res-service]rh#43 Error while finding period by accommodation id: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#43 Error while finding period by accommodation id: %v", err))
 		http.Error(rw, "failed to get period by accommodation ID", http.StatusInternalServerError)
 		return
 	}
@@ -435,7 +435,7 @@ func (r *ReservationHandler) DeleteReservation(rw http.ResponseWriter, h *http.R
 	// Get host
 	host, err := r.profile.GetUserById(h.Context(), period[0].IDUser, tokenStr)
 	if err != nil {
-		log.Error(fmt.Sprintf("[res-service]rh#44 Error while finding user by id: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#44 Error while finding user by id: %v", err))
 		http.Error(rw, "failed to get host by ID", http.StatusInternalServerError)
 		return
 	}
@@ -454,11 +454,11 @@ func (r *ReservationHandler) DeleteReservation(rw http.ResponseWriter, h *http.R
 
 	notified, err := r.notification.NotifyReservation(h.Context(), notification, tokenStr)
 	if !notified {
-		log.Error(fmt.Sprintf("[res-service]rh#44 Error while trying to notify host: %v", err))
+		log.Error(fmt.Sprintf("[rese-handler]rh#44 Error while trying to notify host: %v", err))
 		http.Error(rw, "failed to notify host", http.StatusInternalServerError)
 		return
 	}
-	log.Info(fmt.Sprintf("[res-service]rh#58 User id:'%s' successfully delete reservation id:'%s'", userID, reservationID))
+	log.Info(fmt.Sprintf("[rese-handler]rh#58 User id:'%s' successfully delete reservation id:'%s'", userID, reservationID))
 
 	rw.WriteHeader(http.StatusAccepted)
 }
@@ -468,7 +468,7 @@ func (r *ReservationHandler) MiddlewareAvailablePeriodDeserialization(next http.
 		availablePeriod := &data.AvailablePeriodByAccommodation{}
 		err := availablePeriod.FromJSON(h.Body)
 		if err != nil {
-			log.Error(fmt.Sprintf("[res-service]rh#45 Error while trying to convert json: %v", err))
+			log.Error(fmt.Sprintf("[rese-handler]rh#45 Error while trying to convert json: %v", err))
 			http.Error(rw, "Unable to decode json", http.StatusBadRequest)
 			return
 		}
@@ -483,7 +483,7 @@ func (r *ReservationHandler) MiddlewareReservationDeserialization(next http.Hand
 		reservation := &data.ReservationByAvailablePeriod{}
 		err := reservation.FromJSON(h.Body)
 		if err != nil {
-			log.Error(fmt.Sprintf("[res-service]rh#46 Error while trying to convert json: %v", err))
+			log.Error(fmt.Sprintf("[rese-handler]rh#46 Error while trying to convert json: %v", err))
 			http.Error(rw, "Unable to decode json", http.StatusBadRequest)
 			return
 		}
@@ -498,7 +498,7 @@ func (r *ReservationHandler) MiddlewareDatesDeserialization(next http.Handler) h
 		dates := data.Dates{}
 		err := dates.FromJSON(h.Body)
 		if err != nil {
-			log.Error(fmt.Sprintf("[res-service]rh#47 Error while trying to convert json: %v", err))
+			log.Error(fmt.Sprintf("[rese-handler]rh#47 Error while trying to convert json: %v", err))
 			http.Error(rw, "Unable to decode json", http.StatusBadRequest)
 			return
 		}
