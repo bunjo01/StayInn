@@ -110,8 +110,11 @@ func (uh *UserHandler) GetUserById(rw http.ResponseWriter, r *http.Request) {
 
 func (uh *UserHandler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 	var user data.NewUser
+
+	log.Info(fmt.Printf("[prof-handler]ph#8 Creating user"))
+
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-		log.Error(fmt.Sprintf("[prof-handler]ph#8 Failed to decode request body: %v", err))
+		log.Error(fmt.Sprintf("[prof-handler]ph#9 Failed to decode request body: %v", err))
 		http.Error(rw, "Failed to decode request body", http.StatusBadRequest)
 		return
 	}
@@ -122,14 +125,14 @@ func (uh *UserHandler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 
 	avaible, err := uh.repo.CheckUsernameAvailability(ctx, user.Username)
 	if !avaible || err != nil {
-		log.Error(fmt.Sprintf("[prof-handler]ph#9 Username is not unique: %v", err))
+		log.Error(fmt.Sprintf("[prof-handler]ph#10 Username is not unique: %v", err))
 		http.Error(rw, "Username is not unique!", http.StatusBadRequest)
 		return
 	}
 
 	err = uh.repo.CreateProfileDetails(ctx, &user)
 	if err != nil {
-		log.Error(fmt.Sprintf("[prof-handler]ph#10 Failed to create user: %v", err))
+		log.Error(fmt.Sprintf("[prof-handler]ph#11 Failed to create user: %v", err))
 		http.Error(rw, "Failed to create user", http.StatusInternalServerError)
 		return
 	}
@@ -137,9 +140,11 @@ func (uh *UserHandler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(rw).Encode(user); err != nil {
-		log.Error(fmt.Sprintf("[prof-handler]ph#11 Failed to encode user: %v", err))
+		log.Error(fmt.Sprintf("[prof-handler]ph#12 Failed to encode user: %v", err))
 		http.Error(rw, "Failed to encode user", http.StatusInternalServerError)
 	}
+
+	log.Info(fmt.Printf("[prof-handler]ph#13 User successfully created"))
 }
 
 func (uh *UserHandler) CheckUsernameAvailability(w http.ResponseWriter, r *http.Request) {
@@ -148,32 +153,8 @@ func (uh *UserHandler) CheckUsernameAvailability(w http.ResponseWriter, r *http.
 
 	available, err := uh.repo.CheckUsernameAvailability(r.Context(), username)
 	if err != nil {
-		log.Error(fmt.Sprintf("[prof-handler]ph#12 Failed to check username availability: %v", err))
+		log.Error(fmt.Sprintf("[prof-handler]ph#14 Failed to check username availability: %v", err))
 		http.Error(w, "Failed to check username availability", http.StatusInternalServerError)
-		return
-	}
-
-	response := struct {
-		Available bool `json:"available"`
-	}{
-		Available: available,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Error(fmt.Sprintf("[prof-handler]ph#13 Failed to encode JSON response: %v", err))
-		http.Error(w, "Failed to encode JSON response", http.StatusInternalServerError)
-	}
-}
-
-func (uh *UserHandler) CheckEmailAvailability(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	email := vars["email"]
-
-	available, err := uh.repo.CheckEmailAvailability(r.Context(), email)
-	if err != nil {
-		log.Error(fmt.Sprintf("[prof-handler]ph#14 Failed to check email availability: %v", err))
-		http.Error(w, "Failed to check email availability", http.StatusInternalServerError)
 		return
 	}
 
@@ -190,15 +171,41 @@ func (uh *UserHandler) CheckEmailAvailability(w http.ResponseWriter, r *http.Req
 	}
 }
 
+func (uh *UserHandler) CheckEmailAvailability(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	email := vars["email"]
+
+	available, err := uh.repo.CheckEmailAvailability(r.Context(), email)
+	if err != nil {
+		log.Error(fmt.Sprintf("[prof-handler]ph#16 Failed to check email availability: %v", err))
+		http.Error(w, "Failed to check email availability", http.StatusInternalServerError)
+		return
+	}
+
+	response := struct {
+		Available bool `json:"available"`
+	}{
+		Available: available,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Error(fmt.Sprintf("[prof-handler]ph#17 Failed to encode JSON response: %v", err))
+		http.Error(w, "Failed to encode JSON response", http.StatusInternalServerError)
+	}
+}
+
 func (uh *UserHandler) UpdateUser(rw http.ResponseWriter, r *http.Request) {
 	tokenStr := uh.extractTokenFromHeader(r)
 	vars := mux.Vars(r)
 	username := vars["username"]
 
+	log.Info(fmt.Sprintf("[prof-handler]ph#18 Updating user with username '%s'", username))
+
 	// Get current user for email check
 	currentUser, err := uh.repo.GetUser(r.Context(), username)
 	if err != nil {
-		log.Error(fmt.Sprintf("[prof-handler]ph#16 Failed to get user: %v", err))
+		log.Error(fmt.Sprintf("[prof-handler]ph#19 Failed to get user '%s': %v", username, err))
 		http.Error(rw, "Failed to get user", http.StatusInternalServerError)
 		return
 	}
@@ -208,7 +215,7 @@ func (uh *UserHandler) UpdateUser(rw http.ResponseWriter, r *http.Request) {
 	var updatedUser data.NewUser
 	if err := json.NewDecoder(r.Body).Decode(&updatedUser); err != nil {
 		http.Error(rw, "Failed to decode request body", http.StatusBadRequest)
-		log.Error(fmt.Sprintf("[prof-handler]ph#17 Failed to decode request body: %v", err))
+		log.Error(fmt.Sprintf("[prof-handler]ph#20 Failed to decode request body: %v", err))
 		return
 	}
 
@@ -218,7 +225,7 @@ func (uh *UserHandler) UpdateUser(rw http.ResponseWriter, r *http.Request) {
 	if username != updatedUser.Username {
 		_, err = uh.auth.PassUsernameToAuthService(ctx, username, updatedUser.Username, tokenStr)
 		if err != nil {
-			log.Error(fmt.Sprintf("[prof-handler]ph#18 Error while passing username to auth service: %v", err))
+			log.Error(fmt.Sprintf("[prof-handler]ph#21 Error while passing username to auth service: %v", err))
 			writeResp(err, http.StatusServiceUnavailable, rw)
 			return
 		}
@@ -227,31 +234,35 @@ func (uh *UserHandler) UpdateUser(rw http.ResponseWriter, r *http.Request) {
 	if email != updatedUser.Email {
 		_, err = uh.auth.PassEmailToAuthService(ctx, email, updatedUser.Email, tokenStr)
 		if err != nil {
-			log.Error(fmt.Sprintf("[prof-handler]ph#19 Error while passing email to auth service: %v", err))
+			log.Error(fmt.Sprintf("[prof-handler]ph#22 Error while passing email to auth service: %v", err))
 			writeResp(err, http.StatusServiceUnavailable, rw)
 			return
 		}
 	}
 
 	if err := uh.repo.UpdateUser(r.Context(), username, &updatedUser, email); err != nil {
-		log.Error(fmt.Sprintf("[prof-handler]ph#20 Failed to update user: %v", err))
+		log.Error(fmt.Sprintf("[prof-handler]ph#23 Failed to update user: %v", err))
 		http.Error(rw, "Failed to update user", http.StatusInternalServerError)
 		return
 	}
 
 	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusOK)
+
+	log.Info(fmt.Sprintf("[prof-handler]ph#24 User with username '%s' updated successfully", username))
 }
 
 func (uh *UserHandler) DeleteUser(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	username := vars["username"]
 
+	log.Info(fmt.Sprintf("[prof-handler]ph#25 Deleting user with username '%s'", username))
+
 	// Extracting role from token
 	tokenString := uh.extractTokenFromHeader(r)
 	role, err := uh.getRole(tokenString)
 	if err != nil {
-		log.Error(fmt.Sprintf("[prof-handler]ph#21 Failed to read role from token: %v", err))
+		log.Error(fmt.Sprintf("[prof-handler]ph#26 Failed to read role from token: %v", err))
 		http.Error(rw, "Failed to read role from token", http.StatusBadRequest)
 		return
 	}
@@ -259,7 +270,7 @@ func (uh *UserHandler) DeleteUser(rw http.ResponseWriter, r *http.Request) {
 	// Extracting userID for Cassandra
 	user, err := uh.repo.GetUser(context.Background(), username)
 	if err != nil {
-		log.Error(fmt.Sprintf("[prof-handler]ph#22 Failed to retrieve user for username: %v", err))
+		log.Error(fmt.Sprintf("[prof-handler]ph#27 Failed to retrieve user for username: %v", err))
 		http.Error(rw, "Failed to retrieve user for username: "+username, http.StatusBadRequest)
 		return
 	}
@@ -271,7 +282,7 @@ func (uh *UserHandler) DeleteUser(rw http.ResponseWriter, r *http.Request) {
 		defer cancel()
 		_, err = uh.reservation.CheckUserReservations(ctx, user.ID, tokenString)
 		if err != nil {
-			log.Error(fmt.Sprintf("[prof-handler]ph#23 Error while checking user reservations: %v", err))
+			log.Error(fmt.Sprintf("[prof-handler]ph#28 Error while checking user reservations: %v", err))
 			writeResp(err, http.StatusServiceUnavailable, rw)
 			return
 		}
@@ -280,7 +291,7 @@ func (uh *UserHandler) DeleteUser(rw http.ResponseWriter, r *http.Request) {
 		defer cancel()
 		_, err = uh.accommodation.CheckAndDeleteUserAccommodations(ctx, user.ID, tokenString)
 		if err != nil {
-			log.Error(fmt.Sprintf("[prof-handler]ph#24 Error while checking user accommodations: %v", err))
+			log.Error(fmt.Sprintf("[prof-handler]ph#29 Error while checking user accommodations: %v", err))
 			writeResp(err, http.StatusServiceUnavailable, rw)
 			return
 		}
@@ -292,18 +303,19 @@ func (uh *UserHandler) DeleteUser(rw http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	_, err = uh.auth.DeleteUserInAuthService(ctx, username, tokenString)
 	if err != nil {
-		log.Error(fmt.Sprintf("[prof-handler]ph#25 Error while deleting user in auth service: %v", err))
+		log.Error(fmt.Sprintf("[prof-handler]ph#30 Error while deleting user in auth service: %v", err))
 		writeResp(err, http.StatusServiceUnavailable, rw)
 		return
 	}
 
 	if err := uh.repo.DeleteUser(r.Context(), username); err != nil {
-		log.Error(fmt.Sprintf("[prof-handler]ph#26 Failed to delete user: %v", err))
+		log.Error(fmt.Sprintf("[prof-handler]ph#31 Failed to delete user: %v", err))
 		http.Error(rw, "Failed to delete user", http.StatusInternalServerError)
 		return
 	}
 
 	rw.WriteHeader(http.StatusNoContent)
+	log.Info(fmt.Sprintf("[prof-handler]ph#32 User with username '%s' deleted successfully", username))
 }
 
 func (uh *UserHandler) AuthorizeRoles(allowedRoles ...string) mux.MiddlewareFunc {
@@ -316,7 +328,7 @@ func (uh *UserHandler) AuthorizeRoles(allowedRoles ...string) mux.MiddlewareFunc
 
 			tokenString := uh.extractTokenFromHeader(rr)
 			if tokenString == "" {
-				log.Warning(fmt.Sprintf("[prof-handler]ph#27 No token found in request from '%s'", rr.RemoteAddr))
+				log.Warning(fmt.Sprintf("[prof-handler]ph#33 No token found in request from '%s'", rr.RemoteAddr))
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
@@ -327,7 +339,7 @@ func (uh *UserHandler) AuthorizeRoles(allowedRoles ...string) mux.MiddlewareFunc
 			})
 
 			if err != nil || !token.Valid {
-				log.Warning(fmt.Sprintf("[prof-handler]ph#28 Invalid signature token found in request from '%s'", rr.RemoteAddr))
+				log.Warning(fmt.Sprintf("[prof-handler]ph#34 Invalid signature token found in request from '%s'", rr.RemoteAddr))
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
@@ -335,7 +347,7 @@ func (uh *UserHandler) AuthorizeRoles(allowedRoles ...string) mux.MiddlewareFunc
 			username, ok1 := claims["username"].(string)
 			role, ok2 := claims["role"].(string)
 			if !ok1 || !ok2 {
-				log.Warning(fmt.Sprintf("[prof-handler]ph#29 Username or role not found in token in request from '%s'", rr.RemoteAddr))
+				log.Warning(fmt.Sprintf("[prof-handler]ph#35 Username or role not found in token in request from '%s'", rr.RemoteAddr))
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
@@ -347,7 +359,7 @@ func (uh *UserHandler) AuthorizeRoles(allowedRoles ...string) mux.MiddlewareFunc
 				}
 			}
 
-			log.Warning(fmt.Sprintf("[prof-handler]ph#30 User '%s' from '%s' tried to do unauthorized action", username, rr.RemoteAddr))
+			log.Warning(fmt.Sprintf("[prof-handler]ph#36 User '%s' from '%s' tried to do unauthorized action", username, rr.RemoteAddr))
 			http.Error(w, "Forbidden", http.StatusForbidden)
 		})
 	}
