@@ -3,11 +3,11 @@ package cache
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"time"
 
 	"github.com/go-redis/redis"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -16,12 +16,11 @@ const (
 )
 
 type ImageCache struct {
-	cli    *redis.Client
-	logger *log.Logger
+	cli *redis.Client
 }
 
 // Constructs Redis Client
-func New(logger *log.Logger) *ImageCache {
+func New() *ImageCache {
 	redisHost := os.Getenv("REDIS_HOST")
 	redistPort := os.Getenv("REDIS_PORT")
 	redisAddress := fmt.Sprintf("%s:%s", redisHost, redistPort)
@@ -31,15 +30,14 @@ func New(logger *log.Logger) *ImageCache {
 	})
 
 	return &ImageCache{
-		cli:    client,
-		logger: logger,
+		cli: client,
 	}
 }
 
 // Check connection
 func (ic *ImageCache) Ping() {
 	val, _ := ic.cli.Ping().Result()
-	ic.logger.Printf("Redis ping: %s\n", val)
+	log.Info(fmt.Sprintf("[acco-cache]acc#1 Redis ping: %s", val))
 }
 
 // Set key-value pair with default expiration
@@ -48,6 +46,7 @@ func (ic *ImageCache) Post(image *Image) error {
 
 	value, err := json.Marshal(image)
 	if err != nil {
+		log.Error(fmt.Sprintf("[acco-cache]acc#2 Failed to encode image: %v", err))
 		return err
 	}
 
@@ -68,10 +67,11 @@ func (ic *ImageCache) Get(accID, imageID string) (*Image, error) {
 	image := &Image{}
 	err = json.Unmarshal(val, &image)
 	if err != nil {
+		log.Error(fmt.Sprintf("[acco-cache]acc#3 Failed to decode image: %v", err))
 		return nil, err
 	}
 
-	ic.logger.Println("Cache hit")
+	log.Info(fmt.Printf("[acco-cache]acc#4 Cache hit"))
 	return image, nil
 }
 
@@ -87,10 +87,11 @@ func (ic *ImageCache) GetAll(accID string) (Images, error) {
 	var images Images
 	err = json.Unmarshal(vals, &images)
 	if err != nil {
+		log.Error(fmt.Sprintf("[acco-cache]acc#5 Failed to decode image: %v", err))
 		return nil, err
 	}
 
-	ic.logger.Println("Cache hit")
+	log.Info(fmt.Printf("[acco-cache]acc#6 Cache hit"))
 	return images, nil
 }
 
@@ -100,6 +101,7 @@ func (ic *ImageCache) PostAll(accID string, images Images) error {
 
 	value, err := json.Marshal(images)
 	if err != nil {
+		log.Error(fmt.Sprintf("[acco-cache]acc#7 Failed to encode image: %v", err))
 		return err
 	}
 
@@ -114,6 +116,7 @@ func (ic *ImageCache) Exists(accID, imageID string) (bool, error) {
 
 	exists, err := ic.cli.Exists(key).Result()
 	if err != nil {
+		log.Error(fmt.Sprintf("[acco-cache]acc#8 Failed to check key existence: %v", err))
 		return false, err
 	}
 
