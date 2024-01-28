@@ -43,6 +43,8 @@ func (nh *NotificationsHandler) GetAccommodationRatings(w http.ResponseWriter, r
 		return
 	}
 
+	log.Info(fmt.Sprintf("[noti-handler]nh#116 Received request from '%s' for ratings '%v'", r.RemoteAddr, objectID))
+
 	ratings, err := nh.repo.GetRatingsByAccommodationID(objectID)
 	if err != nil {
 		http.Error(w, "Failed to fetch ratings", http.StatusBadRequest)
@@ -54,6 +56,8 @@ func (nh *NotificationsHandler) GetAccommodationRatings(w http.ResponseWriter, r
 		http.Error(w, "Error encoding accommodation ratings", http.StatusInternalServerError)
 		return
 	}
+
+	log.Info(("[noti-handler]nh#102 Successfully find ratings with accommodationID"))
 }
 
 func (nh *NotificationsHandler) GetRatingsHost(w http.ResponseWriter, r *http.Request) {
@@ -67,6 +71,8 @@ func (nh *NotificationsHandler) GetRatingsHost(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	log.Info(fmt.Sprintf("[noti-handler]nh#116 Received request from '%s' for ratings", r.RemoteAddr))
+
 	hostID, err := primitive.ObjectIDFromHex(requestData.HostID)
 	if err != nil {
 		http.Error(w, "Invalid host ID", http.StatusBadRequest)
@@ -77,7 +83,7 @@ func (nh *NotificationsHandler) GetRatingsHost(w http.ResponseWriter, r *http.Re
 	ratings, err := nh.repo.GetRatingsByHostID(hostID)
 	if err != nil {
 		http.Error(w, "Failed to fetch ratings", http.StatusBadRequest)
-		log.Error(fmt.Sprintf("[noti-handler]nh#5 Failed to fetch ratings"))
+		log.Error(("[noti-handler]nh#5 Failed to fetch ratings"))
 		return
 	}
 
@@ -86,10 +92,15 @@ func (nh *NotificationsHandler) GetRatingsHost(w http.ResponseWriter, r *http.Re
 		http.Error(w, "Error encoding host ratings", http.StatusInternalServerError)
 		return
 	}
+
+	log.Info(("[noti-handler]nh#103 Successfully find ratings with hostID"))
 }
 
 func (nh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request) {
 	var rating data.RatingAccommodation
+
+	log.Info(fmt.Sprintf("[noti-handler]nh#117 User from '%s' creating a new rating", r.RemoteAddr))
+
 	err := json.NewDecoder(r.Body).Decode(&rating)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#7 Failed to parse data: %v", err))
@@ -122,7 +133,7 @@ func (nh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request
 	rating.HostUsername = host.Username
 
 	if rating.Rate < 1 || rating.Rate > 5 {
-		log.Error(fmt.Sprintf("[noti-handler]nh#10 Rating must be between 1 and 5"))
+		log.Error(("[noti-handler]nh#10 Rating must be between 1 and 5"))
 		http.Error(w, "Rating must be between 1 and 5", http.StatusBadRequest)
 		return
 	}
@@ -151,7 +162,7 @@ func (nh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request
 	}
 
 	if len(reservations) == 0 {
-		log.Error(fmt.Sprintf("[noti-handler]nh#14 You don't have any reservations"))
+		log.Error(("[noti-handler]nh#14 You don't have any reservations"))
 		http.Error(w, "You don't have any reservations", http.StatusBadRequest)
 		return
 	}
@@ -165,7 +176,7 @@ func (nh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request
 	}
 
 	if !found {
-		log.Error(fmt.Sprintf("[noti-handler]nh#15 AccommodationID not found in user reservations"))
+		log.Error(("[noti-handler]nh#15 AccommodationID not found in user reservations"))
 		http.Error(w, "Accommodation ID not found in user reservations", http.StatusBadRequest)
 		return
 	}
@@ -180,7 +191,7 @@ func (nh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request
 	for _, r := range ratings {
 		if r.IDAccommodation == rating.IDAccommodation {
 			nh.repo.UpdateRatingAccommodationByID(r.ID, id, rating.Rate)
-			log.Info(fmt.Sprintf("[noti-handler]nh#17 Rating successfully added"))
+			log.Info(("[noti-handler]nh#17 Rating successfully added"))
 			http.Error(w, "Rating successfully added", http.StatusCreated)
 			return
 		}
@@ -210,10 +221,11 @@ func (nh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request
 
 	success, err := data.SendNotificationEmail(notification.HostEmail, "rating-accommodation")
 	if !success {
-		log.Error(fmt.Sprintf("[noti-handler]nh#120 Failed to send notification mail"))
+		log.Error(("[noti-handler]nh#120 Failed to send notification mail"))
 	}
 
 	w.WriteHeader(http.StatusCreated)
+	log.Info(("[noti-handler]nh#103 Successfully add rating"))
 	w.Write([]byte("Rating successfully added"))
 }
 
@@ -229,6 +241,8 @@ func (nh *NotificationsHandler) FindAccommodationRatingByGuest(rw http.ResponseW
 		log.Error(fmt.Sprintf("[noti-handler]nh#21 Invalid ratingID: %v", err))
 		return
 	}
+
+	log.Info(fmt.Sprintf("[noti-handler]nh#118 Received request from '%s' for accommodation ratings '%v'", h.RemoteAddr, objectID))
 
 	tokenStr := nh.extractTokenFromHeader(h)
 	guestUsername, err := nh.getUsername(tokenStr)
@@ -260,7 +274,7 @@ func (nh *NotificationsHandler) FindAccommodationRatingByGuest(rw http.ResponseW
 	}
 
 	if rating == nil {
-		log.Error(fmt.Sprintf("[noti-handler]nh#26 Rating not found"))
+		log.Error(("[noti-handler]nh#26 Rating not found"))
 		http.Error(rw, "Rating not found", http.StatusNotFound)
 		return
 	}
@@ -271,6 +285,8 @@ func (nh *NotificationsHandler) FindAccommodationRatingByGuest(rw http.ResponseW
 		log.Error(fmt.Sprintf("[noti-handler]nh#27 Unable to convert to json: %v", err))
 		return
 	}
+
+	log.Info(fmt.Sprintf("[noti-handler]nh#104 Successfully find rating for accommodation by guest"))
 }
 
 func (nh *NotificationsHandler) FindHostRatingByGuest(rw http.ResponseWriter, h *http.Request) {
@@ -281,6 +297,8 @@ func (nh *NotificationsHandler) FindHostRatingByGuest(rw http.ResponseWriter, h 
 		log.Error(fmt.Sprintf("[noti-handler]nh#28 Error parsing data: %v", err))
 		return
 	}
+
+	log.Info(fmt.Sprintf("[noti-handler]nh#119 Received request from '%s' for host ratings '%v'", h.RemoteAddr, userId))
 
 	ctx := h.Context()
 
@@ -314,7 +332,7 @@ func (nh *NotificationsHandler) FindHostRatingByGuest(rw http.ResponseWriter, h 
 	}
 
 	if rating == nil {
-		log.Error(fmt.Sprintf("[noti-handler]nh#33 Rating not found"))
+		log.Error(("[noti-handler]nh#33 Rating not found"))
 		http.Error(rw, "Rating not found", http.StatusNotFound)
 		return
 	}
@@ -325,6 +343,8 @@ func (nh *NotificationsHandler) FindHostRatingByGuest(rw http.ResponseWriter, h 
 		log.Error(fmt.Sprintf("[noti-handler]nh#34 Unable to convert to json: %v", err))
 		return
 	}
+
+	log.Info(fmt.Sprintf("[noti-handler]nh#105 Successfully find rating for host by guest"))
 }
 
 func (nh *NotificationsHandler) GetAllAccommodationRatings(w http.ResponseWriter, r *http.Request) {
@@ -335,11 +355,15 @@ func (nh *NotificationsHandler) GetAllAccommodationRatings(w http.ResponseWriter
 		return
 	}
 
+	log.Info(fmt.Sprintf("[noti-handler]nh#120 Received request from '%s' for accommodation ratings", r.RemoteAddr))
+
 	if err := json.NewEncoder(w).Encode(ratings); err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#36 Error encoding host ratings: %v", err))
 		http.Error(w, "Error encoding host ratings", http.StatusInternalServerError)
 		return
 	}
+
+	log.Info(("[noti-handler]nh#106 Successfully find ratings for accommodation"))
 }
 
 func (nh *NotificationsHandler) GetAllAccommodationRatingsForLoggedHost(w http.ResponseWriter, r *http.Request) {
@@ -367,6 +391,8 @@ func (nh *NotificationsHandler) GetAllAccommodationRatingsForLoggedHost(w http.R
 		return
 	}
 
+	log.Info(fmt.Sprintf("[noti-handler]nh#121 Received request from '%s' for accommodation ratings for logged host: '%v'", r.RemoteAddr, hostIdObject))
+
 	ratings, err := nh.repo.GetAllAccommodationRatingsForLoggedHost(r.Context(), hostIdObject)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#40 Error fetching host ratings: %v", err))
@@ -379,6 +405,8 @@ func (nh *NotificationsHandler) GetAllAccommodationRatingsForLoggedHost(w http.R
 		http.Error(w, "Error encoding host ratings", http.StatusInternalServerError)
 		return
 	}
+
+	log.Info(("[noti-handler]nh#107 Successfully find ratings for accommodation by logged host"))
 }
 
 func (nh *NotificationsHandler) GetAllAccommodationRatingsByUser(w http.ResponseWriter, r *http.Request) {
@@ -404,6 +432,8 @@ func (nh *NotificationsHandler) GetAllAccommodationRatingsByUser(w http.Response
 		return
 	}
 
+	log.Info(fmt.Sprintf("[noti-handler]nh#122 Received request from '%s' for accommodation ratings by user: '%v'", r.RemoteAddr, id))
+
 	ratings, err := nh.repo.GetAllAccommodationRatingsByUser(r.Context(), id)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#45 Error fetching host ratings: %v", err))
@@ -416,10 +446,13 @@ func (nh *NotificationsHandler) GetAllAccommodationRatingsByUser(w http.Response
 		http.Error(w, "Error encoding host ratings", http.StatusInternalServerError)
 		return
 	}
+
+	log.Info(("[noti-handler]nh#108 Successfully find ratings for accommodation by user"))
 }
 
 func (nh *NotificationsHandler) GetAllHostRatings(w http.ResponseWriter, r *http.Request) {
 	ratings, err := nh.repo.GetAllHostRatings(r.Context())
+	log.Info(fmt.Sprintf("[noti-handler]nh#123 Received request from '%s' for host ratings", r.RemoteAddr))
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#47 Error fetching host ratings: %v", err))
 		http.Error(w, "Error fetching host ratings", http.StatusInternalServerError)
@@ -431,6 +464,8 @@ func (nh *NotificationsHandler) GetAllHostRatings(w http.ResponseWriter, r *http
 		http.Error(w, "Error encoding host ratings", http.StatusInternalServerError)
 		return
 	}
+
+	log.Info(("[noti-handler]nh#109 Successfully find ratings for host"))
 }
 
 func (nh *NotificationsHandler) GetAllHostRatingsByUser(w http.ResponseWriter, r *http.Request) {
@@ -455,6 +490,9 @@ func (nh *NotificationsHandler) GetAllHostRatingsByUser(w http.ResponseWriter, r
 		http.Error(w, "Invalid userID", http.StatusBadRequest)
 		return
 	}
+
+	log.Info(fmt.Sprintf("[noti-handler]nh#124 Received request from '%s' for host ratings by user: '%v'", r.RemoteAddr, id))
+
 	ratings, err := nh.repo.GetAllHostRatingsByUser(r.Context(), id)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#52 Error fetching host ratings: %v", err))
@@ -467,6 +505,8 @@ func (nh *NotificationsHandler) GetAllHostRatingsByUser(w http.ResponseWriter, r
 		http.Error(w, "Error encoding host ratings", http.StatusInternalServerError)
 		return
 	}
+
+	log.Info(("[noti-handler]nh#110 Successfully find ratings for host by user"))
 }
 
 func (nh *NotificationsHandler) GetHostRatings(w http.ResponseWriter, r *http.Request) {
@@ -474,10 +514,12 @@ func (nh *NotificationsHandler) GetHostRatings(w http.ResponseWriter, r *http.Re
 	vars := mux.Vars(r)
 	hostUsername, ok := vars["hostUsername"]
 	if !ok {
-		log.Error(fmt.Sprintf("[noti-handler]nh#54 Missing host username in the request path"))
+		log.Error(("[noti-handler]nh#54 Missing host username in the request path"))
 		http.Error(w, "Missing host username in the request path", http.StatusBadRequest)
 		return
 	}
+
+	log.Info(fmt.Sprintf("[noti-handler]nh#125 Received request from '%s' for host ratings by username: '%v'", r.RemoteAddr, hostUsername))
 
 	_, err := nh.profileClient.GetUserId(r.Context(), hostUsername, tokenStr)
 	if err != nil {
@@ -500,12 +542,16 @@ func (nh *NotificationsHandler) GetHostRatings(w http.ResponseWriter, r *http.Re
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
 		return
 	}
+
+	log.Info(("[noti-handler]nh#111 Successfully find ratings for host"))
 }
 
 func (nh *NotificationsHandler) AddHostRating(w http.ResponseWriter, r *http.Request) {
 	var rating data.RatingHost
 	ctx, cancel := context.WithTimeout(r.Context(), 5000*time.Millisecond)
 	defer cancel()
+
+	log.Info(fmt.Sprintf("[noti-handler]nh#126 User from '%s' creating a new rating", r.RemoteAddr))
 
 	err := json.NewDecoder(r.Body).Decode(&rating)
 	if err != nil {
@@ -547,7 +593,7 @@ func (nh *NotificationsHandler) AddHostRating(w http.ResponseWriter, r *http.Req
 	}
 
 	if rating.Rate < 1 || rating.Rate > 5 {
-		log.Error(fmt.Sprintf("[noti-handler]nh#63 Rating must be between 1 and 5"))
+		log.Error(("[noti-handler]nh#63 Rating must be between 1 and 5"))
 		http.Error(w, "Rating must be between 1 and 5", http.StatusBadRequest)
 		return
 	}
@@ -576,7 +622,7 @@ func (nh *NotificationsHandler) AddHostRating(w http.ResponseWriter, r *http.Req
 	}
 
 	if len(hasExpiredReservations) == 0 {
-		log.Error(fmt.Sprintf("[noti-handler]nh#67 Guest does not have any expired reservations with the specified host"))
+		log.Error(("[noti-handler]nh#67 Guest does not have any expired reservations with the specified host"))
 		http.Error(w, "Guest does not have any expired reservations with the specified host", http.StatusBadRequest)
 		return
 	}
@@ -593,7 +639,7 @@ func (nh *NotificationsHandler) AddHostRating(w http.ResponseWriter, r *http.Req
 	for _, r := range ratings {
 		if r.HostUsername == rating.HostUsername && r.GuestUsername == rating.GuestUsername {
 			nh.repo.UpdateHostRating(r.ID, rating.GuestID, &rating)
-			log.Info(fmt.Sprintf("[noti-handler]nh#69 Host rating successfully added"))
+			log.Info(("[noti-handler]nh#69 Host rating successfully added"))
 			http.Error(w, "Host rating successfully added", http.StatusCreated)
 			return
 		}
@@ -623,9 +669,10 @@ func (nh *NotificationsHandler) AddHostRating(w http.ResponseWriter, r *http.Req
 
 	success, err := data.SendNotificationEmail(notification.HostEmail, "rating-host")
 	if !success {
-		log.Error(fmt.Sprintf("[noti-handler]nh#72 Failed to send notification mail"))
+		log.Error(("[noti-handler]nh#72 Failed to send notification mail"))
 	}
 
+	log.Info(("[noti-handler]nh#112 Successfully add rating for host"))
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte("Host rating successfully added"))
 }
@@ -641,6 +688,8 @@ func (nh *NotificationsHandler) GetAverageAccommodationRating(w http.ResponseWri
 		return
 	}
 
+	log.Info(fmt.Sprintf("[noti-handler]nh#127 Received request from '%s' for get average rating accommodation: '%v'", r.RemoteAddr, objectID))
+
 	ratings, err := nh.repo.GetRatingsByAccommodationID(objectID)
 	if err != nil {
 		http.Error(w, "Failed to fetch ratings", http.StatusBadRequest)
@@ -651,7 +700,7 @@ func (nh *NotificationsHandler) GetAverageAccommodationRating(w http.ResponseWri
 	totalRatings := len(ratings)
 	if totalRatings == 0 {
 		http.Error(w, "No ratings found for this accommodation", http.StatusNotFound)
-		log.Error(fmt.Sprintf("[noti-handler]nh#74 No ratings found for this accommodaiton"))
+		log.Error(("[noti-handler]nh#74 No ratings found for this accommodaiton"))
 		return
 	}
 
@@ -674,6 +723,7 @@ func (nh *NotificationsHandler) GetAverageAccommodationRating(w http.ResponseWri
 		return
 	}
 
+	log.Info(("[noti-handler]nh#113 Successfully get average accommodation rating"))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(jsonResponse)
@@ -689,6 +739,8 @@ func (nh *NotificationsHandler) GetAverageHostRating(w http.ResponseWriter, r *h
 		http.Error(w, fmt.Sprintf("Error parsing data: %s", err), http.StatusBadRequest)
 		return
 	}
+
+	log.Info(fmt.Sprintf("[noti-handler]nh#128 Received request from '%s' for get average rating host: '%v'", r.RemoteAddr, userId))
 
 	ctx := r.Context()
 
@@ -708,7 +760,7 @@ func (nh *NotificationsHandler) GetAverageHostRating(w http.ResponseWriter, r *h
 
 	totalRatings := len(ratings)
 	if totalRatings == 0 {
-		log.Error(fmt.Sprintf("[noti-handler]nh#79 No ratings found for this accommodation"))
+		log.Error(("[noti-handler]nh#79 No ratings found for this accommodation"))
 		http.Error(w, "No ratings found for this accommodation", http.StatusNotFound)
 		return
 	}
@@ -732,6 +784,7 @@ func (nh *NotificationsHandler) GetAverageHostRating(w http.ResponseWriter, r *h
 		return
 	}
 
+	log.Info(("[noti-handler]nh#114 Successfully get average host rating"))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(jsonResponse)
@@ -743,7 +796,7 @@ func (nh *NotificationsHandler) DeleteHostRating(w http.ResponseWriter, r *http.
 	idParam, ok := vars["id"]
 
 	if !ok {
-		log.Error(fmt.Sprintf("[noti-handler]nh#81 Missing ID parameter"))
+		log.Error(("[noti-handler]nh#81 Missing ID parameter"))
 		http.Error(w, "Missing ID parameter", http.StatusBadRequest)
 		return
 	}
@@ -754,6 +807,8 @@ func (nh *NotificationsHandler) DeleteHostRating(w http.ResponseWriter, r *http.
 		http.Error(w, "Invalid ID format", http.StatusBadRequest)
 		return
 	}
+
+	log.Info(fmt.Sprintf("[noti-handler]nh#129 Recieved request from '%s' to delete rating '%v'", r.RemoteAddr, id))
 
 	tokenStr := nh.extractTokenFromHeader(r)
 	username, err := nh.getUsername(tokenStr)
@@ -784,7 +839,7 @@ func (nh *NotificationsHandler) DeleteHostRating(w http.ResponseWriter, r *http.
 	}
 
 	w.WriteHeader(http.StatusOK)
-	log.Info(fmt.Sprintf("[noti-handler]nh#87 Host rating successfully deleted"))
+	log.Info(("[noti-handler]nh#87 Host rating successfully deleted"))
 	w.Write([]byte("Host rating successfully deleted"))
 
 }
@@ -794,7 +849,7 @@ func (nh *NotificationsHandler) DeleteRatingAccommodationHandler(w http.Response
 	idParam, ok := vars["id"]
 
 	if !ok {
-		log.Error(fmt.Sprintf("[noti-handler]nh#88 Missing ID parameter"))
+		log.Error(("[noti-handler]nh#88 Missing ID parameter"))
 		http.Error(w, "Missing ID parameter", http.StatusBadRequest)
 		return
 	}
@@ -805,6 +860,8 @@ func (nh *NotificationsHandler) DeleteRatingAccommodationHandler(w http.Response
 		http.Error(w, "Invalid ID format", http.StatusBadRequest)
 		return
 	}
+
+	log.Info(fmt.Sprintf("[noti-handler]nh#130 Recieved request from '%s' to delete rating '%v'", r.RemoteAddr, id))
 
 	tokenStr := nh.extractTokenFromHeader(r)
 	username, err := nh.getUsername(tokenStr)
@@ -848,6 +905,8 @@ func (nh *NotificationsHandler) NotifyForReservation(w http.ResponseWriter, r *h
 		return
 	}
 
+	log.Info(fmt.Sprintf("[noti-handler]nh#131 Recieved request from '%s' to notify user for reservation accommodation", r.RemoteAddr))
+
 	err := nh.repo.CreateNotification(r.Context(), &notification)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#96 Failed to create notification: %v", err))
@@ -864,7 +923,7 @@ func (nh *NotificationsHandler) NotifyForReservation(w http.ResponseWriter, r *h
 
 	success, err := data.SendNotificationEmail(notification.HostEmail, intent)
 	if !success {
-		log.Error(fmt.Sprintf("[noti-handler]nh#97 Failed to send notification mail"))
+		log.Error(("[noti-handler]nh#97 Failed to send notification mail"))
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -880,10 +939,12 @@ func (nh *NotificationsHandler) GetAllNotifications(w http.ResponseWriter, r *ht
 	username, ok := vars["username"]
 
 	if !ok {
-		log.Error(fmt.Sprintf("[noti-handler]nh#99 Missing username parameter"))
+		log.Error(("[noti-handler]nh#99 Missing username parameter"))
 		http.Error(w, "Missing username parameter", http.StatusBadRequest)
 		return
 	}
+
+	log.Info(fmt.Sprintf("[noti-handler]nh#132 Recieved request from '%s' to get all notification", r.RemoteAddr))
 
 	ratings, err := nh.repo.GetAllNotifications(r.Context(), username)
 	if err != nil {

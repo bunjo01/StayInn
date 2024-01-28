@@ -75,7 +75,7 @@ func main() {
 				return counts.ConsecutiveFailures > 2
 			},
 			OnStateChange: func(name string, from, to gobreaker.State) {
-				log.Info("[noti-service]ns#1 CB '%s' changed from '%s' to '%s'\n", name, from, to)
+				log.Info(fmt.Sprintf("[noti-service]ns#1 CB '%s' changed from '%s' to '%s'\n", name, from, to))
 			},
 			IsSuccessful: func(err error) bool {
 				if err == nil {
@@ -97,7 +97,7 @@ func main() {
 				return counts.ConsecutiveFailures > 2
 			},
 			OnStateChange: func(name string, from, to gobreaker.State) {
-				log.Info("[noti-service]ns#2 CB '%s' changed from '%s' to '%s'\n", name, from, to)
+				log.Info(fmt.Sprintf("[noti-service]ns#2 CB '%s' changed from '%s' to '%s'\n", name, from, to))
 			},
 			IsSuccessful: func(err error) bool {
 				if err == nil {

@@ -102,7 +102,6 @@ func (nr *NotificationsRepo) GetAllNotifications(ctx context.Context, username s
 		}
 		notifications = append(notifications, notification)
 	}
-	log.Info("[noti-repo]nr#8 Successfully get all notification")
 	return notifications, nil
 }
 
@@ -114,7 +113,6 @@ func (nr *NotificationsRepo) AddRating(rating *RatingAccommodation) error {
 		log.Error(fmt.Sprintf("[noti-repo]nr#9 Failed to create rating: %v", err))
 		return err
 	}
-	log.Info("[noti-repo]nr#10 Successfully create rating")
 	return nil
 }
 
@@ -126,7 +124,6 @@ func (nr *NotificationsRepo) AddHostRating(rating *RatingHost) error {
 		log.Error(fmt.Sprintf("[noti-repo]nr#11 Failed to create host rating: %v", err))
 		return err
 	}
-	log.Info("[noti-repo]nr#12 Successfully create host rating")
 	return nil
 }
 
@@ -151,7 +148,6 @@ func (nr *NotificationsRepo) GetRatingsByHostID(hostID primitive.ObjectID) ([]Ra
 		}
 		ratings = append(ratings, rating)
 	}
-	log.Info("[noti-repo]nr#15 Successfully get all ratings")
 	return ratings, nil
 }
 
@@ -186,7 +182,6 @@ func (nr *NotificationsRepo) UpdateHostRating(id, idUser primitive.ObjectID, new
 		return err
 	}
 
-	log.Info("[noti-repo]nr#19 Successfully update rating")
 	return nil
 }
 
@@ -222,7 +217,6 @@ func (nr *NotificationsRepo) DeleteHostRating(id primitive.ObjectID, idUser prim
 		return errors.New("no documents deleted")
 	}
 
-	log.Info("[noti-repo]nr#25 Successfully deleted host rating")
 	return nil
 }
 
@@ -238,7 +232,6 @@ func (nr *NotificationsRepo) FindAccommodationRatingByGuest(ctx context.Context,
 		return nil, err
 	}
 
-	log.Info("[noti-repo]nr#27 Successfully find accommodation rating with guestID")
 	return &rating, nil
 }
 
@@ -255,7 +248,6 @@ func (nr *NotificationsRepo) FindHostRatingByGuest(ctx context.Context, idHost p
 		return nil, err
 	}
 
-	log.Info("[noti-repo]nr#29 Successfully find host rating with guestID")
 	return &rating, nil
 }
 
@@ -278,7 +270,6 @@ func (nr *NotificationsRepo) GetAllAccommodationRatings(ctx context.Context) ([]
 		}
 		ratings = append(ratings, rating)
 	}
-	log.Info("[noti-repo]nr#32 Successfully find all ratings for accommodation")
 	return ratings, nil
 }
 
@@ -302,7 +293,6 @@ func (nr *NotificationsRepo) GetAllAccommodationRatingsByUser(ctx context.Contex
 		ratings = append(ratings, rating)
 	}
 
-	log.Info("[noti-repo]nr#35 Successfully find all ratings for accommodation with guestID")
 	return ratings, nil
 }
 
@@ -326,7 +316,6 @@ func (nr *NotificationsRepo) GetAllHostRatingsByUser(ctx context.Context, userID
 		ratings = append(ratings, rating)
 	}
 
-	log.Info("[noti-repo]nr#38 Successfully find all ratings for host with guestID")
 	return ratings, nil
 }
 
@@ -350,7 +339,6 @@ func (nr *NotificationsRepo) GetAllAccommodationRatingsForLoggedHost(ctx context
 		ratings = append(ratings, rating)
 	}
 
-	log.Info("[noti-repo]nr#41 Successfully find ratings for accommmodation for logged host")
 	return ratings, nil
 }
 
@@ -374,7 +362,6 @@ func (nr *NotificationsRepo) GetAllHostRatings(ctx context.Context) ([]RatingHos
 		ratings = append(ratings, rating)
 	}
 
-	log.Info("[noti-repo]nr#44 Successfully find all rating for host")
 	return ratings, nil
 }
 
@@ -399,7 +386,6 @@ func (nr *NotificationsRepo) GetRatingsByAccommodationID(accommodationID primiti
 		}
 		ratings = append(ratings, rating)
 	}
-	log.Info("[noti-repo]nr#47 Successfully find all rating with accommodationID")
 	return ratings, nil
 }
 
@@ -425,7 +411,6 @@ func (nr *NotificationsRepo) GetRatingsByHostUsername(username string) ([]Rating
 		ratings = append(ratings, rating)
 	}
 
-	log.Info("[noti-repo]nr#49 Successfully find ratings with host username")
 	return ratings, nil
 }
 
@@ -451,7 +436,6 @@ func (ar *NotificationsRepo) GetHostRatings(ctx context.Context, hostUsername st
 		ratings = append(ratings, rating)
 	}
 
-	log.Info("[noti-repo]nr#52 Succcesfully find ratings with hostUsername")
 	return ratings, nil
 }
 
@@ -489,7 +473,6 @@ func (nr *NotificationsRepo) UpdateRatingAccommodationByID(id, idUser primitive.
 		return errors.New("no documents updated")
 	}
 
-	log.Info("[noti-repo]nr#56 Successfully update rating for accommodation")
 	return nil
 }
 
@@ -526,7 +509,6 @@ func (nr *NotificationsRepo) DeleteRatingAccommodationByID(id primitive.ObjectID
 		return errors.New("no documents deleted")
 	}
 
-	log.Error("[noti-repo]nr#61 Successfully delete rating for accommodation")
 	return nil
 }
 
