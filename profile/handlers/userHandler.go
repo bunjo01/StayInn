@@ -39,6 +39,8 @@ func NewUserHandler(r *data.UserRepo, ac clients.AccommodationClient,
 func (uh *UserHandler) GetAllUsers(rw http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	log.Info(fmt.Sprintf("[prof-handler]ph#37 Received request from '%s' for all users", r.RemoteAddr))
+
 	users, err := uh.repo.GetAllUsers(ctx)
 	if err != nil {
 		http.Error(rw, "Failed to retrieve users", http.StatusInternalServerError)
@@ -52,11 +54,14 @@ func (uh *UserHandler) GetAllUsers(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, "Failed to encode users", http.StatusInternalServerError)
 		log.Error(fmt.Sprintf("[prof-handler]ph#2 Failed to encode users: %v", err))
 	}
+	log.Info(fmt.Printf("[prof-handler]ph#38 Successfully fetched all accommodations"))
 }
 
 func (uh *UserHandler) GetUser(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	username := vars["username"]
+
+	log.Info(fmt.Sprintf("[prof-handler]ph#39 Received request from '%s' for user '%v'", r.RemoteAddr, username))
 
 	ctx := r.Context()
 	user, err := uh.repo.GetUser(ctx, username)
@@ -77,10 +82,14 @@ func (uh *UserHandler) GetUser(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, "Failed to encode user", http.StatusInternalServerError)
 		log.Error(fmt.Sprintf("[prof-handler]ph#4 Failed to encode user: %v", err))
 	}
+	log.Info(fmt.Sprintf("[prof-handler]ph#40 Successfully fetched user with username '%v'", username))
 }
 
 func (uh *UserHandler) GetUserById(rw http.ResponseWriter, r *http.Request) {
 	var id data.UserId
+
+	log.Info(fmt.Sprintf("[prof-handler]ph#41 Received request from '%s' for user with ID '%v'", r.RemoteAddr, id))
+
 	if err := json.NewDecoder(r.Body).Decode(&id); err != nil {
 		log.Error(fmt.Sprintf("[prof-handler]ph#5 Failed to decode request body: %v", err))
 		http.Error(rw, "Failed to decode request body", http.StatusBadRequest)
@@ -106,12 +115,13 @@ func (uh *UserHandler) GetUserById(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, "Failed to encode user", http.StatusInternalServerError)
 		log.Error(fmt.Sprintf("[prof-handler]ph#7 Failed to encode user: %v", err))
 	}
+	log.Info(fmt.Sprintf("[prof-handler]ph#42 Successfully fetched user with id '%v'", id))
 }
 
 func (uh *UserHandler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 	var user data.NewUser
 
-	log.Info(fmt.Printf("[prof-handler]ph#8 Creating user"))
+	log.Info(fmt.Sprintf("[prof-handler]ph#8 Creating new user from '%s'", r.RemoteAddr))
 
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		log.Error(fmt.Sprintf("[prof-handler]ph#9 Failed to decode request body: %v", err))
@@ -144,12 +154,14 @@ func (uh *UserHandler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, "Failed to encode user", http.StatusInternalServerError)
 	}
 
-	log.Info(fmt.Printf("[prof-handler]ph#13 User successfully created"))
+	log.Info(fmt.Printf("[prof-handler]ph#13 User successfully created with id '%v'", user.ID))
 }
 
 func (uh *UserHandler) CheckUsernameAvailability(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	username := vars["username"]
+
+	log.Info(fmt.Sprintf("[prof-handler]ph#43 Checking username availability from '%s' for user '%v'", r.RemoteAddr, username))
 
 	available, err := uh.repo.CheckUsernameAvailability(r.Context(), username)
 	if err != nil {
@@ -169,11 +181,14 @@ func (uh *UserHandler) CheckUsernameAvailability(w http.ResponseWriter, r *http.
 		log.Error(fmt.Sprintf("[prof-handler]ph#15 Failed to encode JSON response: %v", err))
 		http.Error(w, "Failed to encode JSON response", http.StatusInternalServerError)
 	}
+	log.Info(fmt.Sprintf("[prof-handler]ph#44 Successfully checked username availability for user '%v'", username))
 }
 
 func (uh *UserHandler) CheckEmailAvailability(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	email := vars["email"]
+
+	log.Info(fmt.Sprintf("[prof-handler]ph#45 Checking email availability from '%s' for user with email '%v'", r.RemoteAddr, email))
 
 	available, err := uh.repo.CheckEmailAvailability(r.Context(), email)
 	if err != nil {
@@ -193,6 +208,7 @@ func (uh *UserHandler) CheckEmailAvailability(w http.ResponseWriter, r *http.Req
 		log.Error(fmt.Sprintf("[prof-handler]ph#17 Failed to encode JSON response: %v", err))
 		http.Error(w, "Failed to encode JSON response", http.StatusInternalServerError)
 	}
+	log.Info(fmt.Sprintf("[prof-handler]ph#46 Successfully checked email availability for user with email '%v'", email))
 }
 
 func (uh *UserHandler) UpdateUser(rw http.ResponseWriter, r *http.Request) {
@@ -200,7 +216,7 @@ func (uh *UserHandler) UpdateUser(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	username := vars["username"]
 
-	log.Info(fmt.Sprintf("[prof-handler]ph#18 Updating user with username '%s'", username))
+	log.Info(fmt.Sprintf("[prof-handler]ph#18 Received request to update user '%v' from '%s'", username, r.RemoteAddr))
 
 	// Get current user for email check
 	currentUser, err := uh.repo.GetUser(r.Context(), username)
@@ -249,14 +265,14 @@ func (uh *UserHandler) UpdateUser(rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusOK)
 
-	log.Info(fmt.Sprintf("[prof-handler]ph#24 User with username '%s' updated successfully", username))
+	log.Info(fmt.Sprintf("[prof-handler]ph#24 Successfully updated user '%s'", updatedUser.Username))
 }
 
 func (uh *UserHandler) DeleteUser(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	username := vars["username"]
 
-	log.Info(fmt.Sprintf("[prof-handler]ph#25 Deleting user with username '%s'", username))
+	log.Info(fmt.Sprintf("[prof-handler]ph#25 Recieved request from '%s' to delete user '%v'", r.RemoteAddr, username))
 
 	// Extracting role from token
 	tokenString := uh.extractTokenFromHeader(r)
