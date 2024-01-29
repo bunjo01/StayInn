@@ -35,7 +35,7 @@ func (r *ReservationHandler) GetAllAvailablePeriodsByAccommodation(rw http.Respo
 	vars := mux.Vars(h)
 	id := vars["id"]
 
-	log.Info(fmt.Sprintf("[rese-handler]#rh59 Received login request from '%s'", h.RemoteAddr))
+	log.Info(fmt.Sprintf("[rese-handler]#rh59 Received from '%s' for getting all available periods", h.RemoteAddr))
 
 	availablePeriods, err := r.repo.GetAvailablePeriodsByAccommodation(id)
 	if err != nil {
@@ -61,7 +61,7 @@ func (r *ReservationHandler) FindAvailablePeriodByIdAndByAccommodationId(rw http
 	periodID := vars["periodID"]
 	accomodationID := vars["accomodationID"]
 
-	log.Info(fmt.Sprintf("[rese-handler]#rh60 Received login request from '%s'", h.RemoteAddr))
+	log.Info(fmt.Sprintf("[rese-handler]#rh60 Received request from '%s' for finding periob by id and accommodation", h.RemoteAddr))
 
 	availablePeriod, err := r.repo.FindAvailablePeriodById(periodID, accomodationID)
 	if err != nil {
@@ -86,7 +86,7 @@ func (r *ReservationHandler) GetAllReservationByAvailablePeriod(rw http.Response
 	vars := mux.Vars(h)
 	id := vars["id"]
 
-	log.Info(fmt.Sprintf("[rese-handler]#rh61 Received login request from '%s'", h.RemoteAddr))
+	log.Info(fmt.Sprintf("[rese-handler]#rh61 Received request from '%s' for getting all reservation by available period", h.RemoteAddr))
 
 	reservations, err := r.repo.GetReservationsByAvailablePeriod(id)
 	if err != nil {
@@ -117,7 +117,7 @@ func (r *ReservationHandler) CreateAvailablePeriod(rw http.ResponseWriter, h *ht
 		return
 	}
 
-	log.Info(fmt.Sprintf("[rese-handler]#rh62 Received login request from '%s' with username: '%s'", h.RemoteAddr, username))
+	log.Info(fmt.Sprintf("[rese-handler]#rh62 Received request from '%s' with username: '%s' for creation available period", h.RemoteAddr, username))
 
 	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
@@ -176,7 +176,7 @@ func (r *ReservationHandler) CreateReservation(rw http.ResponseWriter, h *http.R
 		return
 	}
 
-	log.Info(fmt.Sprintf("[rese-handler]#rh63 Received login request from '%s' with username: '%s'", h.RemoteAddr, username))
+	log.Info(fmt.Sprintf("[rese-handler]#rh63 Received request from '%s' with username: '%s' for creation reservation", h.RemoteAddr, username))
 
 	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
@@ -250,7 +250,7 @@ func (r *ReservationHandler) CreateReservation(rw http.ResponseWriter, h *http.R
 }
 
 func (r *ReservationHandler) FindAccommodationIdsByDates(rw http.ResponseWriter, h *http.Request) {
-	log.Info(fmt.Sprintf("[rese-handler]#rh64 Received login request from '%s'", h.RemoteAddr))
+	log.Info(fmt.Sprintf("[rese-handler]#rh64 Received request from '%s' for finding accommodation ids by dates", h.RemoteAddr))
 
 	dates := h.Context().Value(KeyProduct{}).(data.Dates)
 	ids, err := r.repo.FindAccommodationIdsByDates(&dates)
@@ -280,7 +280,7 @@ func (r *ReservationHandler) FindAllReservationsByUserIDExpired(rw http.Response
 		return
 	}
 
-	log.Info(fmt.Sprintf("[rese-handler]#rh65 Received login request from '%s' with username: '%s'", h.RemoteAddr, username))
+	log.Info(fmt.Sprintf("[rese-handler]#rh65 Received request from '%s' with username: '%s' for finding all expired reservations by user", h.RemoteAddr, username))
 
 	guestID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
@@ -318,7 +318,7 @@ func (r *ReservationHandler) UpdateAvailablePeriodByAccommodation(rw http.Respon
 		return
 	}
 
-	log.Info(fmt.Sprintf("[rese-handler]#rh66 Received login request from '%s' with username: '%s'", h.RemoteAddr, username))
+	log.Info(fmt.Sprintf("[rese-handler]#rh66 Received login request from '%s' with username: '%s' for updating available period", h.RemoteAddr, username))
 
 	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
@@ -344,7 +344,7 @@ func (r *ReservationHandler) UpdateAvailablePeriodByAccommodation(rw http.Respon
 }
 
 func (r *ReservationHandler) DeletePeriodsForAccommodations(rw http.ResponseWriter, h *http.Request) {
-	log.Info(fmt.Sprintf("[rese-handler]#rh67 Received login request from '%s'", h.RemoteAddr))
+	log.Info(fmt.Sprintf("[rese-handler]#rh67 Received login request from '%s' for deleting periods for accommodation", h.RemoteAddr))
 
 	if h.Context().Value(KeyProduct{}) != nil {
 		accIDs := h.Context().Value(KeyProduct{}).([]primitive.ObjectID)
@@ -367,7 +367,7 @@ func (r *ReservationHandler) GetAllReservationsByUser(rw http.ResponseWriter, h 
 	vars := mux.Vars(h)
 	username := vars["username"]
 
-	log.Info(fmt.Sprintf("[rese-handler]#rh68 Received login request from '%s' with username: '%s'", h.RemoteAddr, username))
+	log.Info(fmt.Sprintf("[rese-handler]#rh68 Received request from '%s' with username: '%s' for getting all reservations by user", h.RemoteAddr, username))
 
 	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
@@ -400,7 +400,7 @@ func (r *ReservationHandler) CheckAndDeleteReservationsForUser(rw http.ResponseW
 		return
 	}
 
-	log.Info(fmt.Sprintf("[rese-handler]#rh69 Received login request from '%s'", h.RemoteAddr))
+	log.Info(fmt.Sprintf("[rese-handler]#rh69 Received request from '%s' for checking and deleting reservations", h.RemoteAddr))
 
 	err = r.repo.CheckAndDeleteReservationsByUserID(userID)
 	if err != nil {
@@ -424,7 +424,7 @@ func (r *ReservationHandler) DeleteReservation(rw http.ResponseWriter, h *http.R
 		return
 	}
 
-	log.Info(fmt.Sprintf("[rese-handler]#rh70 Received login request from '%s' with username: '%s'", h.RemoteAddr, username))
+	log.Info(fmt.Sprintf("[rese-handler]#rh70 Received request from '%s' with username: '%s' for deletion reservation", h.RemoteAddr, username))
 
 	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
