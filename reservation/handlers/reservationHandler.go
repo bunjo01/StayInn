@@ -9,10 +9,11 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
-	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
 	"reservation/clients"
 	"reservation/data"
+
+	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 )
 
 type KeyProduct struct{}
@@ -35,7 +36,7 @@ func (r *ReservationHandler) GetAllAvailablePeriodsByAccommodation(rw http.Respo
 	vars := mux.Vars(h)
 	id := vars["id"]
 
-	log.Info(fmt.Sprintf("[rese-handler]#rh59 Received from '%s' for getting all available periods", h.RemoteAddr))
+	log.Info(fmt.Sprintf("[rese-handler]rh#59 Received request from '%s' for getting all available periods", h.RemoteAddr))
 
 	availablePeriods, err := r.repo.GetAvailablePeriodsByAccommodation(id)
 	if err != nil {
@@ -53,7 +54,7 @@ func (r *ReservationHandler) GetAllAvailablePeriodsByAccommodation(rw http.Respo
 		return
 	}
 
-	log.Info(fmt.Sprintf("[rese-handler]rh#48 Successfuly retrieved available periods by accommodation"))
+	log.Info(fmt.Printf("[rese-handler]rh#48 Successfuly retrieved available periods by accommodation"))
 }
 
 func (r *ReservationHandler) FindAvailablePeriodByIdAndByAccommodationId(rw http.ResponseWriter, h *http.Request) {
@@ -61,7 +62,7 @@ func (r *ReservationHandler) FindAvailablePeriodByIdAndByAccommodationId(rw http
 	periodID := vars["periodID"]
 	accomodationID := vars["accomodationID"]
 
-	log.Info(fmt.Sprintf("[rese-handler]#rh60 Received request from '%s' for finding periob by id and accommodation", h.RemoteAddr))
+	log.Info(fmt.Sprintf("[rese-handler]rh#60 Received request from '%s' for getting period by id", h.RemoteAddr))
 
 	availablePeriod, err := r.repo.FindAvailablePeriodById(periodID, accomodationID)
 	if err != nil {
@@ -79,14 +80,14 @@ func (r *ReservationHandler) FindAvailablePeriodByIdAndByAccommodationId(rw http
 		log.Error(fmt.Sprintf("[rese-handler]rh#5 Error while converting json: %v", err))
 		return
 	}
-	log.Info(fmt.Sprintf("[rese-handler]rh#49 Successfuly retrieved available periods by id and accommodation"))
+	log.Info(fmt.Printf("[rese-handler]rh#49 Successfuly retrieved available period by id"))
 }
 
 func (r *ReservationHandler) GetAllReservationByAvailablePeriod(rw http.ResponseWriter, h *http.Request) {
 	vars := mux.Vars(h)
 	id := vars["id"]
 
-	log.Info(fmt.Sprintf("[rese-handler]#rh61 Received request from '%s' for getting all reservation by available period", h.RemoteAddr))
+	log.Info(fmt.Sprintf("[rese-handler]rh#61 Received request from '%s' for all reservations by available period", h.RemoteAddr))
 
 	reservations, err := r.repo.GetReservationsByAvailablePeriod(id)
 	if err != nil {
@@ -103,7 +104,7 @@ func (r *ReservationHandler) GetAllReservationByAvailablePeriod(rw http.Response
 		log.Error(fmt.Sprintf("[rese-handler]rh#7 Error while converting json: %v", err))
 		return
 	}
-	log.Info(fmt.Sprintf("[rese-handler]rh#50 Successfuly retrieved reservation by avilable period"))
+	log.Info(fmt.Printf("[rese-handler]rh#50 Successfuly retrieved reservations by avilable period"))
 }
 
 func (r *ReservationHandler) CreateAvailablePeriod(rw http.ResponseWriter, h *http.Request) {
@@ -117,7 +118,7 @@ func (r *ReservationHandler) CreateAvailablePeriod(rw http.ResponseWriter, h *ht
 		return
 	}
 
-	log.Info(fmt.Sprintf("[rese-handler]#rh62 Received request from '%s' with username: '%s' for creation available period", h.RemoteAddr, username))
+	log.Info(fmt.Sprintf("[rese-handler]rh#62 Received request from '%s' to create available period", h.RemoteAddr))
 
 	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
@@ -176,7 +177,7 @@ func (r *ReservationHandler) CreateReservation(rw http.ResponseWriter, h *http.R
 		return
 	}
 
-	log.Info(fmt.Sprintf("[rese-handler]#rh63 Received request from '%s' with username: '%s' for creation reservation", h.RemoteAddr, username))
+	log.Info(fmt.Sprintf("[rese-handler]rh#63 Received request from '%s' to create reservation", h.RemoteAddr))
 
 	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
@@ -250,7 +251,7 @@ func (r *ReservationHandler) CreateReservation(rw http.ResponseWriter, h *http.R
 }
 
 func (r *ReservationHandler) FindAccommodationIdsByDates(rw http.ResponseWriter, h *http.Request) {
-	log.Info(fmt.Sprintf("[rese-handler]#rh64 Received request from '%s' for finding accommodation ids by dates", h.RemoteAddr))
+	log.Info(fmt.Sprintf("[rese-handler]rh#64 Received request from '%s' for finding accommodation ids by dates", h.RemoteAddr))
 
 	dates := h.Context().Value(KeyProduct{}).(data.Dates)
 	ids, err := r.repo.FindAccommodationIdsByDates(&dates)
@@ -266,7 +267,7 @@ func (r *ReservationHandler) FindAccommodationIdsByDates(rw http.ResponseWriter,
 		return
 	}
 
-	log.Info(fmt.Sprintf("[rese-handler]rh#53 Successfuly retrieved accommodation ids by dates"))
+	log.Info(fmt.Printf("[rese-handler]rh#53 Successfuly retrieved accommodation ids by dates"))
 
 	rw.WriteHeader(http.StatusOK)
 }
@@ -280,7 +281,7 @@ func (r *ReservationHandler) FindAllReservationsByUserIDExpired(rw http.Response
 		return
 	}
 
-	log.Info(fmt.Sprintf("[rese-handler]#rh65 Received request from '%s' with username: '%s' for finding all expired reservations by user", h.RemoteAddr, username))
+	log.Info(fmt.Sprintf("[rese-handler]rh#65 Received request from '%s' for all expired reservations for user '%s'", h.RemoteAddr, username))
 
 	guestID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
@@ -303,7 +304,7 @@ func (r *ReservationHandler) FindAllReservationsByUserIDExpired(rw http.Response
 		return
 	}
 
-	log.Info(fmt.Sprintf("[rese-handler]rh#54 User id:'%s' successfully retrieved expired reservations by user", guestID))
+	log.Info(fmt.Sprintf("[rese-handler]rh#54 Successfully retrieved expired reservations for user '%s'", username))
 
 	rw.WriteHeader(http.StatusOK)
 }
@@ -318,7 +319,7 @@ func (r *ReservationHandler) UpdateAvailablePeriodByAccommodation(rw http.Respon
 		return
 	}
 
-	log.Info(fmt.Sprintf("[rese-handler]#rh66 Received login request from '%s' with username: '%s' for updating available period", h.RemoteAddr, username))
+	log.Info(fmt.Sprintf("[rese-handler]rh#66 Received request from '%s' to update available period '%s'", h.RemoteAddr, availablePeriod.ID.String()))
 
 	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
@@ -339,12 +340,12 @@ func (r *ReservationHandler) UpdateAvailablePeriodByAccommodation(rw http.Respon
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	log.Info(fmt.Sprintf("[rese-handler]rh#55 User id:'%s' successfully updated available period by accommodation id:'%s'", userID, availablePeriod.ID.String()))
+	log.Info(fmt.Sprintf("[rese-handler]rh#55 Successfully updated available period by accommodation id '%s'", availablePeriod.ID.String()))
 	rw.WriteHeader(http.StatusCreated)
 }
 
 func (r *ReservationHandler) DeletePeriodsForAccommodations(rw http.ResponseWriter, h *http.Request) {
-	log.Info(fmt.Sprintf("[rese-handler]#rh67 Received login request from '%s' for deleting periods for accommodation", h.RemoteAddr))
+	log.Info(fmt.Sprintf("[rese-handler]rh#67 Received request from '%s' to delete periods for accommodations", h.RemoteAddr))
 
 	if h.Context().Value(KeyProduct{}) != nil {
 		accIDs := h.Context().Value(KeyProduct{}).([]primitive.ObjectID)
@@ -355,10 +356,13 @@ func (r *ReservationHandler) DeletePeriodsForAccommodations(rw http.ResponseWrit
 				rw.WriteHeader(http.StatusBadRequest)
 				return
 			}
+			for _, accID := range accIDs {
+				log.Info(fmt.Sprintf("[rese-handler]rh#72 Deleted all available periods for accommodation '%s'", accID.Hex()))
+			}
 		}
 	}
 
-	log.Info(fmt.Sprintf("[rese-handler]rh#56 Successfully deleted available period by accommodations"))
+	log.Info(fmt.Printf("[rese-handler]rh#71 Successfully deleted all available periods for requested accommodations"))
 	rw.WriteHeader(http.StatusNoContent)
 }
 
@@ -367,7 +371,7 @@ func (r *ReservationHandler) GetAllReservationsByUser(rw http.ResponseWriter, h 
 	vars := mux.Vars(h)
 	username := vars["username"]
 
-	log.Info(fmt.Sprintf("[rese-handler]#rh68 Received request from '%s' with username: '%s' for getting all reservations by user", h.RemoteAddr, username))
+	log.Info(fmt.Sprintf("[rese-handler]rh#68 Received request from '%s' for all reservations for user '%s'", h.RemoteAddr, username))
 
 	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
@@ -388,7 +392,7 @@ func (r *ReservationHandler) GetAllReservationsByUser(rw http.ResponseWriter, h 
 		http.Error(rw, "Unable to convert to json:", http.StatusInternalServerError)
 		return
 	}
-	log.Info(fmt.Sprintf("[rese-handler]rh#56 Successfully retrieved reservtions by user"))
+	log.Info(fmt.Sprintf("[rese-handler]rh#56 Successfully retrieved reservations for user '%s'", username))
 	rw.WriteHeader(http.StatusOK)
 }
 
@@ -400,7 +404,7 @@ func (r *ReservationHandler) CheckAndDeleteReservationsForUser(rw http.ResponseW
 		return
 	}
 
-	log.Info(fmt.Sprintf("[rese-handler]#rh69 Received request from '%s' for checking and deleting reservations", h.RemoteAddr))
+	log.Info(fmt.Sprintf("[rese-handler]rh#69 Received request from '%s' to check and delete reservations for user '%s'", h.RemoteAddr, userID.Hex()))
 
 	err = r.repo.CheckAndDeleteReservationsByUserID(userID)
 	if err != nil {
@@ -424,7 +428,7 @@ func (r *ReservationHandler) DeleteReservation(rw http.ResponseWriter, h *http.R
 		return
 	}
 
-	log.Info(fmt.Sprintf("[rese-handler]#rh70 Received request from '%s' with username: '%s' for deletion reservation", h.RemoteAddr, username))
+	log.Info(fmt.Sprintf("[rese-handler]rh#70 Received request from '%s' to delete reservation '%s'", h.RemoteAddr, reservationID))
 
 	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
@@ -482,7 +486,7 @@ func (r *ReservationHandler) DeleteReservation(rw http.ResponseWriter, h *http.R
 		http.Error(rw, "failed to notify host", http.StatusInternalServerError)
 		return
 	}
-	log.Info(fmt.Sprintf("[rese-handler]rh#58 User id:'%s' successfully delete reservation id:'%s'", userID, reservationID))
+	log.Info(fmt.Sprintf("[rese-handler]rh#58 Successfully deleted reservation '%s'", reservationID))
 
 	rw.WriteHeader(http.StatusAccepted)
 }

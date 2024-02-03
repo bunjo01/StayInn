@@ -2,14 +2,17 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"gopkg.in/natefinch/lumberjack.v2"
 	"io"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"time"
+
+	"gopkg.in/natefinch/lumberjack.v2"
 
 	"reservation/clients"
 	"reservation/data"
@@ -281,6 +284,13 @@ func main() {
 		}
 	}()
 
+	// Protecting logs from unauthorized access and modification
+	dirPath := "/logger/logs"
+	err = protectLogs(dirPath)
+	if err != nil {
+		log.Fatal(fmt.Sprintf("[rese-service]rs#16 Error while protecting logs: %v", err))
+	}
+
 	sigCh := make(chan os.Signal)
 	signal.Notify(sigCh, os.Interrupt)
 	signal.Notify(sigCh, os.Kill)
@@ -295,4 +305,29 @@ func main() {
 
 	log.Info("[rese-service]rs#15 Server gracefully stopped")
 
+}
+
+// Changes ownership and sets permissions
+func protectLogs(dirPath string) error {
+	// Walk through all files in the directory
+	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return errors.New("error accessing path " + dirPath)
+		}
+
+		// Change ownership to user
+		if err := os.Chown(path, 0, 0); err != nil {
+			log.Fatal(fmt.Sprintf("[rese-service]rs#17 Failed to set log ownership to root: %v", err))
+			return errors.New("error changing onwership to root for " + path)
+		}
+
+		// Set read-only permissions for the owner
+		if err := os.Chmod(path, 0400); err != nil {
+			log.Fatal(fmt.Sprintf("[rese-service]rs#18 Failed to set read-only permissions for root: %v", err))
+			return errors.New("error changing permissions for " + path)
+		}
+
+		return nil
+	})
+	return err
 }

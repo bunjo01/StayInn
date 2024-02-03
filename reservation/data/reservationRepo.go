@@ -52,7 +52,6 @@ func (rr *ReservationRepo) CreateTables() error {
 		return err
 	}
 
-	log.Info(fmt.Sprintf("[rese-repo]rr#60 Succesfully created tables"))
 	return nil
 }
 
@@ -94,8 +93,6 @@ func (rr *ReservationRepo) GetAvailablePeriodsByAccommodation(id string) (Availa
 		log.Fatal(fmt.Sprintf("[rese-repo]rr#6 Error while scanning from database: %v", err))
 		return nil, err
 	}
-
-	log.Info(fmt.Sprintf("[rese-repo]rr#61 Succesfully retrieved periods by accommodaiton"))
 
 	return availablePeriods, nil
 }
@@ -139,7 +136,6 @@ func (rr *ReservationRepo) GetReservationsByAvailablePeriod(idAvailablePeriod st
 		return nil, err
 	}
 
-	log.Info(fmt.Sprintf("[rese-repo]rr#62 Succesfully retrieved reservations by period"))
 	return reservations, nil
 }
 
@@ -186,7 +182,6 @@ func (rr *ReservationRepo) InsertAvailablePeriodByAccommodation(availablePeriod 
 		return err
 	}
 
-	log.Info(fmt.Sprintf("[rese-repo]rr#63 Succesfully retrieved"))
 	return nil
 }
 
@@ -237,7 +232,6 @@ func (rr *ReservationRepo) InsertReservationByAvailablePeriod(reservation *Reser
 		return err
 	}
 
-	log.Info(fmt.Sprintf("[rese-repo]rr#64 User id:'%s' successfuly inserted reservation id:'%s' for period:'%s'", reservation.IDUser.Hex(), reservation.ID.String(), reservation.IDAvailablePeriod.String()))
 	return nil
 }
 
@@ -310,8 +304,6 @@ func (rr *ReservationRepo) UpdateAvailablePeriodByAccommodation(availablePeriod 
 		return err
 	}
 
-	log.Info(fmt.Sprintf("[rese-repo]rr#65 User id:'%s' successfuly updated period id:'%s' for accommodation:'%s'", availablePeriod.IDUser.Hex(), availablePeriod.ID.String(), availablePeriod.IDAccommodation.Hex()))
-
 	return nil
 }
 
@@ -347,8 +339,6 @@ func (rr *ReservationRepo) FindAvailablePeriodsByAccommodationId(accommodationId
 		log.Fatal(fmt.Sprintf("[rese-repo]rr#30 Error while scanning from database: %v", err))
 		return nil, err
 	}
-
-	log.Info(fmt.Sprintf("[rese-repo]rr#66 Successfuly retrieved available period by id"))
 
 	return availablePeriods, nil
 }
@@ -386,7 +376,6 @@ func (rr *ReservationRepo) FindAvailablePeriodsById(id, accommodationId string) 
 		return nil, err
 	}
 
-	log.Info(fmt.Sprintf("[rese-repo]rr#67 Successfuly retrieved available periods by id"))
 	return availablePeriods, nil
 }
 
@@ -414,7 +403,6 @@ func (rr *ReservationRepo) FindAvailablePeriodById(id, accommodationID string) (
 	period.IDAccommodation, _ = primitive.ObjectIDFromHex(idAccommodationStr)
 	period.IDUser, _ = primitive.ObjectIDFromHex(idUserStr)
 
-	log.Info(fmt.Sprintf("[rese-repo]rr#68 Successfuly retrieved available period by id"))
 	return &period, nil
 }
 
@@ -452,8 +440,6 @@ func (rr *ReservationRepo) FindAllReservationsByAvailablePeriod(periodId string)
 		return nil, err
 	}
 
-	log.Info(fmt.Sprintf("[rese-repo]rr#69 Successfuly retrieved reservations by available period"))
-
 	return reservations, nil
 }
 
@@ -490,8 +476,6 @@ func (rr *ReservationRepo) FindAllReservationsByUserID(userID string) (Reservati
 		log.Fatal(fmt.Sprintf("[rese-repo]rr#37 Error while scanning from database: %v", err))
 		return nil, err
 	}
-
-	log.Info(fmt.Sprintf("[rese-repo]rr#70 Successfuly retrieved reservations by user id"))
 
 	return reservations, nil
 }
@@ -531,8 +515,6 @@ func (rr *ReservationRepo) FindAllReservationsByUserIDExpired(userID string) (Re
 		return nil, err
 	}
 
-	log.Info(fmt.Sprintf("[rese-repo]rr#71 Successfuly retrieved expired reservations by user id"))
-
 	return reservations, nil
 }
 
@@ -562,8 +544,6 @@ func (rr *ReservationRepo) FindReservationByIdAndAvailablePeriod(id, periodID st
 	reservation.IDAccommodation, _ = primitive.ObjectIDFromHex(idAccommodationStr)
 	reservation.IDUser, _ = primitive.ObjectIDFromHex(idUserStr)
 
-	log.Info(fmt.Sprintf("[rese-repo]rr#71 Successfuly retrieved reservations by and available period"))
-
 	return &reservation, nil
 }
 
@@ -591,8 +571,6 @@ func (rr *ReservationRepo) DeleteReservationByIdAndAvailablePeriodID(id, periodI
 		log.Fatal(fmt.Sprintf("[rese-repo]rr#44 Error while retriving data from database: %v", err))
 		return err
 	}
-
-	log.Info(fmt.Sprintf("[rese-repo]rr#72 User id:'%s' successfuly deleted reservation id:'%s' period id:'%s'", ownerId, id, periodID))
 
 	return nil
 }
@@ -625,10 +603,7 @@ func (rr *ReservationRepo) CheckAndDeleteReservationsByUserID(userID primitive.O
 		}
 	}
 
-	log.Info(fmt.Sprintf("[rese-repo]rr#73 User id:'%s' successfuly delete reservations", userID.Hex()))
-
 	return nil
-
 }
 
 func (rr *ReservationRepo) DeletePeriodsForAccommodations(accIDs []primitive.ObjectID) error {
@@ -675,8 +650,6 @@ func (rr *ReservationRepo) DeletePeriodsForAccommodations(accIDs []primitive.Obj
 			}
 		}
 	}
-
-	log.Info(fmt.Sprintf("[rese-repo]rr#74 Successfuly deleted periods for accommodations id:'%s'", accIDs))
 
 	return nil
 }
@@ -731,8 +704,6 @@ func (rr *ReservationRepo) FindAccommodationIdsByDates(dates *Dates) (ListOfObje
 		log.Error(fmt.Sprintf("[rese-repo]rr#55 Error while finding reservation for search: %v", err))
 		return ListOfObjectIds{}, err
 	}
-
-	log.Info(fmt.Sprintf("[rese-repo]rr#75 Successfuly retrieved accommodation ids by dates"))
 
 	return listOfInvalidIds, nil
 }
@@ -804,8 +775,6 @@ func (rr *ReservationRepo) FindReservationForSearch(periodsIds []gocql.UUID, lis
 		idAccommodations.ObjectIds = append(idAccommodations.ObjectIds, id)
 	}
 
-	log.Info(fmt.Sprintf("[rese-repo]rr#76 Successfuly retrieved ids for search"))
-
 	return idAccommodations, nil
 }
 
@@ -826,7 +795,6 @@ func (rr *ReservationRepo) GetDistinctIds(idColumnName string, tableName string)
 		log.Fatal(fmt.Sprintf("[rese-repo]rr#58 Error while scanning data from databse: %v", err))
 		return nil, err
 	}
-	log.Info(fmt.Sprintf("[rese-repo]rr#77 Successfuly retrieved distinct ids"))
 	return ids, nil
 }
 
@@ -851,7 +819,6 @@ func (rr *ReservationRepo) checkForOverlap(newPeriod AvailablePeriodByAccommodat
 			}
 		}
 	}
-	log.Info(fmt.Sprintf("[rese-repo]rr#78 Successfuly retrieved distinct ids"))
 	return false, nil // No overlap found
 }
 
@@ -876,17 +843,4 @@ func (rr *ReservationRepo) calculatePrice(price float64, pricePerGuest bool, sta
 	}
 
 	return daysDifference * price
-}
-
-func (rr *ReservationRepo) convertObjectIDToUUID(objectID primitive.ObjectID) (gocql.UUID, error) {
-	// Convert ObjectID into hexadecimal string
-	hexString := objectID.Hex()
-
-	// Parse hexadecimal string into gocql.UUID
-	uuid, err := gocql.ParseUUID(hexString)
-	if err != nil {
-		return gocql.UUID{}, err
-	}
-
-	return uuid, nil
 }
