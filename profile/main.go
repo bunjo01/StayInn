@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"profile/clients"
 	"profile/data"
 	"profile/domain"
@@ -189,6 +191,13 @@ func main() {
 		}
 	}()
 
+	// Protecting logs from unauthorized access and modification
+	dirPath := "/logger/logs"
+	err = protectLogs(dirPath)
+	if err != nil {
+		log.Fatal(fmt.Sprintf("[prof-service]ps#9 Error while protecting logs: %v", err))
+	}
+
 	sigCh := make(chan os.Signal)
 	signal.Notify(sigCh, os.Interrupt)
 	signal.Notify(sigCh, os.Kill)
@@ -201,4 +210,29 @@ func main() {
 		log.Fatal("[prof-service]ps#7 Cannot gracefully shutdown...")
 	}
 	log.Info("[prof-service]ps#8 Server gracefully stopped")
+}
+
+// Changes ownership and sets permissions
+func protectLogs(dirPath string) error {
+	// Walk through all files in the directory
+	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return errors.New("error accessing path " + dirPath)
+		}
+
+		// Change ownership to user
+		if err := os.Chown(path, 0, 0); err != nil {
+			log.Fatal(fmt.Sprintf("[prof-service]ps#10 Failed to set log ownership to root: %v", err))
+			return errors.New("error changing onwership to root for " + path)
+		}
+
+		// Set read-only permissions for the owner
+		if err := os.Chmod(path, 0400); err != nil {
+			log.Fatal(fmt.Sprintf("[prof-service]ps#11 Failed to set read-only permissions for root: %v", err))
+			return errors.New("error changing permissions for " + path)
+		}
+
+		return nil
+	})
+	return err
 }
