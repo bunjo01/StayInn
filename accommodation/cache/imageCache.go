@@ -71,7 +71,7 @@ func (ic *ImageCache) Get(accID, imageID string) (*Image, error) {
 		return nil, err
 	}
 
-	log.Info(fmt.Printf("[acco-cache]acc#4 Cache hit"))
+	log.Info(fmt.Sprintf("[acco-cache]acc#4 Cache hit"))
 	return image, nil
 }
 
@@ -91,7 +91,7 @@ func (ic *ImageCache) GetAll(accID string) (Images, error) {
 		return nil, err
 	}
 
-	log.Info(fmt.Printf("[acco-cache]acc#6 Cache hit"))
+	log.Info(fmt.Sprintf("[acco-cache]acc#6 Cache hit"))
 	return images, nil
 }
 

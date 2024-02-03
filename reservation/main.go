@@ -96,7 +96,7 @@ func main() {
 		log.Fatal(fmt.Sprintf("[rese-service]rs#4 Failed to create Cassandra session: %v", err))
 	} else {
 		defer session.Close()
-		log.Info(fmt.Sprintf("[rese-service]rs#5 Connected to Cassandra: %v", err))
+		log.Info(fmt.Sprintf("[rese-service]rs#5 Connected to Cassandra"))
 	}
 
 	// Initializing repo

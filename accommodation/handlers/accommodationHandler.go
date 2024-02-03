@@ -57,7 +57,7 @@ func (ah *AccommodationHandler) GetAllAccommodations(rw http.ResponseWriter, r *
 		http.Error(rw, "Failed to encode accommodations", http.StatusInternalServerError)
 		log.Error(fmt.Sprintf("[acco-handler]ach#3 Failed to encode accommodations: %v", err))
 	}
-	log.Info(fmt.Printf("[acco-handler]ach#4 Successfully fetched all accommodations"))
+	log.Info(fmt.Sprintf("[acco-handler]ach#4 Successfully fetched all accommodations"))
 }
 
 func (ah *AccommodationHandler) GetAccommodation(rw http.ResponseWriter, r *http.Request) {
@@ -67,19 +67,19 @@ func (ah *AccommodationHandler) GetAccommodation(rw http.ResponseWriter, r *http
 		http.Error(rw, "Invalid ID", http.StatusBadRequest)
 		return
 	}
-	log.Info(fmt.Sprintf("[acco-handler]ach#5 Received request from '%s' for accommodation '%v'", r.RemoteAddr, id))
+	log.Info(fmt.Sprintf("[acco-handler]ach#5 Received request from '%s' for accommodation '%s'", r.RemoteAddr, id.Hex()))
 
 	ctx := r.Context()
 	accommodation, err := ah.repo.GetAccommodation(ctx, id)
 	if err != nil {
 		http.Error(rw, "Failed to retrieve accommodation", http.StatusInternalServerError)
-		log.Error(fmt.Sprintf("[acco-handler]ach#6 Failed to retrieve accommodation '%v': %v", id, err))
+		log.Error(fmt.Sprintf("[acco-handler]ach#6 Failed to retrieve accommodation '%s': %v", id.Hex(), err))
 		return
 	}
 
 	if accommodation == nil {
 		http.NotFound(rw, r)
-		log.Info(fmt.Sprintf("[acco-handler]ach#7 Accommodation with id '%v' not found", id))
+		log.Info(fmt.Sprintf("[acco-handler]ach#7 Accommodation with id '%s' not found", id.Hex()))
 		return
 	}
 
@@ -87,9 +87,9 @@ func (ah *AccommodationHandler) GetAccommodation(rw http.ResponseWriter, r *http
 	rw.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(rw).Encode(accommodation); err != nil {
 		http.Error(rw, "Failed to encode accommodation", http.StatusInternalServerError)
-		log.Error(fmt.Sprintf("[acco-handler]ach#8 Failed to encode accommodation '%v': %v", id, err))
+		log.Error(fmt.Sprintf("[acco-handler]ach#8 Failed to encode accommodation '%s': %v", id.Hex(), err))
 	}
-	log.Info(fmt.Sprintf("[acco-handler]ach#9 Successfully fetched accommodation with id '%v'", id))
+	log.Info(fmt.Sprintf("[acco-handler]ach#9 Successfully fetched accommodation with id '%s'", id.Hex()))
 }
 
 func (ah *AccommodationHandler) CreateAccommodation(rw http.ResponseWriter, r *http.Request) {
@@ -140,7 +140,7 @@ func (ah *AccommodationHandler) CreateAccommodation(rw http.ResponseWriter, r *h
 		http.Error(rw, "Failed to encode accommodation", http.StatusInternalServerError)
 	}
 
-	log.Info(fmt.Sprintf("[acco-handler]ach#17 Successfully created accommodation with id '%v'", accommodation.ID))
+	log.Info(fmt.Sprintf("[acco-handler]ach#17 Successfully created accommodation with id '%s'", accommodation.ID.Hex()))
 }
 
 func (ah *AccommodationHandler) CreateAccommodationImages(rw http.ResponseWriter, r *http.Request) {
@@ -211,7 +211,7 @@ func (ah *AccommodationHandler) UpdateAccommodation(rw http.ResponseWriter, r *h
 		return
 	}
 
-	log.Info(fmt.Sprintf("[acco-handler]ach#25 Received request to update accommodation '%v' from '%s'", id, r.RemoteAddr))
+	log.Info(fmt.Sprintf("[acco-handler]ach#25 Received request to update accommodation '%s' from '%s'", id.Hex(), r.RemoteAddr))
 
 	var updatedAccommodation data.Accommodation
 	if err := json.NewDecoder(r.Body).Decode(&updatedAccommodation); err != nil {
@@ -233,7 +233,7 @@ func (ah *AccommodationHandler) UpdateAccommodation(rw http.ResponseWriter, r *h
 		log.Error(fmt.Sprintf("[acco-handler]ach#28 Failed to encode updated accommodation: %v", err))
 		http.Error(rw, "Failed to encode updated accommodation", http.StatusInternalServerError)
 	}
-	log.Info(fmt.Sprintf("[acco-handler]ach#29 Successfully updated accommodation '%v'", updatedAccommodation.ID))
+	log.Info(fmt.Sprintf("[acco-handler]ach#29 Successfully updated accommodation '%s'", updatedAccommodation.ID.Hex()))
 }
 
 func (ah *AccommodationHandler) DeleteAccommodation(rw http.ResponseWriter, r *http.Request) {
@@ -245,7 +245,7 @@ func (ah *AccommodationHandler) DeleteAccommodation(rw http.ResponseWriter, r *h
 		return
 	}
 
-	log.Info(fmt.Sprintf("[acco-handler]ach#30 Recieved request from '%s' to delete accommodation '%v'", r.RemoteAddr, id))
+	log.Info(fmt.Sprintf("[acco-handler]ach#30 Recieved request from '%s' to delete accommodation '%s'", r.RemoteAddr, id.Hex()))
 
 	var accIDs []primitive.ObjectID
 	accIDs = append(accIDs, id)
@@ -271,11 +271,11 @@ func (ah *AccommodationHandler) DeleteAccommodation(rw http.ResponseWriter, r *h
 		if err != nil {
 			break
 		}
-		log.Info(fmt.Printf("[acco-handler]ach#33 %s-image-%d deleted\n", id.Hex(), i))
+		log.Info(fmt.Sprintf("[acco-handler]ach#33 %s-image-%d deleted\n", id.Hex(), i))
 	}
 
 	rw.WriteHeader(http.StatusNoContent)
-	log.Info(fmt.Sprintf("[acco-handler]ach#34 Successfully deleted accommodation '%v'", id))
+	log.Info(fmt.Sprintf("[acco-handler]ach#34 Successfully deleted accommodation '%s'", id.Hex()))
 }
 
 func (ah *AccommodationHandler) GetAccommodationsForUser(rw http.ResponseWriter, r *http.Request) {
@@ -361,7 +361,7 @@ func (ah *AccommodationHandler) DeleteUserAccommodations(rw http.ResponseWriter,
 			if err != nil {
 				break
 			}
-			log.Info(fmt.Printf("[acco-handler]ach#45 %s-image-%d deleted\n", accID.Hex(), i))
+			log.Info(fmt.Sprintf("[acco-handler]ach#45 %s-image-%d deleted\n", accID.Hex(), i))
 		}
 	}
 
@@ -513,32 +513,32 @@ func (ah *AccommodationHandler) SearchAccommodations(rw http.ResponseWriter, r *
 	}
 
 	if startDateStr == "" && endDateStr != "" {
-		log.Error(fmt.Printf("[acco-handler]ach#57 Missing start date in date filter"))
+		log.Error(fmt.Sprintf("[acco-handler]ach#57 Missing start date in date filter"))
 		http.Error(rw, "You forgot to select start date", http.StatusBadRequest)
 		return
 	}
 
 	if endDateStr == "" && startDateStr != "" {
-		log.Error(fmt.Printf("[acco-handler]ach#58 Missing end date in date filter"))
+		log.Error(fmt.Sprintf("[acco-handler]ach#58 Missing end date in date filter"))
 		http.Error(rw, "You forgot to select end date", http.StatusBadRequest)
 		return
 	}
 
 	if endDateStr != "" && startDateStr != "" {
 		if startDate.Before(time.Now()) {
-			log.Error(fmt.Printf("[acco-handler]ach#59 Start date not in future"))
+			log.Error(fmt.Sprintf("[acco-handler]ach#59 Start date not in future"))
 			http.Error(rw, "Start date must be in future", http.StatusBadRequest)
 			return
 		}
 
 		if endDate.Before(time.Now()) {
-			log.Error(fmt.Printf("[acco-handler]ach#60 End date not in future"))
+			log.Error(fmt.Sprintf("[acco-handler]ach#60 End date not in future"))
 			http.Error(rw, "End date must be in future", http.StatusBadRequest)
 			return
 		}
 
 		if startDate.After(endDate) {
-			log.Error(fmt.Printf("[acco-handler]ach#61 Start date not before end date"))
+			log.Error(fmt.Sprintf("[acco-handler]ach#61 Start date not before end date"))
 			http.Error(rw, "Start date must be before end date", http.StatusBadRequest)
 			return
 		}
@@ -575,7 +575,7 @@ func (ah *AccommodationHandler) SearchAccommodations(rw http.ResponseWriter, r *
 			http.Error(rw, "Failed to encode accommodations", http.StatusInternalServerError)
 		}
 	}
-	log.Info(fmt.Printf("[acco-handler]ach#66 Successfully searched accommodations"))
+	log.Info(fmt.Sprintf("[acco-handler]ach#66 Successfully searched accommodations"))
 }
 
 func (ah *AccommodationHandler) WalkRoot(rw http.ResponseWriter, r *http.Request) {

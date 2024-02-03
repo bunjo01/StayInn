@@ -19,7 +19,7 @@ import (
 )
 
 type UserRepo struct {
-	cli    *mongo.Client
+	cli *mongo.Client
 }
 
 type UsernameExistsError struct {
@@ -45,7 +45,7 @@ func New(ctx context.Context) (*UserRepo, error) {
 	}
 
 	return &UserRepo{
-		cli:    client,
+		cli: client,
 	}, nil
 }
 
@@ -190,9 +190,6 @@ func (ur *UserRepo) UpdateUser(ctx context.Context, username string, user *NewUs
 		log.Error(fmt.Sprintf("[prof-repo]#pr13 Error updating user in profile service: %v", err))
 		return err
 	}
-
-	// ur.logger.Printf("User updated in profile service")
-	
 
 	return nil
 }

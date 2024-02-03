@@ -35,7 +35,7 @@ func main() {
 
 	//Initialize the logger we are going to use
 	lumberjackLogger := &lumberjack.Logger{
-		Filename: "/logger/logs/reservation.log",
+		Filename: "/logger/logs/noti.log",
 		MaxSize:  1,  //MB
 		MaxAge:   30, //days
 	}
@@ -208,7 +208,7 @@ func main() {
 		WriteTimeout: 5 * time.Second,
 	}
 
-	log.Info(fmt.Sprintf("[noti-service]ns#3 Server listening on port", port))
+	log.Info(fmt.Sprintf("[noti-service]ns#3 Server listening on port %s", port))
 
 	go func() {
 		err := server.ListenAndServe()

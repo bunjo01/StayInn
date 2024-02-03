@@ -54,7 +54,7 @@ func (r *ReservationHandler) GetAllAvailablePeriodsByAccommodation(rw http.Respo
 		return
 	}
 
-	log.Info(fmt.Printf("[rese-handler]rh#48 Successfuly retrieved available periods by accommodation"))
+	log.Info(fmt.Sprintf("[rese-handler]rh#48 Successfuly retrieved available periods by accommodation"))
 }
 
 func (r *ReservationHandler) FindAvailablePeriodByIdAndByAccommodationId(rw http.ResponseWriter, h *http.Request) {
@@ -80,7 +80,7 @@ func (r *ReservationHandler) FindAvailablePeriodByIdAndByAccommodationId(rw http
 		log.Error(fmt.Sprintf("[rese-handler]rh#5 Error while converting json: %v", err))
 		return
 	}
-	log.Info(fmt.Printf("[rese-handler]rh#49 Successfuly retrieved available period by id"))
+	log.Info(fmt.Sprintf("[rese-handler]rh#49 Successfuly retrieved available period by id"))
 }
 
 func (r *ReservationHandler) GetAllReservationByAvailablePeriod(rw http.ResponseWriter, h *http.Request) {
@@ -104,7 +104,7 @@ func (r *ReservationHandler) GetAllReservationByAvailablePeriod(rw http.Response
 		log.Error(fmt.Sprintf("[rese-handler]rh#7 Error while converting json: %v", err))
 		return
 	}
-	log.Info(fmt.Printf("[rese-handler]rh#50 Successfuly retrieved reservations by avilable period"))
+	log.Info(fmt.Sprintf("[rese-handler]rh#50 Successfuly retrieved reservations by avilable period"))
 }
 
 func (r *ReservationHandler) CreateAvailablePeriod(rw http.ResponseWriter, h *http.Request) {
@@ -267,7 +267,7 @@ func (r *ReservationHandler) FindAccommodationIdsByDates(rw http.ResponseWriter,
 		return
 	}
 
-	log.Info(fmt.Printf("[rese-handler]rh#53 Successfuly retrieved accommodation ids by dates"))
+	log.Info(fmt.Sprintf("[rese-handler]rh#53 Successfuly retrieved accommodation ids by dates"))
 
 	rw.WriteHeader(http.StatusOK)
 }
@@ -362,7 +362,7 @@ func (r *ReservationHandler) DeletePeriodsForAccommodations(rw http.ResponseWrit
 		}
 	}
 
-	log.Info(fmt.Printf("[rese-handler]rh#71 Successfully deleted all available periods for requested accommodations"))
+	log.Info(fmt.Sprintf("[rese-handler]rh#71 Successfully deleted all available periods for requested accommodations"))
 	rw.WriteHeader(http.StatusNoContent)
 }
 

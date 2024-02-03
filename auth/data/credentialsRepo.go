@@ -76,7 +76,7 @@ func New(ctx context.Context) (*CredentialsRepo, error) {
 func (cr *CredentialsRepo) Disconnect(ctx context.Context) error {
 	err := cr.cli.Disconnect(ctx)
 	if err != nil {
-		log.Fatal(fmt.Sprintf("[auth-repo]#ar1 Failed to disconnect: %v", err))
+		log.Fatal(fmt.Sprintf("[auth-repo]ar#1 Failed to disconnect: %v", err))
 		return err
 	}
 	return nil
@@ -90,13 +90,13 @@ func (cr *CredentialsRepo) Ping() {
 	// Check connection -> if no error, connection is established
 	err := cr.cli.Ping(ctx, readpref.Primary())
 	if err != nil {
-		log.Error(fmt.Sprintf("[auth-repo]#ar2 Failed to ping: %v", err))
+		log.Error(fmt.Sprintf("[auth-repo]ar#2 Failed to ping: %v", err))
 	}
 
 	// Print available databases
 	databases, err := cr.cli.ListDatabaseNames(ctx, bson.M{})
 	if err != nil {
-		log.Error(fmt.Sprintf("[auth-repo]#ar3 Failed to list databases: %v", err))
+		log.Error(fmt.Sprintf("[auth-repo]ar#3 Failed to list databases: %v", err))
 	}
 	fmt.Println(databases)
 }
@@ -114,19 +114,19 @@ func (cr *CredentialsRepo) ValidateCredentials(username, password string) error 
 	var foundUser Credentials
 	err := collection.FindOne(ctx, filter, options).Decode(&foundUser)
 	if err != nil {
-		log.Fatal(fmt.Sprintf("[auth-repo]#ar4 Failed to find user %s: %v", username, err))
+		log.Fatal(fmt.Sprintf("[auth-repo]ar#4 Failed to find user %s: %v", username, err))
 		return err
 	}
 
 	// checks sent password and hashed password in db
 	err = bcrypt.CompareHashAndPassword([]byte(foundUser.Password), []byte(password))
 	if err != nil {
-		log.Warning(fmt.Sprintf("[auth-repo]#ar5 User '%s' entered wrong password: %v", username, err))
+		log.Warning(fmt.Sprintf("[auth-repo]ar#5 User '%s' entered wrong password: %v", username, err))
 		return errors.New("invalid password")
 	}
 
 	if !foundUser.IsActivated {
-		log.Warning(fmt.Sprintf("[auth-repo]#ar6 Unactivated user '%s' tried to login: %v", username, err))
+		log.Warning(fmt.Sprintf("[auth-repo]ar#6 Unactivated user '%s' tried to login: %v", username, err))
 		return errors.New("account not activated")
 	}
 
@@ -149,7 +149,7 @@ func (cr *CredentialsRepo) AddCredentials(username, password, email, role string
 
 	_, err := collection.InsertOne(ctx, newCredentials)
 	if err != nil {
-		log.Fatal(fmt.Sprintf("[auth-repo]#ar7 Failed to add credentials: %v", err))
+		log.Fatal(fmt.Sprintf("[auth-repo]ar#7 Failed to add credentials: %v", err))
 		return err
 	}
 
@@ -173,7 +173,7 @@ func (cr *CredentialsRepo) AddActivation(activationUUID, username string, confir
 
 	_, err := collection.InsertOne(ctx, newActivation)
 	if err != nil {
-		log.Fatal(fmt.Sprintf("[auth-repo]#ar8 Failed to add activation details: %v", err))
+		log.Fatal(fmt.Sprintf("[auth-repo]ar#8 Failed to add activation details: %v", err))
 		return err
 	}
 
@@ -196,7 +196,7 @@ func (cr *CredentialsRepo) AddRecovery(recoveryUUID, username string, confirmed 
 
 	_, err := collection.InsertOne(ctx, newRecovery)
 	if err != nil {
-		log.Fatal(fmt.Sprintf("[auth-repo]#ar9 Failed to add recovery details: %v", err))
+		log.Fatal(fmt.Sprintf("[auth-repo]ar#9 Failed to add recovery details: %v", err))
 		return err
 	}
 
@@ -244,7 +244,7 @@ func (cr *CredentialsRepo) FindUserByUsername(username string) (NewUser, error) 
 	var foundUser NewUser
 	err := collection.FindOne(ctx, filter, options).Decode(&foundUser)
 	if err != nil {
-		log.Warning(fmt.Sprintf("[auth-repo]#ar10 User '%s' not found: %v", username, err))
+		log.Warning(fmt.Sprintf("[auth-repo]ar#10 User '%s' not found: %v", username, err))
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			// User not found
 			return NewUser{}, errors.New("user not found")
@@ -274,7 +274,7 @@ func (cr *CredentialsRepo) GetAllCredentials(ctx context.Context) ([]Credentials
 
 	cursor, err := collection.Find(ctx, bson.M{})
 	if err != nil {
-		log.Error(fmt.Sprintf("[auth-repo]#ar11 Failed to get all credentials: %v", err))
+		log.Error(fmt.Sprintf("[auth-repo]ar#11 Failed to get all credentials: %v", err))
 		return nil, err
 	}
 	defer cursor.Close(ctx)
@@ -282,7 +282,7 @@ func (cr *CredentialsRepo) GetAllCredentials(ctx context.Context) ([]Credentials
 	var credentialsList []Credentials
 
 	if err := cursor.All(ctx, &credentialsList); err != nil {
-		log.Error(fmt.Sprintf("[auth-repo]#ar12 Failed to iterate over all credentials: %v", err))
+		log.Error(fmt.Sprintf("[auth-repo]ar#12 Failed to iterate over all credentials: %v", err))
 		return nil, err
 	}
 
@@ -298,7 +298,7 @@ func (cr *CredentialsRepo) ChangeUsername(ctx context.Context, oldUsername, user
 
 	_, err := collection.UpdateOne(ctx, filter, update)
 	if err != nil {
-		log.Error(fmt.Sprintf("[auth-repo]#ar13 Failed to change username for user '%s': %v", oldUsername, err))
+		log.Error(fmt.Sprintf("[auth-repo]ar#13 Failed to change username for user '%s': %v", oldUsername, err))
 		return err
 	}
 
@@ -314,7 +314,7 @@ func (cr *CredentialsRepo) ChangeEmail(ctx context.Context, oldEmail, email stri
 
 	_, err := collection.UpdateOne(ctx, filter, update)
 	if err != nil {
-		log.Error(fmt.Sprintf("[auth-repo]#ar14 Failed to change email for user '%s': %v", oldEmail, err))
+		log.Error(fmt.Sprintf("[auth-repo]ar#14 Failed to change email for user '%s': %v", oldEmail, err))
 		return err
 	}
 
@@ -332,13 +332,13 @@ func (cr *CredentialsRepo) CheckPassword(password string) (bool, error) {
 func (cr *CredentialsRepo) loadBlacklist() {
 	blacklistFile := "security/blacklist.txt"
 	if _, err := os.Stat(blacklistFile); os.IsNotExist(err) {
-		log.Error(fmt.Sprintf("[auth-repo]#ar14 Blacklist file not found: %v", err))
+		log.Error(fmt.Sprintf("[auth-repo]ar#14 Blacklist file not found: %v", err))
 		return
 	}
 
 	file, err := os.Open(blacklistFile)
 	if err != nil {
-		log.Error(fmt.Sprintf("[auth-repo]#ar15 Error while opening blacklist file: %v", err))
+		log.Error(fmt.Sprintf("[auth-repo]ar#15 Error while opening blacklist file: %v", err))
 		return
 	}
 	defer file.Close()
@@ -351,7 +351,7 @@ func (cr *CredentialsRepo) loadBlacklist() {
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Error(fmt.Sprintf("[auth-repo]#ar16 Error while scanning blacklist file: %v", err))
+		log.Error(fmt.Sprintf("[auth-repo]ar#16 Error while scanning blacklist file: %v", err))
 		return
 	}
 
@@ -370,26 +370,26 @@ func (cr *CredentialsRepo) RegisterUser(username, password, firstName, lastName,
 	if usernameOK && passwordOK {
 		hashedPassword, err := hashPassword(password)
 		if err != nil {
-			log.Fatal(fmt.Sprintf("[auth-repo]#ar17 Error while hashing password: %v", err))
+			log.Fatal(fmt.Sprintf("[auth-repo]ar#17 Error while hashing password: %v", err))
 			return err
 		}
 
 		err = cr.AddCredentials(username, hashedPassword, email, role)
 		if err != nil {
-			log.Fatal(fmt.Sprintf("[auth-repo]#ar18 Error while adding credentials to DB: %v", err))
+			log.Fatal(fmt.Sprintf("[auth-repo]ar#18 Error while adding credentials to DB: %v", err))
 			return err
 		}
 
 		activationUUID, err := cr.SendActivationEmail(email)
 		if err != nil {
-			log.Fatal(fmt.Sprintf("[auth-repo]#ar19 Failed to send activation email: %v", err))
+			log.Fatal(fmt.Sprintf("[auth-repo]ar#19 Failed to send activation email: %v", err))
 		} else {
-			log.Info(fmt.Sprintf("[auth-repo]#ar20 Activation email sent with UUID: %s", activationUUID))
+			log.Info(fmt.Sprintf("[auth-repo]ar#20 Activation email sent with UUID: %s", activationUUID))
 		}
 
 		err = cr.AddActivation(activationUUID, username, false)
 		if err != nil {
-			log.Error(fmt.Sprintf("[auth-repo]#ar21 Error while adding activation model to DB: %v", err))
+			log.Error(fmt.Sprintf("[auth-repo]ar#21 Error while adding activation model to DB: %v", err))
 		}
 
 	} else if !usernameOK {
@@ -414,7 +414,7 @@ func (ur *CredentialsRepo) ChangePassword(username, oldPassword, newPassword str
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(oldPassword))
 	if err != nil {
-		log.Warning(fmt.Sprintf("[auth-repo]#ar22 User '%s' entered wrong old password when changing it: %v", username, err))
+		log.Warning(fmt.Sprintf("[auth-repo]ar#22 User '%s' entered wrong old password when changing it: %v", username, err))
 		return errors.New("old password not correct")
 	}
 
@@ -426,7 +426,7 @@ func (ur *CredentialsRepo) ChangePassword(username, oldPassword, newPassword str
 	if passwordOK {
 		hashedPassword, err := hashPassword(newPassword)
 		if err != nil {
-			log.Fatal(fmt.Sprintf("[auth-repo]#ar23 Error while hashing password: %v", err))
+			log.Fatal(fmt.Sprintf("[auth-repo]ar#23 Error while hashing password: %v", err))
 			return err
 		}
 		_, err = collection.UpdateOne(context.Background(), filter, bson.M{"$set": bson.M{"password": hashedPassword}})
@@ -467,11 +467,11 @@ func (cr *CredentialsRepo) SendRecoveryEmail(email string) (string, error) {
 
 	result, err := collection.UpdateOne(ctx, filter, update)
 	if err != nil {
-		log.Error(fmt.Sprintf("[auth-repo]#ar24 Failed to insert recoveryUUID in DB: %v", err))
+		log.Error(fmt.Sprintf("[auth-repo]ar#24 Failed to insert recoveryUUID in DB: %v", err))
 		return "", err
 	}
 	if result.ModifiedCount == 0 {
-		log.Warning(fmt.Sprintf("[auth-repo]#ar25 User with email '%s' not found: %v", email, err))
+		log.Warning(fmt.Sprintf("[auth-repo]ar#25 User with email '%s' not found: %v", email, err))
 		return "", errors.New("user with the given email was not found")
 	}
 
@@ -589,7 +589,7 @@ func (cr *CredentialsRepo) UpdatePasswordWithRecoveryUUID(recoveryUUID, newPassw
 
 	hashedPassword, err := hashPassword(newPassword)
 	if err != nil {
-		log.Fatal(fmt.Sprintf("[auth-repo]#ar27 Error while hashing password: %v", err))
+		log.Fatal(fmt.Sprintf("[auth-repo]ar#27 Error while hashing password: %v", err))
 		return errors.New("password hashing failed")
 	}
 
@@ -606,11 +606,11 @@ func (cr *CredentialsRepo) UpdatePasswordWithRecoveryUUID(recoveryUUID, newPassw
 
 	result, err := collection.UpdateOne(ctx, filter, update)
 	if err != nil {
-		log.Error(fmt.Sprintf("[auth-repo]#ar28 Failed to update password using recoveryUUID '%s': %v", recoveryUUID, err))
+		log.Error(fmt.Sprintf("[auth-repo]ar#28 Failed to update password using recoveryUUID '%s': %v", recoveryUUID, err))
 		return errors.New("failed to update password using recoveryUUID")
 	}
 	if result.ModifiedCount == 0 {
-		log.Error(fmt.Sprintf("[auth-repo]#ar29 No user found with recoveryUUID '%s': %v", recoveryUUID, err))
+		log.Error(fmt.Sprintf("[auth-repo]ar#29 No user found with recoveryUUID '%s': %v", recoveryUUID, err))
 		return errors.New("no user found with recoveryUUID")
 	}
 
@@ -623,7 +623,7 @@ func (cr *CredentialsRepo) DeleteUser(ctx context.Context, username string) erro
 	filter := bson.M{"username": username}
 	_, err := collection.DeleteOne(ctx, filter)
 	if err != nil {
-		log.Error(fmt.Sprintf("[auth-repo]#ar30 Failed to delete user '%s': %v", username, err))
+		log.Error(fmt.Sprintf("[auth-repo]ar#30 Failed to delete user '%s': %v", username, err))
 		return err
 	}
 

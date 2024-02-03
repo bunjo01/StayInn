@@ -37,7 +37,7 @@ func main() {
 
 	//Initialize the logger we are going to use, with prefix and datetime for every log
 	lumberjackLogger := &lumberjack.Logger{
-		Filename: "/logger/logs/profile.log",
+		Filename: "/logger/logs/prof.log",
 		MaxSize:  1,  //MB
 		MaxAge:   30, //days
 	}
@@ -90,7 +90,7 @@ func main() {
 				return counts.ConsecutiveFailures > 2
 			},
 			OnStateChange: func(name string, from, to gobreaker.State) {
-				log.Info(fmt.Printf("[prof-service]ps#1 CB '%s' changed from '%s' to '%s'\n", name, from, to))
+				log.Info(fmt.Sprintf("[prof-service]ps#1 CB '%s' changed from '%s' to '%s'\n", name, from, to))
 			},
 			IsSuccessful: func(err error) bool {
 				if err == nil {
@@ -112,7 +112,7 @@ func main() {
 				return counts.ConsecutiveFailures > 2
 			},
 			OnStateChange: func(name string, from, to gobreaker.State) {
-				log.Info(fmt.Printf("[prof-service]ps#2 CB '%s' changed from '%s' to '%s'\n", name, from, to))
+				log.Info(fmt.Sprintf("[prof-service]ps#2 CB '%s' changed from '%s' to '%s'\n", name, from, to))
 			},
 			IsSuccessful: func(err error) bool {
 				if err == nil {
@@ -134,7 +134,7 @@ func main() {
 				return counts.ConsecutiveFailures > 2
 			},
 			OnStateChange: func(name string, from, to gobreaker.State) {
-				log.Info(fmt.Printf("[prof-service]ps#3 CB '%s' changed from '%s' to '%s'\n", name, from, to))
+				log.Info(fmt.Sprintf("[prof-service]ps#3 CB '%s' changed from '%s' to '%s'\n", name, from, to))
 			},
 			IsSuccessful: func(err error) bool {
 				if err == nil {

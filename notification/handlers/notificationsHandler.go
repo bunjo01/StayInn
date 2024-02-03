@@ -43,7 +43,7 @@ func (nh *NotificationsHandler) GetAccommodationRatings(w http.ResponseWriter, r
 		return
 	}
 
-	log.Info(fmt.Sprintf("[noti-handler]nh#116 Received request from '%s' for ratings '%v'", r.RemoteAddr, objectID))
+	log.Info(fmt.Sprintf("[noti-handler]nh#116 Received request from '%s' for ratings '%s'", r.RemoteAddr, objectID.Hex()))
 
 	ratings, err := nh.repo.GetRatingsByAccommodationID(objectID)
 	if err != nil {
@@ -57,7 +57,7 @@ func (nh *NotificationsHandler) GetAccommodationRatings(w http.ResponseWriter, r
 		return
 	}
 
-	log.Info(("[noti-handler]nh#102 Successfully find ratings with accommodationID"))
+	log.Info(("[noti-handler]nh#102 Successfully found ratings with accommodationID"))
 }
 
 func (nh *NotificationsHandler) GetRatingsHost(w http.ResponseWriter, r *http.Request) {
@@ -93,7 +93,7 @@ func (nh *NotificationsHandler) GetRatingsHost(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	log.Info(("[noti-handler]nh#103 Successfully find ratings with hostID"))
+	log.Info(("[noti-handler]nh#103 Successfully found ratings with hostID"))
 }
 
 func (nh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request) {
@@ -242,7 +242,7 @@ func (nh *NotificationsHandler) FindAccommodationRatingByGuest(rw http.ResponseW
 		return
 	}
 
-	log.Info(fmt.Sprintf("[noti-handler]nh#118 Received request from '%s' for accommodation ratings '%v'", h.RemoteAddr, objectID))
+	log.Info(fmt.Sprintf("[noti-handler]nh#118 Received request from '%s' for accommodation '%s' ratings ", h.RemoteAddr, objectID.Hex()))
 
 	tokenStr := nh.extractTokenFromHeader(h)
 	guestUsername, err := nh.getUsername(tokenStr)
@@ -286,7 +286,7 @@ func (nh *NotificationsHandler) FindAccommodationRatingByGuest(rw http.ResponseW
 		return
 	}
 
-	log.Info(fmt.Sprintf("[noti-handler]nh#104 Successfully find rating for accommodation by guest"))
+	log.Info(fmt.Sprintf("[noti-handler]nh#104 Successfully found rating for accommodation by guest"))
 }
 
 func (nh *NotificationsHandler) FindHostRatingByGuest(rw http.ResponseWriter, h *http.Request) {
@@ -298,7 +298,7 @@ func (nh *NotificationsHandler) FindHostRatingByGuest(rw http.ResponseWriter, h 
 		return
 	}
 
-	log.Info(fmt.Sprintf("[noti-handler]nh#119 Received request from '%s' for host ratings '%v'", h.RemoteAddr, userId))
+	log.Info(fmt.Sprintf("[noti-handler]nh#119 Received request from '%s' for host '%s' ratings", h.RemoteAddr, userId.ID.Hex()))
 
 	ctx := h.Context()
 
@@ -344,7 +344,7 @@ func (nh *NotificationsHandler) FindHostRatingByGuest(rw http.ResponseWriter, h 
 		return
 	}
 
-	log.Info(fmt.Sprintf("[noti-handler]nh#105 Successfully find rating for host by guest"))
+	log.Info(fmt.Sprintf("[noti-handler]nh#105 Successfully found rating for host by guest"))
 }
 
 func (nh *NotificationsHandler) GetAllAccommodationRatings(w http.ResponseWriter, r *http.Request) {
@@ -363,7 +363,7 @@ func (nh *NotificationsHandler) GetAllAccommodationRatings(w http.ResponseWriter
 		return
 	}
 
-	log.Info(("[noti-handler]nh#106 Successfully find ratings for accommodation"))
+	log.Info(("[noti-handler]nh#106 Successfully found ratings for accommodation"))
 }
 
 func (nh *NotificationsHandler) GetAllAccommodationRatingsForLoggedHost(w http.ResponseWriter, r *http.Request) {
@@ -391,7 +391,7 @@ func (nh *NotificationsHandler) GetAllAccommodationRatingsForLoggedHost(w http.R
 		return
 	}
 
-	log.Info(fmt.Sprintf("[noti-handler]nh#121 Received request from '%s' for accommodation ratings for logged host: '%v'", r.RemoteAddr, hostIdObject))
+	log.Info(fmt.Sprintf("[noti-handler]nh#121 Received request from '%s' for accommodation ratings for host '%s'", r.RemoteAddr, hostIdObject.Hex()))
 
 	ratings, err := nh.repo.GetAllAccommodationRatingsForLoggedHost(r.Context(), hostIdObject)
 	if err != nil {
@@ -406,7 +406,7 @@ func (nh *NotificationsHandler) GetAllAccommodationRatingsForLoggedHost(w http.R
 		return
 	}
 
-	log.Info(("[noti-handler]nh#107 Successfully find ratings for accommodation by logged host"))
+	log.Info(("[noti-handler]nh#107 Successfully found ratings for accommodation by logged host"))
 }
 
 func (nh *NotificationsHandler) GetAllAccommodationRatingsByUser(w http.ResponseWriter, r *http.Request) {
@@ -447,7 +447,7 @@ func (nh *NotificationsHandler) GetAllAccommodationRatingsByUser(w http.Response
 		return
 	}
 
-	log.Info(("[noti-handler]nh#108 Successfully find ratings for accommodation by user"))
+	log.Info(("[noti-handler]nh#108 Successfully found ratings for accommodation by user"))
 }
 
 func (nh *NotificationsHandler) GetAllHostRatings(w http.ResponseWriter, r *http.Request) {
@@ -465,7 +465,7 @@ func (nh *NotificationsHandler) GetAllHostRatings(w http.ResponseWriter, r *http
 		return
 	}
 
-	log.Info(("[noti-handler]nh#109 Successfully find ratings for host"))
+	log.Info(("[noti-handler]nh#109 Successfully found ratings for host"))
 }
 
 func (nh *NotificationsHandler) GetAllHostRatingsByUser(w http.ResponseWriter, r *http.Request) {
@@ -491,7 +491,7 @@ func (nh *NotificationsHandler) GetAllHostRatingsByUser(w http.ResponseWriter, r
 		return
 	}
 
-	log.Info(fmt.Sprintf("[noti-handler]nh#124 Received request from '%s' for host ratings by user: '%v'", r.RemoteAddr, id))
+	log.Info(fmt.Sprintf("[noti-handler]nh#124 Received request from '%s' for host ratings by user '%s'", r.RemoteAddr, id.Hex()))
 
 	ratings, err := nh.repo.GetAllHostRatingsByUser(r.Context(), id)
 	if err != nil {
@@ -506,7 +506,7 @@ func (nh *NotificationsHandler) GetAllHostRatingsByUser(w http.ResponseWriter, r
 		return
 	}
 
-	log.Info(("[noti-handler]nh#110 Successfully find ratings for host by user"))
+	log.Info(("[noti-handler]nh#110 Successfully found ratings for host by user"))
 }
 
 func (nh *NotificationsHandler) GetHostRatings(w http.ResponseWriter, r *http.Request) {
@@ -519,7 +519,7 @@ func (nh *NotificationsHandler) GetHostRatings(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	log.Info(fmt.Sprintf("[noti-handler]nh#125 Received request from '%s' for host ratings by username: '%v'", r.RemoteAddr, hostUsername))
+	log.Info(fmt.Sprintf("[noti-handler]nh#125 Received request from '%s' for host ratings by username: '%s'", r.RemoteAddr, hostUsername))
 
 	_, err := nh.profileClient.GetUserId(r.Context(), hostUsername, tokenStr)
 	if err != nil {
@@ -543,7 +543,7 @@ func (nh *NotificationsHandler) GetHostRatings(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	log.Info(("[noti-handler]nh#111 Successfully find ratings for host"))
+	log.Info(("[noti-handler]nh#111 Successfully found ratings for host"))
 }
 
 func (nh *NotificationsHandler) AddHostRating(w http.ResponseWriter, r *http.Request) {
@@ -688,7 +688,7 @@ func (nh *NotificationsHandler) GetAverageAccommodationRating(w http.ResponseWri
 		return
 	}
 
-	log.Info(fmt.Sprintf("[noti-handler]nh#127 Received request from '%s' for get average rating accommodation: '%v'", r.RemoteAddr, objectID))
+	log.Info(fmt.Sprintf("[noti-handler]nh#127 Received request from '%s' for average accommodation '%s' rating: ", r.RemoteAddr, objectID.Hex()))
 
 	ratings, err := nh.repo.GetRatingsByAccommodationID(objectID)
 	if err != nil {
@@ -740,7 +740,7 @@ func (nh *NotificationsHandler) GetAverageHostRating(w http.ResponseWriter, r *h
 		return
 	}
 
-	log.Info(fmt.Sprintf("[noti-handler]nh#128 Received request from '%s' for get average rating host: '%v'", r.RemoteAddr, userId))
+	log.Info(fmt.Sprintf("[noti-handler]nh#128 Received request from '%s' for average rating on host '%s'", r.RemoteAddr, userId.ID.Hex()))
 
 	ctx := r.Context()
 
@@ -808,7 +808,7 @@ func (nh *NotificationsHandler) DeleteHostRating(w http.ResponseWriter, r *http.
 		return
 	}
 
-	log.Info(fmt.Sprintf("[noti-handler]nh#129 Recieved request from '%s' to delete rating '%v'", r.RemoteAddr, id))
+	log.Info(fmt.Sprintf("[noti-handler]nh#129 Recieved request from '%s' to delete rating '%s'", r.RemoteAddr, id.Hex()))
 
 	tokenStr := nh.extractTokenFromHeader(r)
 	username, err := nh.getUsername(tokenStr)
@@ -861,7 +861,7 @@ func (nh *NotificationsHandler) DeleteRatingAccommodationHandler(w http.Response
 		return
 	}
 
-	log.Info(fmt.Sprintf("[noti-handler]nh#130 Recieved request from '%s' to delete rating '%v'", r.RemoteAddr, id))
+	log.Info(fmt.Sprintf("[noti-handler]nh#130 Recieved request from '%s' to delete rating '%s'", r.RemoteAddr, id.Hex()))
 
 	tokenStr := nh.extractTokenFromHeader(r)
 	username, err := nh.getUsername(tokenStr)

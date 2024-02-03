@@ -196,7 +196,7 @@ func (fs *FileStorage) ReadFileBytes(fileName string, isCopied bool) ([]byte, er
 	// Open file for reading
 	file, err := fs.client.Open(filePath)
 	if err != nil {
-		log.Error(fmt.Sprintf("[acco-hdfs]acfs#15 Failed to open byte file for reading on HDFS: %v", err))
+		log.Warning(fmt.Sprintf("[acco-hdfs]acfs#15 Failed to open byte file for reading on HDFS: %v", err))
 		return nil, err
 	}
 	defer file.Close()
