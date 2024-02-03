@@ -2,13 +2,17 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"log"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"time"
+
+	"gopkg.in/natefinch/lumberjack.v2"
 
 	"reservation/clients"
 	"reservation/data"
@@ -16,6 +20,7 @@ import (
 	"reservation/handlers"
 
 	gorillaHandlers "github.com/gorilla/handlers"
+	log "github.com/sirupsen/logrus"
 	"github.com/sony/gobreaker"
 
 	"github.com/gocql/gocql"
@@ -35,8 +40,14 @@ func main() {
 	defer cancel()
 
 	//Initialize the logger we are going to use, with prefix and datetime for every log
-	logger := log.New(os.Stdout, "[reservation-service] ", log.LstdFlags)
-	storeLogger := log.New(os.Stdout, "[reservation-store] ", log.LstdFlags)
+	lumberjackLogger := &lumberjack.Logger{
+		Filename: "/logger/logs/rese.log",
+		MaxSize:  1,  //MB
+		MaxAge:   30, //days
+	}
+
+	log.SetOutput(io.MultiWriter(os.Stdout, lumberjackLogger))
+	log.SetLevel(log.InfoLevel)
 
 	// Initializing Cassandra DB
 	db := os.Getenv("CASS_DB")
@@ -44,7 +55,7 @@ func main() {
 	cassandraPortStr := os.Getenv("CASSANDRA_PORT")
 	cassandraPort, err := strconv.Atoi(cassandraPortStr)
 	if err != nil {
-		logger.Fatalf("failed to parse CASSANDRA_PORT: %v", err)
+		log.Fatal(fmt.Sprintf("[rese-service]rs#1 Failed to initialize repo: %v", err))
 	}
 	cassandraUser := os.Getenv("CASSANDRA_USER")
 	cassandraPassword := os.Getenv("CASSANDRA_PASSWORD")
@@ -54,7 +65,7 @@ func main() {
 
 	session, err := cluster.CreateSession()
 	if err != nil {
-		log.Fatalf("failed to create session: %v", err)
+		log.Fatal(fmt.Sprintf("[rese-service]rs#2 Failed to create session: %v", err))
 	}
 
 	err = session.Query(
@@ -62,11 +73,11 @@ func main() {
 						WITH replication = {
 							'class' : 'SimpleStrategy',
 							'replication_factor' : %d
-						}`, "reservation", 1)).Exec()
+						}`, "reseervation", 1)).Exec()
 
 	if err != nil {
 		session.Close()
-		log.Fatalf("failed to create keyspace: %v", err)
+		log.Fatal(fmt.Sprintf("[rese-service]rs#3 Failed to create namespaces: %v", err))
 	}
 
 	session.Close()
@@ -82,21 +93,21 @@ func main() {
 
 	session, err = cluster.CreateSession()
 	if err != nil {
-		logger.Fatalf("failed to create Cassandra session: %v", err)
+		log.Fatal(fmt.Sprintf("[rese-service]rs#4 Failed to create Cassandra session: %v", err))
 	} else {
 		defer session.Close()
-		logger.Println("connected to Cassandra")
+		log.Info(fmt.Sprintf("[rese-service]rs#5 Connected to Cassandra: %v", err))
 	}
 
 	// Initializing repo
-	store, err := data.New(storeLogger, session)
+	store, err := data.New(session)
 	if err != nil {
-		logger.Fatal(err)
+		log.Fatal(fmt.Sprintf("[rese-service]rs#6 Failed to initialize res handler: %v", err))
 	}
 
 	err = store.CreateTables()
 	if err != nil {
-		logger.Fatal(err)
+		log.Fatal(fmt.Sprintf("[rese-service]rs#7 Failed to create Cassandra tables: %v", err))
 	}
 
 	defer store.CloseSession()
@@ -135,7 +146,7 @@ func main() {
 				return counts.ConsecutiveFailures > 2
 			},
 			OnStateChange: func(name string, from, to gobreaker.State) {
-				logger.Printf("CB '%s' changed from '%s' to '%s'\n", name, from, to)
+				log.Info(fmt.Sprintf("[rese-service]rs#8 CB '%s' changed from '%s' to '%s'", name, from, to))
 			},
 			IsSuccessful: func(err error) bool {
 				if err == nil {
@@ -157,7 +168,7 @@ func main() {
 				return counts.ConsecutiveFailures > 2
 			},
 			OnStateChange: func(name string, from, to gobreaker.State) {
-				logger.Printf("CB '%s' changed from '%s' to '%s'\n", name, from, to)
+				log.Info(fmt.Sprintf("[rese-service]rs#9 CB '%s' changed from '%s' to '%s'", name, from, to))
 			},
 			IsSuccessful: func(err error) bool {
 				if err == nil {
@@ -179,7 +190,7 @@ func main() {
 				return counts.ConsecutiveFailures > 2
 			},
 			OnStateChange: func(name string, from, to gobreaker.State) {
-				logger.Printf("CB '%s' changed from '%s' to '%s'\n", name, from, to)
+				log.Info(fmt.Sprintf("[rese-service]rs#10 CB '%s' changed from '%s' to '%s'", name, from, to))
 			},
 			IsSuccessful: func(err error) bool {
 				if err == nil {
@@ -196,7 +207,7 @@ func main() {
 	accommodation := clients.NewAccommodationClient(accommodationClient, os.Getenv("ACCOMMODATION_SERVICE_URI"), accommodationBreaker)
 
 	//Initialize the handler and inject said logger
-	reservationHandler := handlers.NewReservationHandler(logger, store, notification, profile, accommodation)
+	reservationHandler := handlers.NewReservationHandler(store, notification, profile, accommodation)
 
 	//Initialize the router and add a middleware for all the requests
 	router := mux.NewRouter()
@@ -262,26 +273,61 @@ func main() {
 		WriteTimeout: 5 * time.Second,
 	}
 
-	logger.Println("Server listening on port", port)
+	log.Info(fmt.Sprintf("[rese-service]rs#11 Listening on port: %v", port))
 	//Distribute all the connections to goroutines
 	go func() {
 		err := server.ListenAndServe()
 		if err != nil {
-			logger.Fatal(err)
+			if err != nil {
+				log.Fatal(fmt.Sprintf("[rese-service]rs#12 Error while serving request: %v", err))
+			}
 		}
 	}()
+
+	// Protecting logs from unauthorized access and modification
+	dirPath := "/logger/logs"
+	err = protectLogs(dirPath)
+	if err != nil {
+		log.Fatal(fmt.Sprintf("[rese-service]rs#16 Error while protecting logs: %v", err))
+	}
 
 	sigCh := make(chan os.Signal)
 	signal.Notify(sigCh, os.Interrupt)
 	signal.Notify(sigCh, os.Kill)
 
 	sig := <-sigCh
-	logger.Println("Received terminate, graceful shutdown", sig)
+	log.Info(fmt.Sprintf("[rese-service]rs#13 Recieved terminate, starting gracefull shutdown %v", sig))
 
 	//Try to shutdown gracefully
 	if server.Shutdown(timeoutContext) != nil {
-		logger.Fatal("Cannot gracefully shutdown...")
+		log.Fatal("[rese-service]rs#14 Cannot gracefully shutdown")
 	}
-	logger.Println("Server stopped")
 
+	log.Info("[rese-service]rs#15 Server gracefully stopped")
+
+}
+
+// Changes ownership and sets permissions
+func protectLogs(dirPath string) error {
+	// Walk through all files in the directory
+	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return errors.New("error accessing path " + dirPath)
+		}
+
+		// Change ownership to user
+		if err := os.Chown(path, 0, 0); err != nil {
+			log.Fatal(fmt.Sprintf("[rese-service]rs#17 Failed to set log ownership to root: %v", err))
+			return errors.New("error changing onwership to root for " + path)
+		}
+
+		// Set read-only permissions for the owner
+		if err := os.Chmod(path, 0400); err != nil {
+			log.Fatal(fmt.Sprintf("[rese-service]rs#18 Failed to set read-only permissions for root: %v", err))
+			return errors.New("error changing permissions for " + path)
+		}
+
+		return nil
+	})
+	return err
 }
