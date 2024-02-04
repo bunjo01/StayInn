@@ -3,26 +3,25 @@ package data
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	// NoSQL: module containing Mongo api client
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
-	// TODO "go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 type AccommodationRepository struct {
-	cli    *mongo.Client
-	logger *log.Logger
+	cli *mongo.Client
 }
 
-func NewAccommodationRepository(ctx context.Context, logger *log.Logger) (*AccommodationRepository, error) {
+func NewAccommodationRepository(ctx context.Context) (*AccommodationRepository, error) {
 	dburi := os.Getenv("MONGO_DB_URI")
 
 	client, err := mongo.NewClient(options.Client().ApplyURI(dburi))
@@ -36,15 +35,14 @@ func NewAccommodationRepository(ctx context.Context, logger *log.Logger) (*Accom
 	}
 
 	return &AccommodationRepository{
-		cli:    client,
-		logger: logger,
+		cli: client,
 	}, nil
 }
 
 func (ar *AccommodationRepository) Disconnect(ctx context.Context) error {
 	err := ar.cli.Disconnect(ctx)
 	if err != nil {
-		ar.logger.Fatal(err.Error())
+		log.Fatal(fmt.Sprintf("[acco-repo]acr#1 Unable to disconnect: %v", err))
 		return err
 	}
 	return nil
@@ -56,12 +54,12 @@ func (ar *AccommodationRepository) Ping() {
 
 	err := ar.cli.Ping(ctx, readpref.Primary())
 	if err != nil {
-		ar.logger.Println(err)
+		log.Fatal(fmt.Sprintf("[acco-repo]acr#2 Ping failed: %v", err))
 	}
 
 	databases, err := ar.cli.ListDatabaseNames(ctx, bson.M{})
 	if err != nil {
-		ar.logger.Println(err)
+		log.Fatal(fmt.Sprintf("[acco-repo]acr#3 Unable to disconnect from repo: %v", err))
 	}
 	fmt.Println(databases)
 }
@@ -71,7 +69,7 @@ func (ar *AccommodationRepository) CreateAccommodation(ctx context.Context, acco
 
 	_, err := collection.InsertOne(ctx, accommodation)
 	if err != nil {
-		ar.logger.Println(err)
+		log.Error(fmt.Sprintf("[acco-repo]acr#4 Failed to create accommodation: %v", err))
 		return err
 	}
 
@@ -83,14 +81,14 @@ func (ar *AccommodationRepository) GetAllAccommodations(ctx context.Context) ([]
 
 	cursor, err := collection.Find(ctx, bson.M{})
 	if err != nil {
-		ar.logger.Println(err)
+		log.Error(fmt.Sprintf("[acco-repo]acr#5 Failed to get all accommodations: %v", err))
 		return nil, err
 	}
 	defer cursor.Close(ctx)
 
 	var accommodations []*Accommodation
 	if err := cursor.All(ctx, &accommodations); err != nil {
-		ar.logger.Println(err)
+		log.Error(fmt.Sprintf("[acco-repo]acr#6 Failed to iterate over all accommodations: %v", err))
 		return nil, err
 	}
 
@@ -102,14 +100,14 @@ func (ar *AccommodationRepository) GetAccommodationsForUser(ctx context.Context,
 
 	cursor, err := collection.Find(ctx, bson.M{"hostID": userID})
 	if err != nil {
-		ar.logger.Println(err)
+		log.Error(fmt.Sprintf("[acco-repo]acr#7 Failed to get accommodations for user '%v': %v", userID, err))
 		return nil, err
 	}
 	defer cursor.Close(ctx)
 
 	var accommodations []*Accommodation
 	if err := cursor.All(ctx, &accommodations); err != nil {
-		ar.logger.Println(err)
+		log.Error(fmt.Sprintf("[acco-repo]acr#8 Failed to iterate over all accommodations: %v", err))
 		return nil, err
 	}
 
@@ -122,7 +120,7 @@ func (ar *AccommodationRepository) GetAccommodation(ctx context.Context, id prim
 	var accommodation Accommodation
 	err := collection.FindOne(ctx, bson.M{"_id": id}).Decode(&accommodation)
 	if err != nil {
-		ar.logger.Println(err)
+		log.Error(fmt.Sprintf("[acco-repo]acr#9 Failed to get accommodation '%v': %v", id, err))
 		return nil, err
 	}
 
@@ -137,7 +135,7 @@ func (ar *AccommodationRepository) UpdateAccommodation(ctx context.Context, acco
 
 	_, err := collection.UpdateOne(ctx, filter, update)
 	if err != nil {
-		ar.logger.Println(err)
+		log.Error(fmt.Sprintf("[acco-repo]acr#10 Failed to update accommodation '%v': %v", accommodation.ID, err))
 		return err
 	}
 
@@ -150,7 +148,7 @@ func (ar *AccommodationRepository) DeleteAccommodation(ctx context.Context, id p
 	filter := bson.M{"_id": id}
 	_, err := collection.DeleteOne(ctx, filter)
 	if err != nil {
-		ar.logger.Println(err)
+		log.Error(fmt.Sprintf("[acco-repo]acr#11 Failed to delete accommodation '%v': %v", id, err))
 		return err
 	}
 
@@ -163,7 +161,7 @@ func (ar *AccommodationRepository) DeleteAccommodationsForUser(ctx context.Conte
 	filter := bson.M{"hostID": userID}
 	_, err := collection.DeleteMany(ctx, filter)
 	if err != nil {
-		ar.logger.Println(err)
+		log.Error(fmt.Sprintf("[acco-repo]acr#12 Failed to delete accommodations for user '%v': %v", userID, err))
 		return err
 	}
 
@@ -178,11 +176,12 @@ func (ar *AccommodationRepository) FindAccommodationsByIDs(ctx context.Context, 
 
 		cur, err := collection.Find(ctx, filter)
 		if err != nil {
-			return nil, err
+			log.Error(fmt.Sprintf("[acco-repo]acr#13 Failed to get accommodations: %v", err))
 		}
 		defer cur.Close(ctx)
 
 		if err := cur.All(ctx, &accommodations); err != nil {
+			log.Error(fmt.Sprintf("[acco-repo]acr#14 Failed to iterate over all accommodations: %v", err))
 			return nil, err
 		}
 
@@ -197,18 +196,18 @@ func (ar *AccommodationRepository) GetFilteredAccommodations(ctx context.Context
 	collection := ar.getAccommodationCollection()
 
 	// Log parameters
-	ar.logger.Printf("Filter parameters: %v\n", filters)
+	log.Info(fmt.Sprintf("[acco-repo]acr#15 Filter parameters: %v", filters))
 
 	cursor, err := collection.Find(ctx, filters)
 	if err != nil {
-		ar.logger.Println(err)
+		log.Error(fmt.Sprintf("[acco-repo]acr#16 Failed to get accommodations: %v", err))
 		return nil, err
 	}
 	defer cursor.Close(ctx)
 
 	var accommodations []*Accommodation
 	if err := cursor.All(ctx, &accommodations); err != nil {
-		ar.logger.Println(err)
+		log.Error(fmt.Sprintf("[acco-repo]acr#17 Failed to iterate over all accommodations: %v", err))
 		return nil, err
 	}
 

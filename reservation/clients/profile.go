@@ -97,7 +97,7 @@ func (pc ProfileClient) GetUserById(ctx context.Context, id primitive.ObjectID, 
 
 	resp := cbResp.(*http.Response)
 	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("Error: Profile service returned status code %d for fetching user by id", resp.StatusCode)
+		fmt.Sprintf("Error: Profile service returned status code %d for fetching user by id", resp.StatusCode)
 		return data.User{}, domain.ErrResp{
 			URL:        resp.Request.URL.String(),
 			Method:     resp.Request.Method,

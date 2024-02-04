@@ -2,20 +2,28 @@ package main
 
 import (
 	"context"
-	"log"
+	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"profile/clients"
 	"profile/data"
 	"profile/domain"
 	"profile/handlers"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/natefinch/lumberjack.v2"
+
 	gorillaHandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/sony/gobreaker"
 )
+
+const usersUsername = "/users/{username}"
 
 func main() {
 	//Reading from environment, if not set we will default it to 8083.
@@ -30,13 +38,19 @@ func main() {
 	defer cancel()
 
 	//Initialize the logger we are going to use, with prefix and datetime for every log
-	logger := log.New(os.Stdout, "[profile-service] ", log.LstdFlags)
-	storeLogger := log.New(os.Stdout, "[profile-store] ", log.LstdFlags)
+	lumberjackLogger := &lumberjack.Logger{
+		Filename: "/logger/logs/prof.log",
+		MaxSize:  1,  //MB
+		MaxAge:   30, //days
+	}
+
+	log.SetOutput(io.MultiWriter(os.Stdout, lumberjackLogger))
+	log.SetLevel(log.InfoLevel)
 
 	// NoSQL: Initialize Profile Repository store
-	store, err := data.New(timeoutContext, storeLogger)
+	store, err := data.New(timeoutContext)
 	if err != nil {
-		logger.Fatal(err)
+		log.Fatal(fmt.Sprintf("[prof-service]ps#10 Failed to initialize repo: %v", err))
 	}
 	defer store.Disconnect(timeoutContext)
 
@@ -78,7 +92,7 @@ func main() {
 				return counts.ConsecutiveFailures > 2
 			},
 			OnStateChange: func(name string, from, to gobreaker.State) {
-				logger.Printf("CB '%s' changed from '%s' to '%s'\n", name, from, to)
+				log.Info(fmt.Sprintf("[prof-service]ps#1 CB '%s' changed from '%s' to '%s'\n", name, from, to))
 			},
 			IsSuccessful: func(err error) bool {
 				if err == nil {
@@ -100,7 +114,7 @@ func main() {
 				return counts.ConsecutiveFailures > 2
 			},
 			OnStateChange: func(name string, from, to gobreaker.State) {
-				logger.Printf("CB '%s' changed from '%s' to '%s'\n", name, from, to)
+				log.Info(fmt.Sprintf("[prof-service]ps#2 CB '%s' changed from '%s' to '%s'\n", name, from, to))
 			},
 			IsSuccessful: func(err error) bool {
 				if err == nil {
@@ -122,7 +136,7 @@ func main() {
 				return counts.ConsecutiveFailures > 2
 			},
 			OnStateChange: func(name string, from, to gobreaker.State) {
-				logger.Printf("CB '%s' changed from '%s' to '%s'\n", name, from, to)
+				log.Info(fmt.Sprintf("[prof-service]ps#3 CB '%s' changed from '%s' to '%s'\n", name, from, to))
 			},
 			IsSuccessful: func(err error) bool {
 				if err == nil {
@@ -139,7 +153,7 @@ func main() {
 	reservation := clients.NewReservationClient(reservationClient, os.Getenv("RESERVATION_SERVICE_URI"), reservationBreaker)
 
 	// Initialize the handler and inject said logger
-	userHandler := handlers.NewUserHandler(logger, store, accommodation, auth, reservation)
+	userHandler := handlers.NewUserHandler(store, accommodation, auth, reservation)
 
 	// Initialize the router and add a middleware for all the requests
 	router := mux.NewRouter()
@@ -148,11 +162,11 @@ func main() {
 
 	router.HandleFunc("/users", userHandler.CreateUser).Methods("POST")
 	router.HandleFunc("/users", userHandler.GetAllUsers).Methods("GET")
-	router.HandleFunc("/users/{username}", userHandler.GetUser).Methods("GET")
+	router.HandleFunc(usersUsername, userHandler.GetUser).Methods("GET")
 	router.HandleFunc("/users/get-user-by-id", userHandler.GetUserById).Methods("POST")
 	router.HandleFunc("/api/users/check-username/{username}", userHandler.CheckUsernameAvailability).Methods("GET")
-	router.HandleFunc("/users/{username}", userHandler.UpdateUser).Methods("PUT")
-	router.HandleFunc("/users/{username}", userHandler.DeleteUser).Methods("DELETE")
+	router.HandleFunc(usersUsername, userHandler.UpdateUser).Methods("PUT")
+	router.HandleFunc(usersUsername, userHandler.DeleteUser).Methods("DELETE")
 	router.Use(userHandler.AuthorizeRoles("HOST", "GUEST"))
 
 	cors := gorillaHandlers.CORS(
@@ -170,25 +184,57 @@ func main() {
 		WriteTimeout: 5 * time.Second,
 	}
 
-	logger.Println("Server listening on port", port)
+	log.Info(fmt.Sprintf("[prof-service]ps#4 Server listening on port %s", port))
 	//Distribute all the connections to goroutines
 	go func() {
 		err := server.ListenAndServe()
 		if err != nil {
-			logger.Fatal(err)
+			log.Fatal(fmt.Sprintf("[prof-service]ps#5 Error while serving request: %v", err))
 		}
 	}()
+
+	// Protecting logs from unauthorized access and modification
+	dirPath := "/logger/logs"
+	err = protectLogs(dirPath)
+	if err != nil {
+		log.Fatal(fmt.Sprintf("[prof-service]ps#9 Error while protecting logs: %v", err))
+	}
 
 	sigCh := make(chan os.Signal)
 	signal.Notify(sigCh, os.Interrupt)
 	signal.Notify(sigCh, os.Kill)
 
 	sig := <-sigCh
-	logger.Println("Received terminate, graceful shutdown", sig)
+	log.Info(fmt.Sprintf("[prof-service]ps#6 Recieved terminate, starting gracefull shutdown %v", sig))
 
 	//Try to shutdown gracefully
 	if server.Shutdown(timeoutContext) != nil {
-		logger.Fatal("Cannot gracefully shutdown...")
+		log.Fatal("[prof-service]ps#7 Cannot gracefully shutdown...")
 	}
-	logger.Println("Server stopped")
+	log.Info("[prof-service]ps#8 Server gracefully stopped")
+}
+
+// Changes ownership and sets permissions
+func protectLogs(dirPath string) error {
+	// Walk through all files in the directory
+	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return errors.New("error accessing path " + dirPath)
+		}
+
+		// Change ownership to user
+		if err := os.Chown(path, 0, 0); err != nil {
+			log.Fatal(fmt.Sprintf("[prof-service]ps#10 Failed to set log ownership to root: %v", err))
+			return errors.New("error changing onwership to root for " + path)
+		}
+
+		// Set read-only permissions for the owner
+		if err := os.Chmod(path, 0400); err != nil {
+			log.Fatal(fmt.Sprintf("[prof-service]ps#11 Failed to set read-only permissions for root: %v", err))
+			return errors.New("error changing permissions for " + path)
+		}
+
+		return nil
+	})
+	return err
 }

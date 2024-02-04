@@ -44,7 +44,7 @@ export class RatingService {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
     });
-    return this.http.get<any>(this.baseUrl + `/rating/accommodation/${accommodationId}/byGuest`, {headers: headers});
+    return this.http.get<any>(this.baseUrl + `/rating/accommodation/${accommodationId}/byGuest`, { headers });
   }
 
   getAverageRatingForAccommodation(accommodationId: string): Observable<any> {
@@ -53,7 +53,7 @@ export class RatingService {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
     });
-    return this.http.get<any>(this.baseUrl + `/ratings/average/${accommodationId}`, {headers: headers});
+    return this.http.get<any>(this.baseUrl + `/ratings/average/${accommodationId}`, { headers });
   }
 
   deleteRatingsAccommodationByUser(idRating: string) {
@@ -81,7 +81,7 @@ export class RatingService {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
     });
-    return this.http.post<any>(this.baseUrl + `/ratings/average/host`,JSON.stringify(body) ,{headers: headers});
+    return this.http.post<any>(this.baseUrl + `/ratings/average/host`,JSON.stringify(body) ,{ headers });
   }
 
   getUsersRatingForHost(body: any): Observable<any[]> {
@@ -90,7 +90,7 @@ export class RatingService {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
     });
-    return this.http.post<any[]>(this.baseUrl + `/rating/host/byGuest`,JSON.stringify(body), {headers: headers});
+    return this.http.post<any[]>(this.baseUrl + `/rating/host/byGuest`,JSON.stringify(body), { headers });
   }
 
   deleteRatingsHostByUser(idRating: string) {
@@ -176,7 +176,7 @@ export class RatingService {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
     });
-    return this.http.get<RatingHost[]>(this.baseUrl + '/ratings/host/' + hostUsername, {headers});
+    return this.http.get<RatingHost[]>(this.baseUrl + '/ratings/host/' + hostUsername, { headers });
   }
 
 }

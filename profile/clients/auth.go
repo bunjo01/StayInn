@@ -12,6 +12,8 @@ import (
 	"github.com/sony/gobreaker"
 )
 
+const Bearer = "Bearer "
+
 type AuthClient struct {
 	client  *http.Client
 	address string
@@ -50,7 +52,7 @@ func (c AuthClient) PassUsernameToAuthService(ctx context.Context, oldUsername, 
 		if err != nil {
 			return nil, err
 		}
-		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("Authorization", Bearer+token)
 		return c.client.Do(req)
 	})
 	if err != nil {
@@ -89,7 +91,7 @@ func (c AuthClient) PassEmailToAuthService(ctx context.Context, oldEmail, email,
 		if err != nil {
 			return nil, err
 		}
-		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("Authorization", Bearer+token)
 		return c.client.Do(req)
 	})
 	if err != nil {
@@ -123,7 +125,7 @@ func (c AuthClient) DeleteUserInAuthService(ctx context.Context, username, token
 		if err != nil {
 			return nil, err
 		}
-		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("Authorization", Bearer+token)
 		return c.client.Do(req)
 	})
 	if err != nil {

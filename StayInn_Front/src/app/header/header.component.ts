@@ -1,6 +1,5 @@
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
-import { ProfileService } from '../services/profile.service';
 import { AuthService } from '../services/auth.service';
 import { ToastrService } from 'ngx-toastr';
 
@@ -9,19 +8,16 @@ import { ToastrService } from 'ngx-toastr';
   templateUrl: './header.component.html',
   styleUrls: ['./header.component.css']
 })
-export class HeaderComponent implements OnInit {
+export class HeaderComponent {
   userProfile: any;
   @ViewChild('dropdownMenu')
   dropdownMenu!: ElementRef;
 
   constructor(
-    private router: Router, 
-    private profileService: ProfileService, 
+    private router: Router,
     private authService: AuthService,
     private toastr: ToastrService
-    ) { }
-
-  ngOnInit() { }
+    ) {}
 
   isUserLoggedIn() {
     return this.authService.isAuthenticated()
