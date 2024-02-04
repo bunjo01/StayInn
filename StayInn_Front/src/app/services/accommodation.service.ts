@@ -22,7 +22,6 @@ export class AccommodationService {
     return this.http.get<Accommodation[]>(this.apiUrl + '/accommodation');
   }
 
-
   //accommodation rating
   getAccommodationById(id: string): Observable<Accommodation> {
     return this.http.get<Accommodation>(this.apiUrl + `/accommodation/${id}`);
@@ -34,7 +33,7 @@ export class AccommodationService {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
     });
-    return this.http.get<Accommodation[]>(this.apiUrl + `/user/${username}/accommodations`, { headers: headers });
+    return this.http.get<Accommodation[]>(this.apiUrl + `/user/${username}/accommodations`, { headers });
   }
 
   updateAccommodation(accommodation: Accommodation, id: string): Observable<any> {
@@ -44,7 +43,7 @@ export class AccommodationService {
       'Authorization': `Bearer ${token}`
     });
 
-    return this.http.put<any>(this.apiUrl + `/accommodation/${id}`, accommodation, { headers: headers });
+    return this.http.put<any>(this.apiUrl + `/accommodation/${id}`, accommodation, { headers });
   }
 
   sendAccommodation(data: Accommodation) {

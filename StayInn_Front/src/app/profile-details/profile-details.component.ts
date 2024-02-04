@@ -43,7 +43,7 @@ export class ProfileDetailsComponent implements OnInit {
       firstName: [null, Validators.required],
       lastName: [null, Validators.required],
       email: [null, Validators.email],
-      address: [null, Validators.required],
+      address: [null, Validators.required]
     });
 
     this.role = this.authService.getRoleFromToken() || "";
@@ -55,20 +55,20 @@ export class ProfileDetailsComponent implements OnInit {
         this.userProfile = data;
 
         if (this.role === "GUEST" && this.userProfile.id) {
-          this.reservationService.getReservationByUser(this.username).subscribe( data => {
+          this.reservationService.getReservationByUser(this.username).subscribe(data => {
             this.reservations = data;
           }, error => {
             console.log("Error getting reservations for guest: ", error);
           });
         } 
         else if (this.role === "HOST" && this.userProfile.id) {
-          this.accommodationService.getAccommodationsByUser(this.username).subscribe( data => {
+          this.accommodationService.getAccommodationsByUser(this.username).subscribe(data => {
             this.accommodations = data;
           }, error => { 
             console.log("Error getting accommodations for host", error) 
           });
 
-          this.ratingService.getNotifications(this.username).subscribe( data => {
+          this.ratingService.getNotifications(this.username).subscribe(data => {
             this.notifications = data;
             this.notifications.reverse();
           }, error => {
@@ -116,7 +116,6 @@ export class ProfileDetailsComponent implements OnInit {
     }
 
     if (this.userProfile) {
-      // Update userProfile with form values
       this.userProfile.username = this.form.value.username;
       this.userProfile.firstName = this.form.value.firstName;
       this.userProfile.lastName = this.form.value.lastName;
@@ -162,7 +161,7 @@ export class ProfileDetailsComponent implements OnInit {
     }
 
     this.profileService.deleteUser(username).subscribe(
-      (response) => {
+      () => {
         this.toastr.success('Profile deleted successfully', 'Profile delete');
         this.authService.logout();
       },

@@ -75,7 +75,6 @@ export class CreateAccommodationComponent {
       const reader = new FileReader();
   
       reader.onload = (e: any) => {
-        // Check if the file type is allowed
         if (file.type === 'image/jpeg' || file.type === 'image/png') {
           const imageData = e.target.result.split(',')[1];
           const image: Image = { id: String(this.imageCounter++), acc_id: '', data: imageData };
@@ -104,8 +103,7 @@ export class CreateAccommodationComponent {
   
       reader.readAsDataURL(file);
     }
-  }
-  
+  } 
 
   getAmenityName(amenity: number): string {
     return AmenityEnum[amenity];
