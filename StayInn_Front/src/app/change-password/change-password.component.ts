@@ -25,8 +25,8 @@ export class ChangePasswordComponent implements OnInit{
   ngOnInit() {
     this.changePasswordForm = this.formBuilder.group({
       currentPassword: [null, Validators.required],
-      newPassword: [null, Validators.pattern('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z\\d]{8,}$')],
-      newPassword1: [null, Validators.pattern('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z\\d]{8,}$')]
+      newPassword: [null, Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/)],
+      newPassword1: [null, Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/)]
     });
   }
 
@@ -64,11 +64,9 @@ export class ChangePasswordComponent implements OnInit{
       (error) => {
         console.error('Error while changing password: ', error);
         if (error instanceof HttpErrorResponse) {
-          // Prikazivanje statusnog koda i poruke greške kroz ToastrService
           const errorMessage = `${error.error}`;
           this.toastr.error(errorMessage, 'Change Password Error');
         } else {
-          // Ukoliko greška nije HTTP greška, prikazuje se generička poruka
           this.toastr.error('An unexpected error occurred', 'Change Password Error');
         }
       }

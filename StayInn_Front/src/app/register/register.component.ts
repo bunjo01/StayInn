@@ -43,8 +43,8 @@ export class RegisterComponent {
     const addressRegex: RegExp = /^[A-Za-z0-9](?!.*['\.\-\s\,]$)[A-Za-z0-9'\.\-\s\,]{0,68}[A-Za-z0-9]$/;
 
     if (!usernameRegex.test(this.form.value.username)) {
-      this.toastr.warning('Alphanumeric characters, underscore and dot are allowed. Min length 3, max length 20' +
-      'Special characters can`t be next to each other',
+      this.toastr.warning('Alphanumeric characters, underscore and dot are allowed. Min. length 3, max. length 20.' +
+      ' Special characters can`t be next to each other',
        'Invalid username');
        return;
     }
