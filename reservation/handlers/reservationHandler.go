@@ -16,6 +16,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const UnableToConvertToJson = "Unable to convert to json:"
+const FailedToReadUsernameFromToken = "Failed to read username from token"
+const FailedToGetHostIDFromUsername = "Failed to get HostID from username"
+const UnableToDecodeJson = "Unable to decode json"
+
 type KeyProduct struct{}
 
 type ReservationHandler struct {
@@ -49,7 +54,7 @@ func (r *ReservationHandler) GetAllAvailablePeriodsByAccommodation(rw http.Respo
 
 	err = availablePeriods.ToJSON(rw)
 	if err != nil {
-		http.Error(rw, "Unable to convert to json:", http.StatusInternalServerError)
+		http.Error(rw, UnableToConvertToJson, http.StatusInternalServerError)
 		log.Error(fmt.Sprintf("[rese-handler]rh#2 Error while converting from json: %v", err))
 		return
 	}
@@ -76,7 +81,7 @@ func (r *ReservationHandler) FindAvailablePeriodByIdAndByAccommodationId(rw http
 
 	err = availablePeriod.ToJSON(rw)
 	if err != nil {
-		http.Error(rw, "Unable to convert to json:", http.StatusInternalServerError)
+		http.Error(rw, UnableToConvertToJson, http.StatusInternalServerError)
 		log.Error(fmt.Sprintf("[rese-handler]rh#5 Error while converting json: %v", err))
 		return
 	}
@@ -100,7 +105,7 @@ func (r *ReservationHandler) GetAllReservationByAvailablePeriod(rw http.Response
 
 	err = reservations.ToJSON(rw)
 	if err != nil {
-		http.Error(rw, "Unable to convert to json:", http.StatusInternalServerError)
+		http.Error(rw, UnableToConvertToJson, http.StatusInternalServerError)
 		log.Error(fmt.Sprintf("[rese-handler]rh#7 Error while converting json: %v", err))
 		return
 	}
@@ -114,7 +119,7 @@ func (r *ReservationHandler) CreateAvailablePeriod(rw http.ResponseWriter, h *ht
 	username, err := r.getUsername(tokenStr)
 	if err != nil {
 		log.Warning(fmt.Sprintf("[rese-handler]rh#8 Error while reading username from token: %v", err))
-		http.Error(rw, "Failed to read username from token", http.StatusBadRequest)
+		http.Error(rw, FailedToReadUsernameFromToken, http.StatusBadRequest)
 		return
 	}
 
@@ -123,7 +128,7 @@ func (r *ReservationHandler) CreateAvailablePeriod(rw http.ResponseWriter, h *ht
 	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
 		log.Error(fmt.Sprintf("[rese-handler]rh#9 Error while getting hostId for username: %v", err))
-		http.Error(rw, "Failed to get HostID from username", http.StatusBadRequest)
+		http.Error(rw, FailedToGetHostIDFromUsername, http.StatusBadRequest)
 		return
 	}
 
@@ -173,7 +178,7 @@ func (r *ReservationHandler) CreateReservation(rw http.ResponseWriter, h *http.R
 	username, err := r.getUsername(tokenStr)
 	if err != nil {
 		log.Warning(fmt.Sprintf("[rese-handler]rh#15 Error while reading username from token: %v", err))
-		http.Error(rw, "Failed to read username from token", http.StatusBadRequest)
+		http.Error(rw, FailedToReadUsernameFromToken, http.StatusBadRequest)
 		return
 	}
 
@@ -182,7 +187,7 @@ func (r *ReservationHandler) CreateReservation(rw http.ResponseWriter, h *http.R
 	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
 		log.Error(fmt.Sprintf("[rese-handler]rh#16 Error while getting hostId for username: %v", err))
-		http.Error(rw, "Failed to get HostID from username", http.StatusBadRequest)
+		http.Error(rw, FailedToGetHostIDFromUsername, http.StatusBadRequest)
 		return
 	}
 
@@ -263,7 +268,7 @@ func (r *ReservationHandler) FindAccommodationIdsByDates(rw http.ResponseWriter,
 	err = ids.ToJSON(rw)
 	if err != nil {
 		log.Error(fmt.Sprintf("[rese-handler]rh#25 Error while trying to convert json: %v", err))
-		http.Error(rw, "Unable to convert to json:", http.StatusInternalServerError)
+		http.Error(rw, UnableToConvertToJson, http.StatusInternalServerError)
 		return
 	}
 
@@ -277,7 +282,7 @@ func (r *ReservationHandler) FindAllReservationsByUserIDExpired(rw http.Response
 	username, err := r.getUsername(tokenStr)
 	if err != nil {
 		log.Warning(fmt.Sprintf("[rese-handler]rh#26 Error while reading username from token: %v", err))
-		http.Error(rw, "Failed to read username from token", http.StatusBadRequest)
+		http.Error(rw, FailedToReadUsernameFromToken, http.StatusBadRequest)
 		return
 	}
 
@@ -315,7 +320,7 @@ func (r *ReservationHandler) UpdateAvailablePeriodByAccommodation(rw http.Respon
 	username, err := r.getUsername(tokenStr)
 	if err != nil {
 		log.Warning(fmt.Sprintf("[rese-handler]rh#30 Error while reading username from token: %v", err))
-		http.Error(rw, "Failed to read username from token", http.StatusBadRequest)
+		http.Error(rw, FailedToReadUsernameFromToken, http.StatusBadRequest)
 		return
 	}
 
@@ -324,7 +329,7 @@ func (r *ReservationHandler) UpdateAvailablePeriodByAccommodation(rw http.Respon
 	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
 		log.Error(fmt.Sprintf("[rese-handler]rh#31 Error while reading host id from username: %v", err))
-		http.Error(rw, "Failed to get HostID from username", http.StatusBadRequest)
+		http.Error(rw, FailedToGetHostIDFromUsername, http.StatusBadRequest)
 		return
 	}
 
@@ -389,7 +394,7 @@ func (r *ReservationHandler) GetAllReservationsByUser(rw http.ResponseWriter, h 
 	err = reservations.ToJSON(rw)
 	if err != nil {
 		log.Error(fmt.Sprintf("[rese-handler]rh#37 Error while converting json: %v", err))
-		http.Error(rw, "Unable to convert to json:", http.StatusInternalServerError)
+		http.Error(rw, UnableToConvertToJson, http.StatusInternalServerError)
 		return
 	}
 	log.Info(fmt.Sprintf("[rese-handler]rh#56 Successfully retrieved reservations for user '%s'", username))
@@ -424,7 +429,7 @@ func (r *ReservationHandler) DeleteReservation(rw http.ResponseWriter, h *http.R
 	username, err := r.getUsername(tokenStr)
 	if err != nil {
 		log.Warning(fmt.Sprintf("[rese-handler]rh#39 Error while reading username from token: %v", err))
-		http.Error(rw, "Failed to read username from token", http.StatusBadRequest)
+		http.Error(rw, FailedToReadUsernameFromToken, http.StatusBadRequest)
 		return
 	}
 
@@ -433,7 +438,7 @@ func (r *ReservationHandler) DeleteReservation(rw http.ResponseWriter, h *http.R
 	userID, err := r.profile.GetUserId(h.Context(), username, tokenStr)
 	if err != nil {
 		log.Error(fmt.Sprintf("[rese-handler]rh#40 Error while reading host id from username: %v", err))
-		http.Error(rw, "Failed to get HostID from username", http.StatusBadRequest)
+		http.Error(rw, FailedToGetHostIDFromUsername, http.StatusBadRequest)
 		return
 	}
 
@@ -497,7 +502,7 @@ func (r *ReservationHandler) MiddlewareAvailablePeriodDeserialization(next http.
 		err := availablePeriod.FromJSON(h.Body)
 		if err != nil {
 			log.Error(fmt.Sprintf("[rese-handler]rh#45 Error while trying to convert json: %v", err))
-			http.Error(rw, "Unable to decode json", http.StatusBadRequest)
+			http.Error(rw, UnableToDecodeJson, http.StatusBadRequest)
 			return
 		}
 		ctx := context.WithValue(h.Context(), KeyProduct{}, availablePeriod)
@@ -512,7 +517,7 @@ func (r *ReservationHandler) MiddlewareReservationDeserialization(next http.Hand
 		err := reservation.FromJSON(h.Body)
 		if err != nil {
 			log.Error(fmt.Sprintf("[rese-handler]rh#46 Error while trying to convert json: %v", err))
-			http.Error(rw, "Unable to decode json", http.StatusBadRequest)
+			http.Error(rw, UnableToDecodeJson, http.StatusBadRequest)
 			return
 		}
 		ctx := context.WithValue(h.Context(), KeyProduct{}, reservation)
@@ -527,7 +532,7 @@ func (r *ReservationHandler) MiddlewareDatesDeserialization(next http.Handler) h
 		err := dates.FromJSON(h.Body)
 		if err != nil {
 			log.Error(fmt.Sprintf("[rese-handler]rh#47 Error while trying to convert json: %v", err))
-			http.Error(rw, "Unable to decode json", http.StatusBadRequest)
+			http.Error(rw, UnableToDecodeJson, http.StatusBadRequest)
 			return
 		}
 		ctx := context.WithValue(h.Context(), KeyProduct{}, dates)

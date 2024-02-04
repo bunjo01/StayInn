@@ -23,6 +23,8 @@ import (
 	"github.com/sony/gobreaker"
 )
 
+const usersUsername = "/users/{username}"
+
 func main() {
 	//Reading from environment, if not set we will default it to 8083.
 	//This allows flexibility in different environments (for eg. when running multiple docker api's and want to override the default port)
@@ -160,11 +162,11 @@ func main() {
 
 	router.HandleFunc("/users", userHandler.CreateUser).Methods("POST")
 	router.HandleFunc("/users", userHandler.GetAllUsers).Methods("GET")
-	router.HandleFunc("/users/{username}", userHandler.GetUser).Methods("GET")
+	router.HandleFunc(usersUsername, userHandler.GetUser).Methods("GET")
 	router.HandleFunc("/users/get-user-by-id", userHandler.GetUserById).Methods("POST")
 	router.HandleFunc("/api/users/check-username/{username}", userHandler.CheckUsernameAvailability).Methods("GET")
-	router.HandleFunc("/users/{username}", userHandler.UpdateUser).Methods("PUT")
-	router.HandleFunc("/users/{username}", userHandler.DeleteUser).Methods("DELETE")
+	router.HandleFunc(usersUsername, userHandler.UpdateUser).Methods("PUT")
+	router.HandleFunc(usersUsername, userHandler.DeleteUser).Methods("DELETE")
 	router.Use(userHandler.AuthorizeRoles("HOST", "GUEST"))
 
 	cors := gorillaHandlers.CORS(
