@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:alpine as build_container
+FROM golang:alpine AS build_container
 WORKDIR /app
 COPY go.mod .
 COPY go.sum .
@@ -8,7 +8,7 @@ COPY . .
 RUN go build -o reservation
 
 # Final stage
-FROM alpine
+FROM alpine:3.19
 WORKDIR /app
 COPY --from=build_container /app/reservation /usr/bin
 EXPOSE 8082
