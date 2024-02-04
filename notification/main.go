@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
-	"log"
+	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"notification/clients"
 	"notification/data"
@@ -10,7 +12,11 @@ import (
 	"notification/handlers"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"time"
+
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/natefinch/lumberjack.v2"
 
 	gorillaHandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -27,14 +33,20 @@ func main() {
 	timeoutContext, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Logger initialization
-	logger := log.New(os.Stdout, "[notification-service] ", log.LstdFlags)
-	storeLogger := log.New(os.Stdout, "[notification-store] ", log.LstdFlags)
+	//Initialize the logger we are going to use
+	lumberjackLogger := &lumberjack.Logger{
+		Filename: "/logger/logs/noti.log",
+		MaxSize:  1,  //MB
+		MaxAge:   30, //days
+	}
+
+	log.SetOutput(io.MultiWriter(os.Stdout, lumberjackLogger))
+	log.SetLevel(log.InfoLevel)
 
 	// Initializing repo for notifications
-	store, err := data.New(timeoutContext, storeLogger)
+	store, err := data.New(timeoutContext)
 	if err != nil {
-		logger.Fatal(err)
+		log.Fatal(fmt.Sprintf("[noti-service]ns#10 Failed to initialize repo: %v", err))
 	}
 	defer store.Disconnect(timeoutContext)
 	store.Ping()
@@ -65,7 +77,7 @@ func main() {
 				return counts.ConsecutiveFailures > 2
 			},
 			OnStateChange: func(name string, from, to gobreaker.State) {
-				logger.Printf("CB '%s' changed from '%s' to '%s'\n", name, from, to)
+				log.Info(fmt.Sprintf("[noti-service]ns#1 CB '%s' changed from '%s' to '%s'\n", name, from, to))
 			},
 			IsSuccessful: func(err error) bool {
 				if err == nil {
@@ -87,7 +99,7 @@ func main() {
 				return counts.ConsecutiveFailures > 2
 			},
 			OnStateChange: func(name string, from, to gobreaker.State) {
-				logger.Printf("CB '%s' changed from '%s' to '%s'\n", name, from, to)
+				log.Info(fmt.Sprintf("[noti-service]ns#2 CB '%s' changed from '%s' to '%s'\n", name, from, to))
 			},
 			IsSuccessful: func(err error) bool {
 				if err == nil {
@@ -100,11 +112,9 @@ func main() {
 	)
 
 	reservation := clients.NewReservationClient(reservationClient, os.Getenv("RESERVATION_SERVICE_URI"), reservationBreaker)
-	profileServiceURI := os.Getenv("PROFILE_SERVICE_URI")
-	profile := clients.NewProfileClient(profileClient, profileServiceURI, profileBreaker)
+	profile := clients.NewProfileClient(profileClient, os.Getenv("PROFILE_SERVICE_URI"), profileBreaker)
 
-	// Uncomment after adding router methods
-	notificationsHandler := handlers.NewNotificationsHandler(logger, store, reservation, profile)
+	notificationsHandler := handlers.NewNotificationsHandler(store, reservation, profile)
 
 	// Router init
 	router := mux.NewRouter()
@@ -112,69 +122,76 @@ func main() {
 
 	// Router methods
 
-	// vrati sve
+	// Get all accommodation ratings
 	getAllAccommodationRatings := router.Methods(http.MethodGet).Path("/ratings/accommodation").Subrouter()
 	getAllAccommodationRatings.HandleFunc("", notificationsHandler.GetAllAccommodationRatings)
 
-	// vrati sve
+	// Get all host ratings
 	getAllHostRatings := router.Methods(http.MethodGet).Path("/ratings/host").Subrouter()
 	getAllHostRatings.HandleFunc("", notificationsHandler.GetAllHostRatings)
 
-	//oceni smestaj, promena ocene
+	// Create and update accommodation rating
 	createRatingForAccommodation := router.Methods(http.MethodPost).Path("/rating/accommodation").Subrouter()
 	createRatingForAccommodation.HandleFunc("", notificationsHandler.AddRating)
 
-	//oceni hosta, promena ocene
+	// Create and update host rating
 	createRatingForHost := router.Methods(http.MethodPost).Path("/rating/host").Subrouter()
 	createRatingForHost.HandleFunc("", notificationsHandler.AddHostRating)
 
-	//pronadji sve ocene za accommodacije jednog hosta
+	// Get all ratings for host's accommodations
 	findAllAccommodationRatingsByHost := router.Methods(http.MethodGet).Path("/ratings/accommodation/byHost").Subrouter()
 	findAllAccommodationRatingsByHost.HandleFunc("", notificationsHandler.GetAllAccommodationRatingsForLoggedHost)
 
-	//vrati ocene od ulogovanog hosta
+	// Get all logged in host's ratings
 	getAllHostRatingsByUser := router.Methods(http.MethodGet).Path("/ratings/hostByGuest").Subrouter()
 	getAllHostRatingsByUser.HandleFunc("", notificationsHandler.GetAllHostRatingsByUser)
 
-	//vrati srednju ocenu za acc
+	// Get accommodation average rating
 	getAverageAccommodationRating := router.Methods(http.MethodGet).Path("/ratings/average/{accommodationID}").Subrouter()
 	getAverageAccommodationRating.HandleFunc("", notificationsHandler.GetAverageAccommodationRating)
 
-	//vrati srednju ocenu za hosta
+	// Get host average rating
 	getAverageHostRating := router.Methods(http.MethodPost).Path("/ratings/average/host").Subrouter()
 	getAverageHostRating.HandleFunc("", notificationsHandler.GetAverageHostRating)
 
-	//vrati ocenu za tu acc
+	// Get accommodation rating
 	findRatingForAccommodationByGuest := router.Methods(http.MethodGet).Path("/rating/accommodation/{idAccommodation}/byGuest").Subrouter()
 	findRatingForAccommodationByGuest.HandleFunc("", notificationsHandler.FindAccommodationRatingByGuest)
 
-	//vrati ocenu za tog hosta
+	// Get host rating
 	findRatingForHostByGuest := router.Methods(http.MethodPost).Path("/rating/host/byGuest").Subrouter()
 	findRatingForHostByGuest.HandleFunc("", notificationsHandler.FindHostRatingByGuest)
 
-	// obrisi rating za hosta
+	// Delete host rating
 	deleteRatingForHost := router.Methods(http.MethodDelete).Path("/rating/host/{id}").Subrouter()
 	deleteRatingForHost.HandleFunc("", notificationsHandler.DeleteHostRating)
 
-	// obrisi rating za acc
+	// Delete accommodation rating
 	deleteRatingForAccommodation := router.Methods(http.MethodDelete).Path("/rating/accommodation/{id}").Subrouter()
 	deleteRatingForAccommodation.HandleFunc("", notificationsHandler.DeleteRatingAccommodationHandler)
 
-	//
-	//getAllAccommodationRatingsByUser := router.Methods(http.MethodGet).Path("/ratings/accommodationByUser").Subrouter()
-	//getAllAccommodationRatingsByUser.HandleFunc("", notificationsHandler.GetAllAccommodationRatingsByUser)
+	getAccommodationRatings := router.Methods(http.MethodGet).Path("/ratings/accommodation/{idAccommodation}").Subrouter()
+	getAccommodationRatings.HandleFunc("", notificationsHandler.GetAccommodationRatings)
 
-	//getHostRatings := router.Methods(http.MethodGet).Path("/ratings/host/{hostUsername}").Subrouter()
-	//getHostRatings.HandleFunc("", notificationsHandler.GetHostRatings)
+	getHostRatings := router.Methods(http.MethodPost).Path("/ratings/host/host-ratings").Subrouter()
+	getHostRatings.HandleFunc("", notificationsHandler.GetRatingsHost)
 
-	//findRatingForHost := router.Methods(http.MethodGet).Path("/rating/host/{id}").Subrouter()
-	//findRatingForHost.HandleFunc("", notificationsHandler.FindHostRatingById)
+	getAllAccommodationRatingsByLoggUser := router.Methods(http.MethodGet).Path("/ratings/accommodationByUser").Subrouter()
+	getAllAccommodationRatingsByLoggUser.HandleFunc("", notificationsHandler.GetAllAccommodationRatingsByUser)
 
-	//updateRatingForHost := router.Methods(http.MethodPut).Path("/rating/host/{id}").Subrouter()
-	//updateRatingForHost.HandleFunc("", notificationsHandler.UpdateHostRating)
-	//
-	//updateRatingForAccommodation := router.Methods(http.MethodPut).Path("/rating/accommodation/{id}").Subrouter()
-	//updateRatingForAccommodation.HandleFunc("", notificationsHandler.UpdateAccommodationRating)
+	getAllHostRatingsByLoggUser := router.Methods(http.MethodGet).Path("/ratings/hostByUser").Subrouter()
+	getAllHostRatingsByLoggUser.HandleFunc("", notificationsHandler.GetAllHostRatingsByUser)
+
+	getHostRatingsLoggUser := router.Methods(http.MethodGet).Path("/ratings/host/{hostUsername}").Subrouter()
+	getHostRatingsLoggUser.HandleFunc("", notificationsHandler.GetHostRatings)
+
+	// Notify on reservation
+	notifyForReservation := router.Methods(http.MethodPost).Subrouter()
+	notifyForReservation.HandleFunc("/reservation", notificationsHandler.NotifyForReservation)
+
+	// Get all notifications
+	getAllNotifications := router.Methods(http.MethodGet).Path("/{username}").Subrouter()
+	getAllNotifications.HandleFunc("", notificationsHandler.GetAllNotifications)
 
 	// CORS middleware
 	cors := gorillaHandlers.CORS(
@@ -191,24 +208,56 @@ func main() {
 		WriteTimeout: 5 * time.Second,
 	}
 
-	logger.Println("Server listening on port", port)
+	log.Info(fmt.Sprintf("[noti-service]ns#3 Server listening on port %s", port))
 
 	go func() {
 		err := server.ListenAndServe()
 		if err != nil {
-			logger.Fatal(err)
+			log.Fatal(fmt.Sprintf("[noti-service]ns#4 Error while serving request: %v", err))
 		}
 	}()
+
+	// Protecting logs from unauthorized access and modification
+	dirPath := "/logger/logs"
+	err = protectLogs(dirPath)
+	if err != nil {
+		log.Fatal(fmt.Sprintf("[noti-service]ns#8 Error while protecting logs: %v", err))
+	}
 
 	sigCh := make(chan os.Signal)
 	signal.Notify(sigCh, os.Interrupt)
 	signal.Notify(sigCh, os.Kill)
 
 	sig := <-sigCh
-	logger.Println("Received terminate, graceful shutdown", sig)
+	log.Info(fmt.Sprintf("[noti-service]ns#5 Recieved terminate, starting gracefull shutdown %v", sig))
 
 	if err := server.Shutdown(timeoutContext); err != nil {
-		logger.Fatal("Cannot gracefully shutdown...")
+		log.Fatal("[noti-service]ns#6 Cannot gracefully shutdown...")
 	}
-	logger.Println("Server stopped")
+	log.Info("[noti-service]ns#7 Server stopped")
+}
+
+// Changes ownership and sets permissions
+func protectLogs(dirPath string) error {
+	// Walk through all files in the directory
+	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return errors.New("error accessing path " + dirPath)
+		}
+
+		// Change ownership to user
+		if err := os.Chown(path, 0, 0); err != nil {
+			log.Fatal(fmt.Sprintf("[noti-service]ns#9 Failed to set log ownership to root: %v", err))
+			return errors.New("error changing onwership to root for " + path)
+		}
+
+		// Set read-only permissions for the owner
+		if err := os.Chmod(path, 0400); err != nil {
+			log.Fatal(fmt.Sprintf("[noti-service]ns#10 Failed to set read-only permissions for root: %v", err))
+			return errors.New("error changing permissions for " + path)
+		}
+
+		return nil
+	})
+	return err
 }

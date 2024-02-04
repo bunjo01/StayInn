@@ -1,8 +1,9 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { Accommodation } from 'src/app/model/accommodation';
 import { RatingHost } from 'src/app/model/ratings';
+import { AuthService } from 'src/app/services/auth.service';
 import { RatingService } from 'src/app/services/rating.service';
 
 @Component({
@@ -10,12 +11,30 @@ import { RatingService } from 'src/app/services/rating.service';
   templateUrl: './rate-host.component.html',
   styleUrls: ['./rate-host.component.css']
 })
-export class RateHostComponent {
+export class RateHostComponent implements OnInit{
   @Input() hostId: string | null = null;
   ratingH: number = 0;
   currentRating: RatingHost | null = null;
+  guestsRate: any;
+  averageHostRate: any;
+  userRole:any;
 
-  constructor(private ratingService: RatingService, private toastr: ToastrService, private router: Router) {}
+  constructor(private ratingService: RatingService, 
+              private toastr: ToastrService, 
+              private router: Router,
+              private authService: AuthService) { }
+
+  ngOnInit(): void {
+    if (this.hostId) {
+      this.getHostsRateByGuest();
+      this.getHostsAverageRate();
+      this.setUserRole();
+    }
+  }
+
+  setUserRole() {
+    this.userRole = this.authService.getRoleFromTokenNoRedirect();
+  }
 
   setRating(value: number) {
     this.ratingH = value;
@@ -45,6 +64,28 @@ export class RateHostComponent {
     }
   }
 
+  getHostsRateByGuest() {
+    let id = this.hostId
+    const body = {"id":id}
+    this.ratingService.getUsersRatingForHost(body).subscribe((result) => {
+      this.guestsRate = result
+    });
+  }
+
+  getHostsAverageRate() {
+    let id = this.hostId
+    const body = {"id":id}
+    this.ratingService.getAverageRatingForUser(body).subscribe((result) => {
+      this.averageHostRate = result
+    });
+  }
+
+  deleteRatingsHostByUser() {
+    if (this.hostId != null) {
+      this.ratingService.deleteRatingsHostByUser(this.guestsRate.id).subscribe((result) => {});
+    }
+  }
+
   getRating() {
     if (this.hostId !== null) {
       this.ratingService.getRatingHostByUser(this.hostId).subscribe(
@@ -58,5 +99,4 @@ export class RateHostComponent {
       );
     }
   }
-
 }

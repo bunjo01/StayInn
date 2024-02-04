@@ -14,6 +14,16 @@ export class RatingService {
 
   constructor(private http: HttpClient) {}
 
+  getNotifications(username: string): Observable<Notification[]> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+
+    return this.http.get<Notification[]>(this.baseUrl + '/' + username, { headers });
+  }
+
   addRatingAccommodation(ratingAccommodation: any): Observable<HttpResponse<any>> {
     const token = localStorage.getItem('token');
     const headers = new HttpHeaders({
@@ -28,6 +38,33 @@ export class RatingService {
     });
   }
 
+  getUsersRatingForAccommodation(accommodationId: string): Observable<any> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+    return this.http.get<any>(this.baseUrl + `/rating/accommodation/${accommodationId}/byGuest`, {headers: headers});
+  }
+
+  getAverageRatingForAccommodation(accommodationId: string): Observable<any> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+    return this.http.get<any>(this.baseUrl + `/ratings/average/${accommodationId}`, {headers: headers});
+  }
+
+  deleteRatingsAccommodationByUser(idRating: string) {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+    return this.http.delete(this.baseUrl + `/rating/accommodation/${idRating}`, { headers });
+  }
+
   getRatingsAccommodationByUser(): Observable<RatingAccommodation[]> {
     const token = localStorage.getItem('token');
     const headers = new HttpHeaders({
@@ -38,31 +75,31 @@ export class RatingService {
     return this.http.get<RatingAccommodation[]>(this.baseUrl + '/ratings/accommodationByUser', { headers });
   }
 
-  getRatingAccommodationByUser(accommodationId: string): Observable<RatingAccommodation> {
+  getAverageRatingForUser(body: any): Observable<any> {
     const token = localStorage.getItem('token');
     const headers = new HttpHeaders({
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
     });
-    return this.http.get<RatingAccommodation>(this.baseUrl + '/rating/accommodation/getByAccommodationId' + accommodationId, { headers });
+    return this.http.post<any>(this.baseUrl + `/ratings/average/host`,JSON.stringify(body) ,{headers: headers});
   }
 
-  deleteRatingsAccommodationByUser(idRating: string) {
+  getUsersRatingForHost(body: any): Observable<any[]> {
     const token = localStorage.getItem('token');
     const headers = new HttpHeaders({
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
     });
-
-    return this.http.delete(this.baseUrl + `/rating/accommodation/${idRating}`, { headers });
+    return this.http.post<any[]>(this.baseUrl + `/rating/host/byGuest`,JSON.stringify(body), {headers: headers});
   }
 
-  sendAccommodationID(data: string) {
-    this.dataSubject.next(data);
-  }
-
-  getAccommodationID() {
-    return this.dataSubject.asObservable();
+  deleteRatingsHostByUser(idRating: string) {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+    return this.http.delete(this.baseUrl + `/rating/host/${idRating}`, { headers });
   }
 
   addRatingHost(ratingHost: any): Observable<HttpResponse<any>> {
@@ -79,13 +116,13 @@ export class RatingService {
     });
   }
 
-  getRatingHostByUser(host: any): Observable<RatingHost> {
+  getRatingHostByUser(idAccommodation: any): Observable<RatingHost> {
     const token = localStorage.getItem('token');
     const headers = new HttpHeaders({
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
     });
-    return this.http.get<RatingHost>(this.baseUrl + '/rating/host/getByHost', { headers });
+    return this.http.get<RatingHost>(this.baseUrl + `/rating/accommodation/${idAccommodation}`, { headers });
   }
 
   deleteRatingHostByUser(idRating: string) {
@@ -97,4 +134,49 @@ export class RatingService {
 
     return this.http.delete(this.baseUrl + `/rating/host/${idRating}`, { headers });
   }
+
+  sendAccommodationID(data: string) {
+    this.dataSubject.next(data);
+  }
+
+  getAccommodationID() {
+    return this.dataSubject.asObservable();
+  }
+
+  getAllHostRatingsByUser(): Observable<RatingHost[]> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+    return this.http.get<RatingHost[]>(this.baseUrl + '/ratings/hostByUser', { headers });
+  }
+
+  getAllAccommodationRatingsByUser(): Observable<RatingAccommodation[]> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+
+    return this.http.get<RatingAccommodation[]>(this.baseUrl + '/ratings/accommodation/byHost', { headers });
+  }
+
+  getAllRatingsForAccommodation(accommodationId: string): Observable<RatingAccommodation[]> {
+    return this.http.get<RatingAccommodation[]>(this.baseUrl + '/ratings/accommodation/' + accommodationId);
+  }
+
+  getAllRatingsForHost(body: any): Observable<RatingHost[]> {
+    return this.http.post<RatingHost[]>(this.baseUrl + '/ratings/host/host-ratings', body);
+  }
+
+  getAllHostRatings(hostUsername: string): Observable<RatingHost[]> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+    return this.http.get<RatingHost[]>(this.baseUrl + '/ratings/host/' + hostUsername, {headers});
+  }
+
 }

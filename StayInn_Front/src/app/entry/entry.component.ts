@@ -9,13 +9,15 @@ import { DatePipe, formatDate } from '@angular/common';
   styleUrls: ['./entry.component.css']
 })
 export class EntryComponent {
-  constructor(private accommodationService: AccommodationService,
-    private datePipe: DatePipe){}
+  role: string = "";
+  constructor (
+    private accommodationService: AccommodationService,
+    private datePipe: DatePipe
+    ) { }
 
   searchAccommodation(location: string, numberOfGuests: number, startDate: string, endDate: string): void {
-    // Provera da li su uneti podaci ili ne, i pretraga svih smeštaja ako nisu
+    // Get all accommodations if nothing is set as search param
     if (!location && !numberOfGuests && !startDate && !endDate) {
-      // Poziv servisa za dohvat svih smeštaja
       this.accommodationService.getAccommodations().subscribe(
         (result: Accommodation[]) => {
           this.accommodationService.sendSearchedAccommodations(result);
@@ -25,7 +27,7 @@ export class EntryComponent {
         }
       );
     } else {
-      // Pretraga smeštaja na osnovu unetih vrednosti
+      // Searching accommodations based on params
       this.accommodationService.searchAccommodations(location, numberOfGuests, startDate, endDate).subscribe(
         (result: Accommodation[]) => {
           this.accommodationService.sendSearchedAccommodations(result);
@@ -44,10 +46,10 @@ export class EntryComponent {
     const startDateValue = (document.getElementById('check-in') as HTMLInputElement).value;
     const endDateValue = (document.getElementById('check-out') as HTMLInputElement).value;
 
-    let startDate: string = ''; // Inicijalizacija sa praznim stringom
-    let endDate: string = ''; // Inicijalizacija sa praznim stringom
+    let startDate: string = '';
+    let endDate: string = '';
 
-    // Konverzija datuma u format koji želite slati na server
+    // Converting date to format accepted by the backend
     if (startDateValue && endDateValue) {
       startDate = this.formatDate(startDateValue);
       endDate = this.formatDate(endDateValue);

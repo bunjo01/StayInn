@@ -8,11 +8,17 @@ import (
 	"accommodation/handlers"
 	"accommodation/storage"
 	"context"
-	"log"
+	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"time"
+
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/natefinch/lumberjack.v2"
 
 	gorillaHandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -30,27 +36,31 @@ func main() {
 	defer cancel()
 
 	// Logger initialization
-	logger := log.New(os.Stdout, "[accommodation-service] ", log.LstdFlags)
-	storeLogger := log.New(os.Stdout, "[accommodation-store] ", log.LstdFlags)
-	cacheLogger := log.New(os.Stdout, "[accommodation-cache] ", log.LstdFlags)
-	hdfsLogger := log.New(os.Stdout, "[accommodation-hdfs] ", log.LstdFlags)
+	lumberjackLogger := &lumberjack.Logger{
+		Filename: "/logger/logs/acco.log",
+		MaxSize:  1,  //MB
+		MaxAge:   30, //days
+	}
+
+	log.SetOutput(io.MultiWriter(os.Stdout, lumberjackLogger))
+	log.SetLevel(log.InfoLevel)
 
 	// Initializing repo for accommodations
-	store, err := data.NewAccommodationRepository(timeoutContext, storeLogger)
+	store, err := data.NewAccommodationRepository(timeoutContext)
 	if err != nil {
-		logger.Fatal(err)
+		log.Fatal(fmt.Sprintf("[acco-service]acs#1 Failed to initialize repo: %v", err))
 	}
 	defer store.Disconnect(timeoutContext)
 	store.Ping()
 
 	// Redis
-	imageCache := cache.New(cacheLogger)
+	imageCache := cache.New()
 	imageCache.Ping()
 
 	// HDFS
-	images, err := storage.New(hdfsLogger)
+	images, err := storage.New()
 	if err != nil {
-		logger.Fatal(err)
+		log.Fatal(fmt.Sprintf("[acco-service]acs#2 Failed to initialize HDFS: %v", err))
 	}
 
 	defer images.Close()
@@ -84,7 +94,7 @@ func main() {
 				return counts.ConsecutiveFailures > 2
 			},
 			OnStateChange: func(name string, from, to gobreaker.State) {
-				logger.Printf("CB '%s' changed from '%s' to '%s'\n", name, from, to)
+				log.Info(fmt.Sprintf("[acco-service]acs#3 CB '%s' changed from '%s' to '%s'\n", name, from, to))
 			},
 			IsSuccessful: func(err error) bool {
 				if err == nil {
@@ -106,7 +116,7 @@ func main() {
 				return counts.ConsecutiveFailures > 2
 			},
 			OnStateChange: func(name string, from, to gobreaker.State) {
-				logger.Printf("CB '%s' changed from '%s' to '%s'\n", name, from, to)
+				log.Info(fmt.Sprintf("[acco-service]acs#4 CB '%s' changed from '%s' to '%s'\n", name, from, to))
 			},
 			IsSuccessful: func(err error) bool {
 				if err == nil {
@@ -121,7 +131,7 @@ func main() {
 	reservation := clients.NewReservationClient(reservationClient, os.Getenv("RESERVATION_SERVICE_URI"), reservationBreaker)
 	profile := clients.NewProfileClient(profileClient, os.Getenv("PROFILE_SERVICE_URI"), profileBreaker)
 
-	accommodationsHandler := handlers.NewAccommodationsHandler(logger, store, reservation, profile, imageCache, images)
+	accommodationsHandler := handlers.NewAccommodationsHandler(store, reservation, profile, imageCache, images)
 
 	// Router init
 	router := mux.NewRouter()
@@ -179,24 +189,56 @@ func main() {
 		WriteTimeout: 5 * time.Second,
 	}
 
-	logger.Println("Server listening on port", port)
+	log.Info(fmt.Sprintf("[acco-service]acs#5 Server listening on port %s", port))
 
 	go func() {
 		err := server.ListenAndServe()
 		if err != nil {
-			logger.Fatal(err)
+			log.Fatal(fmt.Sprintf("[acco-service]acs#6 Error while serving request: %v", err))
 		}
 	}()
+
+	// Protecting logs from unauthorized access and modification
+	dirPath := "/logger/logs"
+	err = protectLogs(dirPath)
+	if err != nil {
+		log.Fatal(fmt.Sprintf("[acco-service]acs#7 Error while protecting logs: %v", err))
+	}
 
 	sigCh := make(chan os.Signal)
 	signal.Notify(sigCh, os.Interrupt)
 	signal.Notify(sigCh, os.Kill)
 
 	sig := <-sigCh
-	logger.Println("Received terminate, graceful shutdown", sig)
+	log.Info(fmt.Sprintf("[acco-service]acs#8 Recieved terminate, starting gracefull shutdown %v", sig))
 
 	if err := server.Shutdown(timeoutContext); err != nil {
-		logger.Fatal("Cannot gracefully shutdown...")
+		log.Fatal("[acco-service]acs#9 Cannot gracefully shutdown")
 	}
-	logger.Println("Server stopped")
+	log.Info("[acco-service]acs#10 Server gracefully stopped")
+}
+
+// Changes ownership and sets permissions
+func protectLogs(dirPath string) error {
+	// Walk through all files in the directory
+	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return errors.New("error accessing path " + dirPath)
+		}
+
+		// Change ownership to user
+		if err := os.Chown(path, 0, 0); err != nil {
+			log.Fatal(fmt.Sprintf("[acco-service]acs#11 Failed to set log ownership to root: %v", err))
+			return errors.New("error changing onwership to root for " + path)
+		}
+
+		// Set read-only permissions for the owner
+		if err := os.Chmod(path, 0400); err != nil {
+			log.Fatal(fmt.Sprintf("[acco-service]acs#12 Failed to set read-only permissions for root: %v", err))
+			return errors.New("error changing permissions for " + path)
+		}
+
+		return nil
+	})
+	return err
 }

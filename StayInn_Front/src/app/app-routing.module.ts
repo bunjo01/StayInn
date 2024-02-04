@@ -20,6 +20,7 @@ import { AccommodationDetailsComponent } from './accommodation-details/accommoda
 import { EditAccommodationComponent } from './edit-accommodation/edit-accommodation.component';
 import { HistoryReservationComponent } from './history-reservation/history-reservation.component';
 import { RateAccommodationComponent } from './ratings/rate-accommodation/rate-accommodation.component';
+import { RatingsViewComponent } from './ratings/ratings-view/ratings-view.component';
 
 const routes: Routes = [
   { path: '', component: EntryComponent },
@@ -45,6 +46,7 @@ const routes: Routes = [
     expectedRole: 'HOST' }},
   {path: 'accommodation-details', component: AccommodationDetailsComponent},
   {path: 'rate-accommodation', component: RateAccommodationComponent},
+  {path: 'host-ratings', component: RatingsViewComponent}
 ];
 
 @NgModule({

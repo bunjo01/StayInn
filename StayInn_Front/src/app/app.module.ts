@@ -36,6 +36,9 @@ import { HistoryReservationComponent } from './history-reservation/history-reser
 import { RateAccommodationComponent } from './ratings/rate-accommodation/rate-accommodation.component';
 import { RateHostComponent } from './ratings/rate-host/rate-host.component';
 import { ProfileMenuComponent } from './profile-menu/profile-menu.component';
+import { RatingsViewComponent } from './ratings/ratings-view/ratings-view.component';
+import { RatingsPopupComponent } from './ratings/ratings-popup/ratings-popup.component';
+import { MatDialogModule } from '@angular/material/dialog';
 
 @NgModule({
   declarations: [
@@ -63,6 +66,8 @@ import { ProfileMenuComponent } from './profile-menu/profile-menu.component';
     RateAccommodationComponent,
     RateHostComponent,
     ProfileMenuComponent,
+    RatingsViewComponent,
+    RatingsPopupComponent,
   ],
   imports: [
     BrowserModule,
@@ -79,7 +84,8 @@ import { ProfileMenuComponent } from './profile-menu/profile-menu.component';
       preventDuplicates: true,
       countDuplicates: true,
       resetTimeoutOnDuplicate: true
-    })
+    }),
+    MatDialogModule
   ],
   providers: [
     {

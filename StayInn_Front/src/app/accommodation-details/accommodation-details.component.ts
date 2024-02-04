@@ -4,6 +4,9 @@ import { AccommodationService } from '../services/accommodation.service';
 import { Router } from '@angular/router';
 import { Image } from '../model/image';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { MatDialog } from '@angular/material/dialog';
+import { RatingsPopupComponent } from '../ratings/ratings-popup/ratings-popup.component';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-accommodation-details',
@@ -13,14 +16,18 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 export class AccommodationDetailsComponent implements OnInit {
   accommodation: Accommodation | null = null;
   images: Image[] = [];
+  role: string = "";
 
   constructor(
     private accommodationService: AccommodationService, 
+    private authService: AuthService,
     private router: Router,
-    private sanitizer: DomSanitizer
+    private sanitizer: DomSanitizer,
+    private dialog: MatDialog
     ) { }
 
   ngOnInit(): void {
+    this.role = this.authService.getRoleFromTokenNoRedirect() || "";
     this.accommodationService.getAccommodation().subscribe(
       data => {
         this.accommodation = data;
@@ -56,14 +63,14 @@ export class AccommodationDetailsComponent implements OnInit {
     this.router.navigateByUrl('/update-accommodation');
   }
 
-  deleteAccommodation(id: string): void {
+  navigateToDeleteAccommodation(id: string): void {
     this.accommodationService.deleteAccommodation(id).subscribe(
       () => {
-        console.log('Smeštaj uspešno obrisan.');
+        console.log('Accommodation successfully deleted');
         this.router.navigate([''])
       },
       error => {
-        console.error('Greška prilikom brisanja smeštaja:', error);
+        console.error('Error while deleting accommodation:', error);
       }
     );
   }
@@ -102,5 +109,29 @@ export class AccommodationDetailsComponent implements OnInit {
   
     // Return the sanitized URL
     return this.sanitizer.bypassSecurityTrustResourceUrl(imageUrl);
+  }
+
+  showHostRatings(hostId: string): void {
+    const dialogRef = this.dialog.open(RatingsPopupComponent, {
+      width: '600px',
+      height: 'fit-content',
+      data: { type: 'host', hostId: hostId }
+    });
+  
+    dialogRef.afterClosed().subscribe(result => {
+      console.log('The dialog was closed');
+    });
+  }
+  
+  showAccommodationRatings(accommodationId: string): void {
+    const dialogRef = this.dialog.open(RatingsPopupComponent, {
+      width: '600px',
+      height: 'fit-content',
+      data: { type: 'accommodation', accommodationId: accommodationId }
+    });
+  
+    dialogRef.afterClosed().subscribe(result => {
+      console.log('The dialog was closed');
+    });
   }
 }

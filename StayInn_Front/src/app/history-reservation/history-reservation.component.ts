@@ -8,8 +8,10 @@ import { JwtPayload } from 'src/app/model/user';
 import { AccommodationService } from '../services/accommodation.service';
 import { Accommodation, DisplayedAccommodation } from '../model/accommodation';
 import { RatingService } from '../services/rating.service';
-import { RatingAccommodation } from '../model/ratings';
+import { RatingAccommodation, RatingHost } from '../model/ratings';
 import { AuthService } from '../services/auth.service';
+import { finalize, forkJoin } from 'rxjs';
+import { DatePipe } from '@angular/common';
 
 @Component({
   selector: 'app-history-reservation',
@@ -22,12 +24,16 @@ export class HistoryReservationComponent implements OnInit{
   loggedinUserId: any;
   displayedAccommodations: DisplayedAccommodation[] = [];
   userRatings: RatingAccommodation[] = [];
+  hostRating: RatingHost[] = [];
+  accommodations: Accommodation[] = [];
+  accommodationNames: Map<string, string> = new Map();
+  loadingAccommodations = false;
 
   constructor(private http: HttpClient, private reservationService: ReservationService, private profileService: ProfileService,
-     private accommodationService: AccommodationService , private router: Router, private ratingService: RatingService, private authService: AuthService) { }
+     private accommodationService: AccommodationService , private router: Router, private ratingService: RatingService, private authService: AuthService, private datePipe: DatePipe) { }
 
   ngOnInit(): void {
-      this.loggedinUserUsername = this.getUsernameFromToken();
+      this.loggedinUserUsername = this.authService.getUsernameFromToken();
       console.log(this.loggedinUserUsername);
       this.getUserId();
       this.reservationService.getReservationByUserExp()
@@ -41,36 +47,34 @@ export class HistoryReservationComponent implements OnInit{
       this.ratingService.getRatingsAccommodationByUser().subscribe(
         (ratings: RatingAccommodation[]) => {
           this.userRatings = ratings;
+          this.loadAccommodationNames();
         },
         (error) => {
           console.error('Greška prilikom dohvatanja ocjena za smještaje:', error);
         }
       );
+
+      this.ratingService.getAllHostRatingsByUser().subscribe(
+        (ratings: RatingHost[]) => {
+          this.hostRating = ratings;
+        },
+        (error) => {
+          console.error('Greška prilikom dohvatanja ocjena za smještaje:', error);
+        }
+      );
+
   }
+
+  getAccommodationNameById(id: string): string {
+    return this.accommodationNames.get(id) || 'Unknown Accommodation';
+  }
+  
 
   getUserId(){
     this.profileService.getUser(this.loggedinUserUsername).subscribe((result) => {
       this.loggedinUserId = result.id
     })
   }
-
-  getUsernameFromToken() {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      this.router.navigate(['login']);
-      return null;  // Dodajte povratnu vrednost ukoliko token nije prisutan
-    }
-  
-    try {
-      const tokenPayload = decode.jwtDecode(token) as JwtPayload;
-      return tokenPayload.username;
-    } catch (error) {
-      console.error('Greška prilikom dekodiranja tokena:', error);
-      this.router.navigate(['login']);
-      return null;  // Dodajte povratnu vrednost u slučaju greške prilikom dekodiranja tokena
-    }
-  }
-  
 
   loadAccommodations() {
     this.expiredReservations.forEach((reservation) => {
@@ -89,8 +93,35 @@ export class HistoryReservationComponent implements OnInit{
     });
   }
 
+  loadAccommodationNames() {
+    this.loadingAccommodations = true;
+
+    const observables = this.userRatings.map(rating => 
+      this.accommodationService.getAccommodationById(rating.idAccommodation)
+    );
+
+    forkJoin(observables)
+      .pipe(
+        finalize(() => this.loadingAccommodations = false)
+      )
+      .subscribe(
+        (accommodations: any[]) => {
+          accommodations.forEach((accommodation, index) => {
+            this.accommodationNames.set(this.userRatings[index].idAccommodation, accommodation?.name || 'Unknown Accommodation');
+          });
+        },
+        (error) => {
+          console.error('Error fetching accommodation names:', error);
+        }
+      );
+  }
+
   navigateToRateAccommodation(idAccommodation: string) {
     this.ratingService.sendAccommodationID(idAccommodation);
     this.router.navigate(['/rate-accommodation']);
-  }  
+  }
+  
+  formatDateTime(dateTime: string): string | null {
+    return this.datePipe.transform(dateTime, 'dd.MM.yyyy. HH:mm:ss');
+  }
 }

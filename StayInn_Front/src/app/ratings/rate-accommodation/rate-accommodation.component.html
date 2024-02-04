@@ -1,18 +1,24 @@
 <div class="rate-accommodation-wrap">
     <div *ngIf="accommodation$ | async as accommodation" class="accommodation-info">
         <h2>Accommodation</h2>
-        <p>Name: {{ accommodation.name }}</p>
-        <p>Description: {{ accommodation.location }} </p>
-
+        <button class="btnDelete" *ngIf="userRole == 'GUEST'" (click)="deleteAccommodationRating()">remove your rating</button>
+        <div *ngIf="averageRating">
+            <p>Average accommodation rating : {{averageRating.averageRating}}</p>
+        </div>
+        
+        <div *ngIf="guestsRatingOfAccommodation">
+            <p id="txtRate">You rated this accommodation : {{guestsRatingOfAccommodation.rate}}</p>
+        </div>
+        
     </div>
 
-    <div class="rating">
+    <div class="rating" *ngIf="userRole == 'GUEST'">
         <span class="star" (click)="setRating(1)" [class.filled]="ratingA >= 1">&#9733;</span>
         <span class="star" (click)="setRating(2)" [class.filled]="ratingA >= 2">&#9733;</span>
         <span class="star" (click)="setRating(3)" [class.filled]="ratingA >= 3">&#9733;</span>
         <span class="star" (click)="setRating(4)" [class.filled]="ratingA >= 4">&#9733;</span>
         <span class="star" (click)="setRating(5)" [class.filled]="ratingA >= 5">&#9733;</span>
     </div>
-    <button class="btnSubmit" (click)="addRating()">Submit rate (A)</button>
+    <button class="btnSubmit" *ngIf="userRole == 'GUEST'" (click)="addRating()">Submit rate (A)</button>
 </div>
   

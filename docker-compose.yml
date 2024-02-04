@@ -40,6 +40,8 @@ services:
         condition: service_healthy
       datanode1:
         condition: service_healthy
+    volumes:
+      - acco_logs:/logger
     networks:
       - network
 
@@ -126,6 +128,8 @@ services:
     depends_on:
       auth_db:
         condition: service_healthy
+    volumes:
+      - auth_logs:/logger
     networks:
       - network
 
@@ -172,6 +176,8 @@ services:
     depends_on:
       reservation_db:
         condition: service_healthy
+    volumes:
+      - rese_logs:/logger
     networks:
       - network
 
@@ -210,6 +216,8 @@ services:
     depends_on:
       profile_db:
         condition: service_healthy
+    volumes:
+      - prof_logs:/logger
     networks:
       - network
 
@@ -248,9 +256,13 @@ services:
       - MONGO_DB_URI=${MONGO_DB_URI_NOTIFICATION}
       - PROFILE_SERVICE_URI=${PROFILE_SERVICE}
       - RESERVATION_SERVICE_URI=${RESERVATION_SERVICE}
+      - MAIL_ADDRESS=${MAIL_ADDRESS}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
     depends_on:
       notification_db:
         condition: service_healthy
+    volumes:
+      - noti_logs:/logger
     networks:
       - network
 
@@ -284,6 +296,11 @@ volumes:
   cass_store:
   profile_db:
   notification_db:
+  acco_logs:
+  auth_logs:
+  noti_logs:
+  prof_logs:
+  rese_logs:
 
 networks:
   network:

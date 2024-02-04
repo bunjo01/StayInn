@@ -4,23 +4,41 @@
     <div *ngFor="let displayedAccommodation of displayedAccommodations" class="reservation-card">
       <p class="accommodation-name">Name: {{ displayedAccommodation.accommodationInfo.name }}</p>
       <p>Location: {{ displayedAccommodation.accommodationInfo.location }}</p>
-      <p>Start date: {{ displayedAccommodation.reservationInfo.StartDate }}</p>
-      <p>End date: {{ displayedAccommodation.reservationInfo.EndDate }}</p>
-      <p>Price: {{ displayedAccommodation.reservationInfo.Price }} €</p>
-      <!-- <button (click)="navigateToRateAccommodation(displayedAccommodation.accommodationInfo.id)">Rate Accommodation</button> -->
+      <p>Start date: {{ formatDateTime(displayedAccommodation.reservationInfo.StartDate) }}</p>
+      <p>End date: {{ formatDateTime(displayedAccommodation.reservationInfo.EndDate) }}</p>
+      <p>Price: {{ displayedAccommodation.reservationInfo.Price }} RSD</p>
     </div>
   </div>
 </div>
 
-<!-- <div>Rating for Accommodation</div>
-<div *ngIf="userRatings.length > 0">
-  <ul>
-    <li *ngFor="let rating of userRatings">
-      <p>Accommodation: {{ rating.idAccommodation }}</p>
-      <p>Rating: {{ rating.rate }}</p>
-    </li>
-  </ul>
+<div class="wrapper rating-section">
+  <h2>History Rating for Accommodation</h2>
+  <div *ngIf="userRatings.length > 0">
+    <ul class="rating-list">
+      <li *ngFor="let rating of userRatings">
+        <p>Accommodation: {{ getAccommodationNameById(rating.idAccommodation) }}</p>
+        <p>Rating: {{ rating.rate }}</p>
+        <p>Time: {{ formatDateTime(rating.time) }}</p>
+      </li>
+    </ul>
+  </div>
+  <div *ngIf="userRatings.length === 0">
+    <p>No ratings available.</p>
+  </div>
 </div>
-<div *ngIf="userRatings.length === 0">
-  <p>No ratings available.</p>
-</div> -->
+
+<div class="wrapper rating-section">
+  <h2>History Rating for Hosts</h2>
+  <div *ngIf="hostRating.length > 0">
+    <ul class="rating-list">
+      <li *ngFor="let rating of hostRating">
+        <p>Host: {{ rating.hostUsername }}</p>
+        <p>Rating: {{ rating.rate }}</p>
+        <p>Time: {{ formatDateTime(rating.time) }}</p>
+      </li>
+    </ul>
+  </div>
+  <div *ngIf="hostRating.length === 0">
+    <p>No ratings available.</p>
+  </div>
+</div>
