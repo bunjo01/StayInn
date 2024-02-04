@@ -125,16 +125,6 @@ export class RatingService {
     return this.http.get<RatingHost>(this.baseUrl + `/rating/accommodation/${idAccommodation}`, { headers });
   }
 
-  deleteRatingHostByUser(idRating: string) {
-    const token = localStorage.getItem('token');
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    });
-
-    return this.http.delete(this.baseUrl + `/rating/host/${idRating}`, { headers });
-  }
-
   sendAccommodationID(data: string) {
     this.dataSubject.next(data);
   }

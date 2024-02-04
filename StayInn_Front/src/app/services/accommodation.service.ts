@@ -102,12 +102,6 @@ export class AccommodationService {
   }
 
   getAccommodationImages(accID: string): Observable<Image[]> {
-    const token = localStorage.getItem('token');
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    });
-
     return this.http.get<Image[]>(this.apiUrl + '/accommodation/' + accID + '/images');
   }
 
