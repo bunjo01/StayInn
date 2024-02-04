@@ -17,6 +17,18 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+const failedToFetchRatings = "Failed to fetch ratings"
+const errorEncodingHostRatings = "Error encoding host ratings"
+const parseErrorDataFormat = "Error parsing data: %s"
+const failedToReadUsernameFromToken = "Failed to read username from token"
+const failedToGetHostIDFromUsername = "Failed to get HostID from username"
+const invalidUserId = "Invalid userID"
+const failedToCreateNotification = "Failed to create notification"
+const failedToRetriveUserIdFromProfileService = "Failed to retrive user id from profile service"
+const errorFethingHostRatings = "Error fetching host ratings"
+const contentType = "Content-Type"
+const applicationJson = "application/json"
+
 type NotificationsHandler struct {
 	repo              *data.NotificationsRepo
 	reservationClient clients.ReservationClient
@@ -47,7 +59,7 @@ func (nh *NotificationsHandler) GetAccommodationRatings(w http.ResponseWriter, r
 
 	ratings, err := nh.repo.GetRatingsByAccommodationID(objectID)
 	if err != nil {
-		http.Error(w, "Failed to fetch ratings", http.StatusBadRequest)
+		http.Error(w, failedToFetchRatings, http.StatusBadRequest)
 		return
 	}
 
@@ -82,14 +94,14 @@ func (nh *NotificationsHandler) GetRatingsHost(w http.ResponseWriter, r *http.Re
 
 	ratings, err := nh.repo.GetRatingsByHostID(hostID)
 	if err != nil {
-		http.Error(w, "Failed to fetch ratings", http.StatusBadRequest)
+		http.Error(w, failedToFetchRatings, http.StatusBadRequest)
 		log.Error(("[noti-handler]nh#5 Failed to fetch ratings"))
 		return
 	}
 
 	if err := json.NewEncoder(w).Encode(ratings); err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#6 Error encoding host ratings: %v", err))
-		http.Error(w, "Error encoding host ratings", http.StatusInternalServerError)
+		http.Error(w, errorEncodingHostRatings, http.StatusInternalServerError)
 		return
 	}
 
@@ -104,7 +116,7 @@ func (nh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request
 	err := json.NewDecoder(r.Body).Decode(&rating)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#7 Failed to parse data: %v", err))
-		http.Error(w, fmt.Sprintf("Error parsing data: %s", err), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf(parseErrorDataFormat, err), http.StatusBadRequest)
 		return
 	}
 
@@ -117,7 +129,7 @@ func (nh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request
 	guestUsername, err := nh.getUsername(tokenStr)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#8 Failed to read username from token: %v", err))
-		http.Error(w, "Failed to read username from token", http.StatusBadRequest)
+		http.Error(w, failedToReadUsernameFromToken, http.StatusBadRequest)
 		return
 	}
 	rating.GuestUsername = guestUsername
@@ -141,14 +153,14 @@ func (nh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request
 	userID, err := nh.profileClient.GetUserId(r.Context(), guestUsername, tokenStr)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#11 Failed to get HostID from username: %v", err))
-		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
+		http.Error(w, failedToGetHostIDFromUsername, http.StatusBadRequest)
 		return
 	}
 
 	id, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#12 Invalid userID: %v", err))
-		http.Error(w, "Invalid userID", http.StatusBadRequest)
+		http.Error(w, invalidUserId, http.StatusBadRequest)
 		return
 	}
 
@@ -215,7 +227,7 @@ func (nh *NotificationsHandler) AddRating(w http.ResponseWriter, r *http.Request
 	err = nh.repo.CreateNotification(r.Context(), &notification)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#19 Failed to create notification: %v", err))
-		http.Error(w, "Failed to create notification", http.StatusInternalServerError)
+		http.Error(w, failedToCreateNotification, http.StatusInternalServerError)
 		return
 	}
 
@@ -248,14 +260,14 @@ func (nh *NotificationsHandler) FindAccommodationRatingByGuest(rw http.ResponseW
 	guestUsername, err := nh.getUsername(tokenStr)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#22 Failed to read username from token: %v", err))
-		http.Error(rw, "Failed to read username from token", http.StatusBadRequest)
+		http.Error(rw, failedToReadUsernameFromToken, http.StatusBadRequest)
 		return
 	}
 
 	guestId, err := nh.profileClient.GetUserId(ctx, guestUsername, tokenStr)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#23 Failed to retrive userID from profile service: %v", err))
-		http.Error(rw, "Failed to retrive user id from profile service", http.StatusBadRequest)
+		http.Error(rw, failedToRetriveUserIdFromProfileService, http.StatusBadRequest)
 		return
 	}
 
@@ -293,7 +305,7 @@ func (nh *NotificationsHandler) FindHostRatingByGuest(rw http.ResponseWriter, h 
 	var userId data.UserId
 	err := json.NewDecoder(h.Body).Decode(&userId)
 	if err != nil {
-		http.Error(rw, fmt.Sprintf("Error parsing data: %s", err), http.StatusBadRequest)
+		http.Error(rw, fmt.Sprintf(parseErrorDataFormat, err), http.StatusBadRequest)
 		log.Error(fmt.Sprintf("[noti-handler]nh#28 Error parsing data: %v", err))
 		return
 	}
@@ -306,14 +318,14 @@ func (nh *NotificationsHandler) FindHostRatingByGuest(rw http.ResponseWriter, h 
 	guestUsername, err := nh.getUsername(tokenStr)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#29 Failed to read username from token: %v", err))
-		http.Error(rw, "Failed to read username from token", http.StatusBadRequest)
+		http.Error(rw, failedToReadUsernameFromToken, http.StatusBadRequest)
 		return
 	}
 
 	guestId, err := nh.profileClient.GetUserId(ctx, guestUsername, tokenStr)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#30 Failed to retrive userID from profile service: %v", err))
-		http.Error(rw, "Failed to retrive user id from profile service", http.StatusBadRequest)
+		http.Error(rw, failedToRetriveUserIdFromProfileService, http.StatusBadRequest)
 		return
 	}
 
@@ -351,7 +363,7 @@ func (nh *NotificationsHandler) GetAllAccommodationRatings(w http.ResponseWriter
 	ratings, err := nh.repo.GetAllAccommodationRatings(r.Context())
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#35 Error fetching host ratings: %v", err))
-		http.Error(w, "Error fetching host ratings", http.StatusInternalServerError)
+		http.Error(w, errorFethingHostRatings, http.StatusInternalServerError)
 		return
 	}
 
@@ -359,7 +371,7 @@ func (nh *NotificationsHandler) GetAllAccommodationRatings(w http.ResponseWriter
 
 	if err := json.NewEncoder(w).Encode(ratings); err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#36 Error encoding host ratings: %v", err))
-		http.Error(w, "Error encoding host ratings", http.StatusInternalServerError)
+		http.Error(w, errorEncodingHostRatings, http.StatusInternalServerError)
 		return
 	}
 
@@ -371,7 +383,7 @@ func (nh *NotificationsHandler) GetAllAccommodationRatingsForLoggedHost(w http.R
 	hostUsername, err := nh.getUsername(tokenStr)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#37 Failed to read username from token: %v", err))
-		http.Error(w, "Failed to read username from token", http.StatusBadRequest)
+		http.Error(w, failedToReadUsernameFromToken, http.StatusBadRequest)
 		return
 	}
 
@@ -380,7 +392,7 @@ func (nh *NotificationsHandler) GetAllAccommodationRatingsForLoggedHost(w http.R
 	hostId, err := nh.profileClient.GetUserId(ctx, hostUsername, tokenStr)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#38 Failed to retrive userID from profile service: %v", err))
-		http.Error(w, "Failed to retrive user id from profile service", http.StatusBadRequest)
+		http.Error(w, failedToRetriveUserIdFromProfileService, http.StatusBadRequest)
 		return
 	}
 
@@ -396,13 +408,13 @@ func (nh *NotificationsHandler) GetAllAccommodationRatingsForLoggedHost(w http.R
 	ratings, err := nh.repo.GetAllAccommodationRatingsForLoggedHost(r.Context(), hostIdObject)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#40 Error fetching host ratings: %v", err))
-		http.Error(w, "Error fetching host ratings", http.StatusInternalServerError)
+		http.Error(w, errorFethingHostRatings, http.StatusInternalServerError)
 		return
 	}
 
 	if err := json.NewEncoder(w).Encode(ratings); err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#41 Error encoding host ratings: %v", err))
-		http.Error(w, "Error encoding host ratings", http.StatusInternalServerError)
+		http.Error(w, errorEncodingHostRatings, http.StatusInternalServerError)
 		return
 	}
 
@@ -414,21 +426,21 @@ func (nh *NotificationsHandler) GetAllAccommodationRatingsByUser(w http.Response
 	username, err := nh.getUsername(tokenStr)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#42 Failed to read username from token: %v", err))
-		http.Error(w, "Failed to read username from token", http.StatusBadRequest)
+		http.Error(w, failedToReadUsernameFromToken, http.StatusBadRequest)
 		return
 	}
 
 	userID, err := nh.profileClient.GetUserId(r.Context(), username, tokenStr)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#43 Failed to get HostID from username: %v", err))
-		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
+		http.Error(w, failedToGetHostIDFromUsername, http.StatusBadRequest)
 		return
 	}
 
 	id, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#44 Invalid userID: %v", err))
-		http.Error(w, "Invalid userID", http.StatusBadRequest)
+		http.Error(w, invalidUserId, http.StatusBadRequest)
 		return
 	}
 
@@ -437,13 +449,13 @@ func (nh *NotificationsHandler) GetAllAccommodationRatingsByUser(w http.Response
 	ratings, err := nh.repo.GetAllAccommodationRatingsByUser(r.Context(), id)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#45 Error fetching host ratings: %v", err))
-		http.Error(w, "Error fetching host ratings", http.StatusInternalServerError)
+		http.Error(w, errorFethingHostRatings, http.StatusInternalServerError)
 		return
 	}
 
 	if err := json.NewEncoder(w).Encode(ratings); err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#46 Error encoding host ratings: %v", err))
-		http.Error(w, "Error encoding host ratings", http.StatusInternalServerError)
+		http.Error(w, errorEncodingHostRatings, http.StatusInternalServerError)
 		return
 	}
 
@@ -455,13 +467,13 @@ func (nh *NotificationsHandler) GetAllHostRatings(w http.ResponseWriter, r *http
 	log.Info(fmt.Sprintf("[noti-handler]nh#123 Received request from '%s' for host ratings", r.RemoteAddr))
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#47 Error fetching host ratings: %v", err))
-		http.Error(w, "Error fetching host ratings", http.StatusInternalServerError)
+		http.Error(w, errorFethingHostRatings, http.StatusInternalServerError)
 		return
 	}
 
 	if err := json.NewEncoder(w).Encode(ratings); err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#48 Error encoding host ratings: %v", err))
-		http.Error(w, "Error encoding host ratings", http.StatusInternalServerError)
+		http.Error(w, errorEncodingHostRatings, http.StatusInternalServerError)
 		return
 	}
 
@@ -473,21 +485,21 @@ func (nh *NotificationsHandler) GetAllHostRatingsByUser(w http.ResponseWriter, r
 	username, err := nh.getUsername(tokenStr)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#49 Failed to read username from token: %v", err))
-		http.Error(w, "Failed to read username from token", http.StatusBadRequest)
+		http.Error(w, failedToReadUsernameFromToken, http.StatusBadRequest)
 		return
 	}
 
 	userID, err := nh.profileClient.GetUserId(r.Context(), username, tokenStr)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#50 Failed to get HostID from username: %v", err))
-		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
+		http.Error(w, failedToGetHostIDFromUsername, http.StatusBadRequest)
 		return
 	}
 
 	id, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#51 Invalid userID: %v", err))
-		http.Error(w, "Invalid userID", http.StatusBadRequest)
+		http.Error(w, invalidUserId, http.StatusBadRequest)
 		return
 	}
 
@@ -496,13 +508,13 @@ func (nh *NotificationsHandler) GetAllHostRatingsByUser(w http.ResponseWriter, r
 	ratings, err := nh.repo.GetAllHostRatingsByUser(r.Context(), id)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#52 Error fetching host ratings: %v", err))
-		http.Error(w, "Error fetching host ratings", http.StatusInternalServerError)
+		http.Error(w, errorFethingHostRatings, http.StatusInternalServerError)
 		return
 	}
 
 	if err := json.NewEncoder(w).Encode(ratings); err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#53 Error encoding host ratings: %v", err))
-		http.Error(w, "Error encoding host ratings", http.StatusInternalServerError)
+		http.Error(w, errorEncodingHostRatings, http.StatusInternalServerError)
 		return
 	}
 
@@ -524,14 +536,14 @@ func (nh *NotificationsHandler) GetHostRatings(w http.ResponseWriter, r *http.Re
 	_, err := nh.profileClient.GetUserId(r.Context(), hostUsername, tokenStr)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#55 Failed HostID from username: %v", err))
-		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
+		http.Error(w, failedToGetHostIDFromUsername, http.StatusBadRequest)
 		return
 	}
 
 	ratings, err := nh.repo.GetHostRatings(r.Context(), hostUsername)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#56 Error fetching host ratings: %v", err))
-		http.Error(w, "Error fetching host ratings", http.StatusInternalServerError)
+		http.Error(w, errorFethingHostRatings, http.StatusInternalServerError)
 		return
 	}
 
@@ -564,7 +576,7 @@ func (nh *NotificationsHandler) AddHostRating(w http.ResponseWriter, r *http.Req
 	guestUsername, err := nh.getUsername(tokenStr)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#59 Failed to red username from token: %v", err))
-		http.Error(w, "Failed to read username from token", http.StatusBadRequest)
+		http.Error(w, failedToReadUsernameFromToken, http.StatusBadRequest)
 		return
 	}
 
@@ -601,7 +613,7 @@ func (nh *NotificationsHandler) AddHostRating(w http.ResponseWriter, r *http.Req
 	hostID, err := nh.profileClient.GetUserId(r.Context(), rating.HostUsername, tokenStr)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#64 Failed to get HostID from username: %v", err))
-		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
+		http.Error(w, failedToGetHostIDFromUsername, http.StatusBadRequest)
 		return
 	}
 
@@ -663,7 +675,7 @@ func (nh *NotificationsHandler) AddHostRating(w http.ResponseWriter, r *http.Req
 	err = nh.repo.CreateNotification(r.Context(), &notification)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#71 Failed to create notification: %v", err))
-		http.Error(w, "Failed to create notification", http.StatusInternalServerError)
+		http.Error(w, failedToCreateNotification, http.StatusInternalServerError)
 		return
 	}
 
@@ -692,7 +704,7 @@ func (nh *NotificationsHandler) GetAverageAccommodationRating(w http.ResponseWri
 
 	ratings, err := nh.repo.GetRatingsByAccommodationID(objectID)
 	if err != nil {
-		http.Error(w, "Failed to fetch ratings", http.StatusBadRequest)
+		http.Error(w, failedToFetchRatings, http.StatusBadRequest)
 		log.Error(fmt.Sprintf("[noti-handler]nh#74 Failed to fetch ratings: %v", err))
 		return
 	}
@@ -724,7 +736,7 @@ func (nh *NotificationsHandler) GetAverageAccommodationRating(w http.ResponseWri
 	}
 
 	log.Info(("[noti-handler]nh#113 Successfully get average accommodation rating"))
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(contentType, applicationJson)
 	w.WriteHeader(http.StatusOK)
 	w.Write(jsonResponse)
 
@@ -736,7 +748,7 @@ func (nh *NotificationsHandler) GetAverageHostRating(w http.ResponseWriter, r *h
 	err := json.NewDecoder(r.Body).Decode(&userId)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#76 Error parsing data: %v", err))
-		http.Error(w, fmt.Sprintf("Error parsing data: %s", err), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf(parseErrorDataFormat, err), http.StatusBadRequest)
 		return
 	}
 
@@ -754,7 +766,7 @@ func (nh *NotificationsHandler) GetAverageHostRating(w http.ResponseWriter, r *h
 	ratings, err := nh.repo.GetRatingsByHostUsername(host.Username)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#78 Failed to fetch ratings: %v", err))
-		http.Error(w, "Failed to fetch ratings", http.StatusBadRequest)
+		http.Error(w, failedToFetchRatings, http.StatusBadRequest)
 		return
 	}
 
@@ -785,7 +797,7 @@ func (nh *NotificationsHandler) GetAverageHostRating(w http.ResponseWriter, r *h
 	}
 
 	log.Info(("[noti-handler]nh#114 Successfully get average host rating"))
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(contentType, applicationJson)
 	w.WriteHeader(http.StatusOK)
 	w.Write(jsonResponse)
 
@@ -814,21 +826,21 @@ func (nh *NotificationsHandler) DeleteHostRating(w http.ResponseWriter, r *http.
 	username, err := nh.getUsername(tokenStr)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#83 Failed to read username from token: %v", err))
-		http.Error(w, "Failed to read username from token", http.StatusBadRequest)
+		http.Error(w, failedToReadUsernameFromToken, http.StatusBadRequest)
 		return
 	}
 
 	userID, err := nh.profileClient.GetUserId(r.Context(), username, tokenStr)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#84 Failed to get HostID from username: %v", err))
-		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
+		http.Error(w, failedToGetHostIDFromUsername, http.StatusBadRequest)
 		return
 	}
 
 	idUser, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#85 Invalid userID: %v", err))
-		http.Error(w, "Invalid userID", http.StatusBadRequest)
+		http.Error(w, invalidUserId, http.StatusBadRequest)
 		return
 	}
 
@@ -867,21 +879,21 @@ func (nh *NotificationsHandler) DeleteRatingAccommodationHandler(w http.Response
 	username, err := nh.getUsername(tokenStr)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#90 Failed to read username from token: %v", err))
-		http.Error(w, "Failed to read username from token", http.StatusBadRequest)
+		http.Error(w, failedToReadUsernameFromToken, http.StatusBadRequest)
 		return
 	}
 
 	userID, err := nh.profileClient.GetUserId(r.Context(), username, tokenStr)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#91 Failed to get HostID from username: %v", err))
-		http.Error(w, "Failed to get HostID from username", http.StatusBadRequest)
+		http.Error(w, failedToGetHostIDFromUsername, http.StatusBadRequest)
 		return
 	}
 
 	idUser, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#92 Invalid userID: %v", err))
-		http.Error(w, "Invalid userID", http.StatusBadRequest)
+		http.Error(w, invalidUserId, http.StatusBadRequest)
 		return
 	}
 
@@ -910,7 +922,7 @@ func (nh *NotificationsHandler) NotifyForReservation(w http.ResponseWriter, r *h
 	err := nh.repo.CreateNotification(r.Context(), &notification)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#96 Failed to create notification: %v", err))
-		http.Error(w, "Failed to create notification", http.StatusInternalServerError)
+		http.Error(w, failedToCreateNotification, http.StatusInternalServerError)
 		return
 	}
 
@@ -926,7 +938,7 @@ func (nh *NotificationsHandler) NotifyForReservation(w http.ResponseWriter, r *h
 		log.Error(("[noti-handler]nh#97 Failed to send notification mail"))
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(contentType, applicationJson)
 	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(notification); err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#98 Failed to encode notification: %v", err))
@@ -949,13 +961,13 @@ func (nh *NotificationsHandler) GetAllNotifications(w http.ResponseWriter, r *ht
 	ratings, err := nh.repo.GetAllNotifications(r.Context(), username)
 	if err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#100 Error fetching host ratings: %v", err))
-		http.Error(w, "Error fetching host ratings", http.StatusInternalServerError)
+		http.Error(w, errorFethingHostRatings, http.StatusInternalServerError)
 		return
 	}
 
 	if err := json.NewEncoder(w).Encode(ratings); err != nil {
 		log.Error(fmt.Sprintf("[noti-handler]nh#101 Error encoding host rating: %v", err))
-		http.Error(w, "Error encoding host ratings", http.StatusInternalServerError)
+		http.Error(w, errorEncodingHostRatings, http.StatusInternalServerError)
 		return
 	}
 }
@@ -989,7 +1001,7 @@ func (nh *NotificationsHandler) getUsername(tokenString string) (string, error) 
 
 func (nh *NotificationsHandler) MiddlewareContentTypeSet(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, h *http.Request) {
-		rw.Header().Add("Content-Type", "application/json")
+		rw.Header().Add(contentType, applicationJson)
 
 		next.ServeHTTP(rw, h)
 	})

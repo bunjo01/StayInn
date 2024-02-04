@@ -23,6 +23,13 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+const applicationJson = "application/json"
+const contentType = "Content-Type"
+const failedToEncodeAccommodation = "Failed to encode accommodations"
+const invalidID = "Invalid ID"
+const failedToDecodeRequestBody = "Failed to decode request body"
+const imageLiteral = "%s-image-%d"
+
 type AccommodationHandler struct {
 	repo        *data.AccommodationRepository
 	reservation clients.ReservationClient
@@ -51,10 +58,10 @@ func (ah *AccommodationHandler) GetAllAccommodations(rw http.ResponseWriter, r *
 		return
 	}
 
-	rw.Header().Set("Content-Type", "application/json")
+	rw.Header().Set(contentType, applicationJson)
 	rw.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(rw).Encode(accommodations); err != nil {
-		http.Error(rw, "Failed to encode accommodations", http.StatusInternalServerError)
+		http.Error(rw, failedToEncodeAccommodation, http.StatusInternalServerError)
 		log.Error(fmt.Sprintf("[acco-handler]ach#3 Failed to encode accommodations: %v", err))
 	}
 	log.Info(fmt.Sprintf("[acco-handler]ach#4 Successfully fetched all accommodations"))
@@ -64,7 +71,7 @@ func (ah *AccommodationHandler) GetAccommodation(rw http.ResponseWriter, r *http
 	vars := mux.Vars(r)
 	id, err := primitive.ObjectIDFromHex(vars["id"])
 	if err != nil {
-		http.Error(rw, "Invalid ID", http.StatusBadRequest)
+		http.Error(rw, invalidID, http.StatusBadRequest)
 		return
 	}
 	log.Info(fmt.Sprintf("[acco-handler]ach#5 Received request from '%s' for accommodation '%s'", r.RemoteAddr, id.Hex()))
@@ -83,7 +90,7 @@ func (ah *AccommodationHandler) GetAccommodation(rw http.ResponseWriter, r *http
 		return
 	}
 
-	rw.Header().Set("Content-Type", "application/json")
+	rw.Header().Set(contentType, applicationJson)
 	rw.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(rw).Encode(accommodation); err != nil {
 		http.Error(rw, "Failed to encode accommodation", http.StatusInternalServerError)
@@ -98,7 +105,7 @@ func (ah *AccommodationHandler) CreateAccommodation(rw http.ResponseWriter, r *h
 	log.Info(fmt.Sprintf("[acco-handler]ach#10 User from '%s' creating a new accommodation", r.RemoteAddr))
 
 	if err := json.NewDecoder(r.Body).Decode(&accommodation); err != nil {
-		http.Error(rw, "Failed to decode request body", http.StatusBadRequest)
+		http.Error(rw, failedToDecodeRequestBody, http.StatusBadRequest)
 		log.Error(fmt.Sprintf("[acco-handler]ach#11 Failed to decode request body: %v", err))
 		return
 	}
@@ -133,7 +140,7 @@ func (ah *AccommodationHandler) CreateAccommodation(rw http.ResponseWriter, r *h
 		return
 	}
 
-	rw.Header().Set("Content-Type", "application/json")
+	rw.Header().Set(contentType, applicationJson)
 	rw.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(rw).Encode(accommodation); err != nil {
 		log.Error(fmt.Sprintf("[acco-handler]ach#16 Failed to encode accommodation: %v", err))
@@ -150,7 +157,7 @@ func (ah *AccommodationHandler) CreateAccommodationImages(rw http.ResponseWriter
 	log.Info(fmt.Sprintf("[acco-handler]ach#18 Recieved request to create accommodation images from '%s'", r.RemoteAddr))
 
 	if err := json.NewDecoder(r.Body).Decode(&images); err != nil {
-		http.Error(rw, "Failed to decode request body", http.StatusBadRequest)
+		http.Error(rw, failedToDecodeRequestBody, http.StatusBadRequest)
 		log.Error(fmt.Sprintf("[acco-handler]ach#19 Failed to decode request body: %v", err))
 		return
 	}
@@ -161,7 +168,7 @@ func (ah *AccommodationHandler) CreateAccommodationImages(rw http.ResponseWriter
 	}
 	ah.imageCache.PostAll(accID, images)
 
-	rw.Header().Set("Content-Type", "application/json")
+	rw.Header().Set(contentType, applicationJson)
 	rw.WriteHeader(http.StatusCreated)
 	log.Info(fmt.Sprintf("[acco-handler]ach#20 Successfully created images for accommodation '%s'", accID))
 }
@@ -175,7 +182,7 @@ func (ah *AccommodationHandler) GetAccommodationImages(rw http.ResponseWriter, r
 	var images []*cache.Image
 
 	for i := 0; i < 10; i++ {
-		filename := fmt.Sprintf("%s-image-%d", accID, i)
+		filename := fmt.Sprintf(imageLiteral, accID, i)
 		data, err := ah.images.ReadFileBytes(filename, false)
 		if err != nil {
 			break
@@ -194,7 +201,7 @@ func (ah *AccommodationHandler) GetAccommodationImages(rw http.ResponseWriter, r
 		}
 	}
 
-	rw.Header().Set("Content-Type", "application/json")
+	rw.Header().Set(contentType, applicationJson)
 	rw.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(rw).Encode(images); err != nil {
 		log.Error(fmt.Sprintf("[acco-handler]ach#23 Failed to encode images: %v", err))
@@ -207,7 +214,7 @@ func (ah *AccommodationHandler) UpdateAccommodation(rw http.ResponseWriter, r *h
 	vars := mux.Vars(r)
 	id, err := primitive.ObjectIDFromHex(vars["id"])
 	if err != nil {
-		http.Error(rw, "Invalid ID", http.StatusBadRequest)
+		http.Error(rw, invalidID, http.StatusBadRequest)
 		return
 	}
 
@@ -215,7 +222,7 @@ func (ah *AccommodationHandler) UpdateAccommodation(rw http.ResponseWriter, r *h
 
 	var updatedAccommodation data.Accommodation
 	if err := json.NewDecoder(r.Body).Decode(&updatedAccommodation); err != nil {
-		http.Error(rw, "Failed to decode request body", http.StatusBadRequest)
+		http.Error(rw, failedToDecodeRequestBody, http.StatusBadRequest)
 		log.Error(fmt.Sprintf("[acco-handler]ach#26 Failed to decode request body: %v", err))
 		return
 	}
@@ -227,7 +234,7 @@ func (ah *AccommodationHandler) UpdateAccommodation(rw http.ResponseWriter, r *h
 		return
 	}
 
-	rw.Header().Set("Content-Type", "application/json")
+	rw.Header().Set(contentType, applicationJson)
 	rw.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(rw).Encode(updatedAccommodation); err != nil {
 		log.Error(fmt.Sprintf("[acco-handler]ach#28 Failed to encode updated accommodation: %v", err))
@@ -241,7 +248,7 @@ func (ah *AccommodationHandler) DeleteAccommodation(rw http.ResponseWriter, r *h
 	vars := mux.Vars(r)
 	id, err := primitive.ObjectIDFromHex(vars["id"])
 	if err != nil {
-		http.Error(rw, "Invalid ID", http.StatusBadRequest)
+		http.Error(rw, invalidID, http.StatusBadRequest)
 		return
 	}
 
@@ -266,7 +273,7 @@ func (ah *AccommodationHandler) DeleteAccommodation(rw http.ResponseWriter, r *h
 	}
 
 	for i := 0; i < 10; i++ {
-		filename := fmt.Sprintf("%s-image-%d", id.Hex(), i)
+		filename := fmt.Sprintf(imageLiteral, id.Hex(), i)
 		err := ah.images.DeleteFile(filename, false)
 		if err != nil {
 			break
@@ -306,11 +313,11 @@ func (ah *AccommodationHandler) GetAccommodationsForUser(rw http.ResponseWriter,
 		return
 	}
 
-	rw.Header().Set("Content-Type", "application/json")
+	rw.Header().Set(contentType, applicationJson)
 	rw.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(rw).Encode(accommodations); err != nil {
 		log.Error(fmt.Sprintf("[acco-handler]ach#39 Failed to encode accommodations: %v", err))
-		http.Error(rw, "Failed to encode accommodations", http.StatusInternalServerError)
+		http.Error(rw, failedToEncodeAccommodation, http.StatusInternalServerError)
 	}
 	log.Info(fmt.Sprintf("[acco-handler]ach#40 Successfully fetched accommodations from user '%s'", username))
 }
@@ -356,7 +363,7 @@ func (ah *AccommodationHandler) DeleteUserAccommodations(rw http.ResponseWriter,
 
 	for _, accID := range accIDs {
 		for i := 0; i < 10; i++ {
-			filename := fmt.Sprintf("%s-image-%d", accID.Hex(), i)
+			filename := fmt.Sprintf(imageLiteral, accID.Hex(), i)
 			err := ah.images.DeleteFile(filename, false)
 			if err != nil {
 				break
@@ -561,18 +568,18 @@ func (ah *AccommodationHandler) SearchAccommodations(rw http.ResponseWriter, r *
 			return
 		}
 
-		rw.Header().Set("Content-Type", "application/json")
+		rw.Header().Set(contentType, applicationJson)
 		rw.WriteHeader(http.StatusOK)
 		if err := json.NewEncoder(rw).Encode(accommodationForReturn); err != nil {
 			log.Error(fmt.Sprintf("[acco-handler]ach#64 Failed to encode accommodations: %v", err))
-			http.Error(rw, "Failed to encode accommodations", http.StatusInternalServerError)
+			http.Error(rw, failedToEncodeAccommodation, http.StatusInternalServerError)
 		}
 	} else {
-		rw.Header().Set("Content-Type", "application/json")
+		rw.Header().Set(contentType, applicationJson)
 		rw.WriteHeader(http.StatusOK)
 		if err := json.NewEncoder(rw).Encode(accommodations); err != nil {
 			log.Error(fmt.Sprintf("[acco-handler]ach#65 Failed to encode accommodations: %v", err))
-			http.Error(rw, "Failed to encode accommodations", http.StatusInternalServerError)
+			http.Error(rw, failedToEncodeAccommodation, http.StatusInternalServerError)
 		}
 	}
 	log.Info(fmt.Sprintf("[acco-handler]ach#66 Successfully searched accommodations"))

@@ -25,6 +25,8 @@ import (
 	"github.com/sony/gobreaker"
 )
 
+const accommodationPath = "/accommodation/{id}"
+
 func main() {
 	port := os.Getenv("PORT")
 	if len(port) == 0 {
@@ -144,24 +146,24 @@ func main() {
 	createAccommodationImagesRouter.HandleFunc("", accommodationsHandler.CreateAccommodationImages)
 	createAccommodationImagesRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
 
-	getAccommodationImagesRouter := router.Methods(http.MethodGet).Path("/accommodation/{id}/images").Subrouter()
+	getAccommodationImagesRouter := router.Methods(http.MethodGet).Path(accommodationPath + "/images").Subrouter()
 	getAccommodationImagesRouter.HandleFunc("", accommodationsHandler.GetAccommodationImages)
 	getAccommodationImagesRouter.Use(accommodationsHandler.MiddlewareCacheAllHit)
 
 	getAllAccommodationRouter := router.Methods(http.MethodGet).Path("/accommodation").Subrouter()
 	getAllAccommodationRouter.HandleFunc("", accommodationsHandler.GetAllAccommodations)
 
-	getAccommodationRouter := router.Methods(http.MethodGet).Path("/accommodation/{id}").Subrouter()
+	getAccommodationRouter := router.Methods(http.MethodGet).Path(accommodationPath).Subrouter()
 	getAccommodationRouter.HandleFunc("", accommodationsHandler.GetAccommodation)
 
 	getAccommodationsForUserRouter := router.Methods(http.MethodGet).Path("/user/{username}/accommodations").Subrouter()
 	getAccommodationsForUserRouter.HandleFunc("", accommodationsHandler.GetAccommodationsForUser)
 
-	updateAccommodationRouter := router.Methods(http.MethodPut).Path("/accommodation/{id}").Subrouter()
+	updateAccommodationRouter := router.Methods(http.MethodPut).Path(accommodationPath).Subrouter()
 	updateAccommodationRouter.HandleFunc("", accommodationsHandler.UpdateAccommodation)
 	updateAccommodationRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
 
-	deleteAccommodationRouter := router.Methods(http.MethodDelete).Path("/accommodation/{id}").Subrouter()
+	deleteAccommodationRouter := router.Methods(http.MethodDelete).Path(accommodationPath).Subrouter()
 	deleteAccommodationRouter.HandleFunc("", accommodationsHandler.DeleteAccommodation)
 	deleteAccommodationRouter.Use(accommodationsHandler.AuthorizeRoles("HOST"))
 
