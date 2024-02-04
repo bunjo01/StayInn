@@ -13,7 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-const accommodationPath = "/accommodation/"
+const AccommodationPath = "/accommodation/"
 
 type AccommodationClient struct {
 	client  *http.Client
@@ -37,7 +37,7 @@ func (ac *AccommodationClient) CheckAccommodationID(ctx context.Context, accID p
 	}
 
 	cbResp, err := ac.cb.Execute(func() (interface{}, error) {
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, ac.address+accommodationPath+accID.Hex(), nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, ac.address+AccommodationPath+accID.Hex(), nil)
 		if err != nil {
 			return nil, err
 		}
@@ -45,7 +45,7 @@ func (ac *AccommodationClient) CheckAccommodationID(ctx context.Context, accID p
 		return ac.client.Do(req)
 	})
 	if err != nil {
-		return false, handleHttpReqErr(err, ac.address+accommodationPath+accID.Hex(), http.MethodGet, timeout)
+		return false, handleHttpReqErr(err, ac.address+AccommodationPath+accID.Hex(), http.MethodGet, timeout)
 	}
 
 	resp := cbResp.(*http.Response)
@@ -68,7 +68,7 @@ func (ac *AccommodationClient) GetAccommodationByID(ctx context.Context, accID p
 	}
 
 	cbResp, err := ac.cb.Execute(func() (interface{}, error) {
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, ac.address+accommodationPath+accID.Hex(), nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, ac.address+AccommodationPath+accID.Hex(), nil)
 		if err != nil {
 			return nil, err
 		}
@@ -76,7 +76,7 @@ func (ac *AccommodationClient) GetAccommodationByID(ctx context.Context, accID p
 		return ac.client.Do(req)
 	})
 	if err != nil {
-		return data.Accommodation{}, handleHttpReqErr(err, ac.address+accommodationPath+accID.Hex(), http.MethodGet, timeout)
+		return data.Accommodation{}, handleHttpReqErr(err, ac.address+AccommodationPath+accID.Hex(), http.MethodGet, timeout)
 	}
 
 	resp := cbResp.(*http.Response)

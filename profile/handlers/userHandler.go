@@ -17,10 +17,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-const applicationJson = "application/json"
-const contentType = "Content-Type"
-const failedToEncodeUser = "Failed to encode user"
-const failedToDecodeRequestBody = "Failed to decode request body"
+const ApplicationJson = "application/json"
+const ContentType = "Content-Type"
+const FailedToEncodeUser = "Failed to encode user"
+const FailedToDecodeRequestBody = "Failed to decode request body"
 
 type KeyProduct struct{}
 
@@ -53,7 +53,7 @@ func (uh *UserHandler) GetAllUsers(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rw.Header().Set(contentType, applicationJson)
+	rw.Header().Set(ContentType, ApplicationJson)
 	rw.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(rw).Encode(users); err != nil {
 		http.Error(rw, "Failed to encode users", http.StatusInternalServerError)
@@ -81,10 +81,10 @@ func (uh *UserHandler) GetUser(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rw.Header().Set(contentType, applicationJson)
+	rw.Header().Set(ContentType, ApplicationJson)
 	rw.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(rw).Encode(user); err != nil {
-		http.Error(rw, failedToEncodeUser, http.StatusInternalServerError)
+		http.Error(rw, FailedToEncodeUser, http.StatusInternalServerError)
 		log.Error(fmt.Sprintf("[prof-handler]ph#4 Failed to encode user: %v", err))
 	}
 	log.Info(fmt.Sprintf("[prof-handler]ph#40 Successfully fetched user with username '%s'", username))
@@ -97,7 +97,7 @@ func (uh *UserHandler) GetUserById(rw http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewDecoder(r.Body).Decode(&id); err != nil {
 		log.Error(fmt.Sprintf("[prof-handler]ph#5 Failed to decode request body: %v", err))
-		http.Error(rw, failedToDecodeRequestBody, http.StatusBadRequest)
+		http.Error(rw, FailedToDecodeRequestBody, http.StatusBadRequest)
 		return
 	}
 
@@ -114,10 +114,10 @@ func (uh *UserHandler) GetUserById(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rw.Header().Set(contentType, applicationJson)
+	rw.Header().Set(ContentType, ApplicationJson)
 	rw.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(rw).Encode(user); err != nil {
-		http.Error(rw, failedToEncodeUser, http.StatusInternalServerError)
+		http.Error(rw, FailedToEncodeUser, http.StatusInternalServerError)
 		log.Error(fmt.Sprintf("[prof-handler]ph#7 Failed to encode user: %v", err))
 	}
 	log.Info(fmt.Sprintf("[prof-handler]ph#42 Successfully fetched user with id '%s'", id.ID.Hex()))
@@ -130,7 +130,7 @@ func (uh *UserHandler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		log.Error(fmt.Sprintf("[prof-handler]ph#9 Failed to decode request body: %v", err))
-		http.Error(rw, failedToDecodeRequestBody, http.StatusBadRequest)
+		http.Error(rw, FailedToDecodeRequestBody, http.StatusBadRequest)
 		return
 	}
 
@@ -152,11 +152,11 @@ func (uh *UserHandler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rw.Header().Set(contentType, applicationJson)
+	rw.Header().Set(ContentType, ApplicationJson)
 	rw.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(rw).Encode(user); err != nil {
 		log.Error(fmt.Sprintf("[prof-handler]ph#12 Failed to encode user: %v", err))
-		http.Error(rw, failedToEncodeUser, http.StatusInternalServerError)
+		http.Error(rw, FailedToEncodeUser, http.StatusInternalServerError)
 	}
 
 	log.Info(fmt.Sprintf("[prof-handler]ph#13 User successfully created with id '%s'", user.ID.Hex()))
@@ -181,7 +181,7 @@ func (uh *UserHandler) CheckUsernameAvailability(w http.ResponseWriter, r *http.
 		Available: available,
 	}
 
-	w.Header().Set(contentType, applicationJson)
+	w.Header().Set(ContentType, ApplicationJson)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		log.Error(fmt.Sprintf("[prof-handler]ph#15 Failed to encode JSON response: %v", err))
 		http.Error(w, "Failed to encode JSON response", http.StatusInternalServerError)
@@ -208,7 +208,7 @@ func (uh *UserHandler) CheckEmailAvailability(w http.ResponseWriter, r *http.Req
 		Available: available,
 	}
 
-	w.Header().Set(contentType, applicationJson)
+	w.Header().Set(ContentType, ApplicationJson)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		log.Error(fmt.Sprintf("[prof-handler]ph#17 Failed to encode JSON response: %v", err))
 		http.Error(w, "Failed to encode JSON response", http.StatusInternalServerError)
@@ -235,7 +235,7 @@ func (uh *UserHandler) UpdateUser(rw http.ResponseWriter, r *http.Request) {
 
 	var updatedUser data.NewUser
 	if err := json.NewDecoder(r.Body).Decode(&updatedUser); err != nil {
-		http.Error(rw, failedToDecodeRequestBody, http.StatusBadRequest)
+		http.Error(rw, FailedToDecodeRequestBody, http.StatusBadRequest)
 		log.Error(fmt.Sprintf("[prof-handler]ph#20 Failed to decode request body: %v", err))
 		return
 	}
@@ -267,7 +267,7 @@ func (uh *UserHandler) UpdateUser(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rw.Header().Set(contentType, applicationJson)
+	rw.Header().Set(ContentType, ApplicationJson)
 	rw.WriteHeader(http.StatusOK)
 
 	log.Info(fmt.Sprintf("[prof-handler]ph#24 Successfully updated user '%s'", updatedUser.Username))

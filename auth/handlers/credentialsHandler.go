@@ -23,7 +23,7 @@ type CredentialsHandler struct {
 	profile clients.ProfileClient
 }
 
-const invalidRequestBody = "Invalid request body"
+const InvalidRequestBody = "Invalid request body"
 
 const (
 	INTENTION_ACTIVATION = "activation"
@@ -40,7 +40,7 @@ func NewCredentialsHandler(r *data.CredentialsRepo, p clients.ProfileClient) *Cr
 func (ch *CredentialsHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var credentials data.Credentials
 	if err := json.NewDecoder(r.Body).Decode(&credentials); err != nil {
-		http.Error(w, invalidRequestBody, http.StatusBadRequest)
+		http.Error(w, InvalidRequestBody, http.StatusBadRequest)
 		return
 	}
 
@@ -132,7 +132,7 @@ func (ch *CredentialsHandler) Register(w http.ResponseWriter, r *http.Request) {
 	tokenStr := ch.extractTokenFromHeader(r)
 	var newUser data.NewUser
 	if err := json.NewDecoder(r.Body).Decode(&newUser); err != nil {
-		http.Error(w, invalidRequestBody, http.StatusBadRequest)
+		http.Error(w, InvalidRequestBody, http.StatusBadRequest)
 		log.Error(fmt.Sprintf("[auth-handler]ah#20 Failed to register new user: invalid request body"))
 		return
 	}
@@ -174,7 +174,7 @@ func (ch *CredentialsHandler) ChangePassword(w http.ResponseWriter, r *http.Requ
 
 	err := reqBody.FromJSON(r.Body)
 	if err != nil {
-		http.Error(w, invalidRequestBody, http.StatusBadRequest)
+		http.Error(w, InvalidRequestBody, http.StatusBadRequest)
 		log.Error(fmt.Sprintf("[auth-handler]ah#26 Failed to change password: invalid request body"))
 		return
 	}
@@ -224,7 +224,7 @@ func (ch *CredentialsHandler) SendRecoveryEmail(w http.ResponseWriter, r *http.R
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
-		http.Error(w, invalidRequestBody, http.StatusBadRequest)
+		http.Error(w, InvalidRequestBody, http.StatusBadRequest)
 		return
 	}
 
@@ -248,7 +248,7 @@ func (ch *CredentialsHandler) UpdatePasswordWithRecoveryUUID(w http.ResponseWrit
 		NewPassword  string `json:"newPassword"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-		http.Error(w, invalidRequestBody, http.StatusBadRequest)
+		http.Error(w, InvalidRequestBody, http.StatusBadRequest)
 		return
 	}
 
