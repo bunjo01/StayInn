@@ -10,7 +10,6 @@
 }
 
 .header-main {
-    /* width: 100%; */
     background-color: goldenrod;
 }
 
@@ -23,7 +22,7 @@
 }
 
 .header h1 {
-    font-family: 'sans-serif', arial, helvetica;
+    font-family: sans-serif, arial, helvetica;
     text-align: left;
     font-size: 40px;
     color: #ffffff;

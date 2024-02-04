@@ -101,8 +101,14 @@ export class AccommodationDetailsComponent implements OnInit {
     const isPng = base64Image.startsWith('/9j/') || base64Image.startsWith('iVBOR');
     const isJpeg = base64Image.startsWith('/8A') || base64Image.startsWith('/9A') || base64Image.startsWith('R0lGOD');
   
-    // Default to PNG if neither PNG nor JPEG is detected
-    const imageType = isPng ? 'image/png' : (isJpeg ? 'image/jpeg' : 'image/png');
+    let imageType: string;
+    if (isPng) {
+      imageType = 'image/png';
+    } else if (isJpeg) {
+      imageType = 'image/jpeg';
+    } else {
+      imageType = 'image/png'; // Default to PNG if neither PNG nor JPEG is detected
+    }
   
     // Construct the data URL with the detected image type
     const imageUrl = `data:${imageType};base64,${base64Image}`;
