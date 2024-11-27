@@ -77,6 +77,6 @@ This project aims to implement a platform for offering and reserving accommodati
 - **HTTPS Communication** between services and the client application
 - **Authentication and Access Control** for users (RBAC model)
 - **Data Protection** - encryption and hashing of sensitive data
-- **Logging
+- **Logging**
 
 ---
